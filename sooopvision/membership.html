@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Membership - SOOOP</title>
+    <meta name="description" content="SOOOP Membership Page" />
+    <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+    <style>
+        body { background: #f9fafb; margin: 0; font-family: Arial, sans-serif; }
+        .header, .footer { background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .header { padding: 16px 0; }
+        .header .container { display: flex; align-items: center; justify-content: space-between; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+        .header nav a { margin-left: 24px; color: #01426A; text-decoration: none; font-weight: 500; transition: color 0.2s; }
+        .header nav a:hover { color: #0070f3; }
+        .main { max-width: 900px; margin: 32px auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); padding: 32px; }
+        h1 { color: #01426A; margin-bottom: 24px; }
+        .benefits, .types { margin-bottom: 32px; }
+        .types table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        .types th, .types td { border: 1px solid #e0e0e0; padding: 10px; text-align: left; }
+        .types th { background: #01426A; color: #fff; }
+        .download-btn { display: inline-block; margin-right: 12px; background: #01426A; color: #fff; padding: 10px 18px; border-radius: 6px; text-decoration: none; font-weight: 500; transition: background 0.2s; }
+        .download-btn:hover { background: #0070f3; }
+        .form-section { margin-top: 32px; }
+        .form-section label { display: block; margin-bottom: 6px; color: #01426A; }
+        .form-section input, .form-section select { width: 100%; padding: 8px; margin-bottom: 16px; border: 1px solid #ccc; border-radius: 4px; }
+        .form-section button[type="submit"] { 
+            background: #01426A; 
+            color: #fff; 
+            padding: 12px 24px; 
+            border: none; 
+            border-radius: 6px; 
+            font-weight: 500; 
+            cursor: pointer;
+            width: 100%;
+            margin-top: 16px;
+        }
+        .form-section button[type="submit"]:hover { background: #0070f3; }
+        .form-section button[type="submit"]:disabled { 
+            background: #ccc; 
+            cursor: not-allowed; 
+        }
+        .alert {
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 16px;
+        }
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #01426A;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .footer { text-align: center; padding: 32px 0 16px 0; margin-top: 48px; }
+        .footer h2 { margin-bottom: 8px; color: #01426A; }
+        .footer p { margin: 4px 0; color: #333; }
+        @media (max-width: 700px) {
+            .main { padding: 16px; }
+            .header .container { flex-direction: column; align-items: flex-start; }
+            .header nav { margin-top: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <a href="/index.html"><img src="/logo.png" alt="SOOOP Logo" style="height:48px; width:auto;" /></a>
+            <nav>
+                <a href="/index.html">Home</a>
+                <a href="/membership.html">Membership</a>
+                <a href="/events.html">Events</a>
+                <a href="/cabinet.html">Cabinet</a>
+                <a href="#contact">Contact Us</a>
+            </nav>
+        </div>
+    </header>
+    <main class="main">
+        <h1>Membership</h1>
+        <div class="benefits">
+            <h2>Membership Benefits</h2>
+            <ul>
+                <li>Access to professional development resources</li>
+                <li>Networking opportunities with industry professionals</li>
+                <li>Discounts on conferences and events</li>
+                <li>Subscription to our quarterly journal</li>
+                <li>Access to research grants and funding opportunities</li>
+            </ul>
+        </div>
+        <div class="types">
+            <h2>Membership Types & Fees</h2>
+            <table>
+                <tr><th>Type</th><th>Fee</th></tr>
+                <tr><td>Student Membership</td><td>Rs. 1000/-</td></tr>
+                <tr><td>Full Membership</td><td>Rs. 1500/-</td></tr>
+                <tr><td>Overseas Membership</td><td>Rs. 2000/-</td></tr>
+            </table>
+        </div>
+        <a href="/sooop-oath.pdf" class="download-btn" download>Download Oath (PDF)</a>
+        <a href="/sooop-membership-form.pdf" class="download-btn" download>Download Registration Form</a>
+        <div class="form-section">
+            <h2>Online Registration</h2>
+            <p>Fill out the form below to register for membership. After filling the form, you can submit it online. Degree upload is optional for student membership.</p>
+            <div id="alert-success" class="alert alert-success"></div>
+            <div id="alert-error" class="alert alert-error"></div>
+            <form id="membershipForm" onsubmit="handleSubmit(event)">
+                <label>Full Name</label>
+                <input type="text" name="fullName" required />
+                <label>Email</label>
+                <input type="email" name="email" required />
+                <label>Phone</label>
+                <input type="tel" name="phone" required />
+                <label>Address</label>
+                <input type="text" name="address" required />
+                <label>Membership Type</label>
+                <select name="membershipType" required onchange="handleMembershipTypeChange(this.value)">
+                    <option value="">Select Type</option>
+                    <option value="student">Student Membership</option>
+                    <option value="full">Full Membership</option>
+                    <option value="overseas">Overseas Membership</option>
+                </select>
+                <label>Upload CNIC</label>
+                <input type="file" name="cnic" required />
+                <label>Upload Degree</label>
+                <input type="file" name="degree" id="degreeInput" />
+                <label>Upload Transcript</label>
+                <input type="file" name="transcript" required />
+                <label>Upload Picture</label>
+                <input type="file" name="picture" accept="image/*" required />
+                <label>Upload Bank Recipient Slip</label>
+                <input type="file" name="bankSlip" required />
+                <button type="submit">Submit Application</button>
+                <div id="loading" class="loading"></div>
+            </form>
+        </div>
+    </main>
+    <footer id="contact" class="footer">
+        <h2>Contact Us</h2>
+        <p>Email: info@sooopvision.org | Phone: 332-4513876</p>
+        <p style="color:#888; font-size:14px;">&copy; 2025 SOOOP. All rights reserved.</p>
+    </footer>
+    <script>
+        // Initialize EmailJS
+        (function() {
+            emailjs.init("5-ZKE9IeLQM24PUKU");
+        })();
+
+        function handleMembershipTypeChange(type) {
+            const degreeInput = document.getElementById('degreeInput');
+            degreeInput.required = type !== 'student';
+        }
+
+        function showAlert(type, message) {
+            const successAlert = document.getElementById('alert-success');
+            const errorAlert = document.getElementById('alert-error');
+            
+            successAlert.style.display = type === 'success' ? 'block' : 'none';
+            errorAlert.style.display = type === 'error' ? 'block' : 'none';
+            
+            if (type === 'success') {
+                successAlert.textContent = message;
+            } else {
+                errorAlert.textContent = message;
+            }
+        }
+
+        async function handleSubmit(event) {
+            event.preventDefault();
+            const form = event.target;
+            const submitButton = form.querySelector('button[type="submit"]');
+            const loading = document.getElementById('loading');
+            
+            // Disable submit button and show loading
+            submitButton.disabled = true;
+            loading.style.display = 'block';
+            
+            try {
+                // Get form data
+                const formData = new FormData(form);
+                const data = {
+                    fullName: formData.get('fullName'),
+                    email: formData.get('email'),
+                    phone: formData.get('phone'),
+                    address: formData.get('address'),
+                    membershipType: formData.get('membershipType'),
+                    cnic: formData.get('cnic')?.name,
+                    degree: formData.get('degree')?.name,
+                    transcript: formData.get('transcript')?.name,
+                    picture: formData.get('picture')?.name,
+                    bankSlip: formData.get('bankSlip')?.name
+                };
+
+                // Send email using EmailJS
+                await emailjs.send(
+                    'service_vn3nahg',
+                    'template_h8vrg8f',
+                    {
+                        name: data.fullName,
+                        email: data.email,
+                        phone: data.phone,
+                        address: data.address,
+                        membership_type: data.membershipType,
+                        cnic: data.cnic,
+                        degree: data.degree,
+                        transcript: data.transcript,
+                        picture: data.picture,
+                        bank_slip: data.bankSlip
+                    }
+                );
+
+                showAlert('success', 'Your application has been submitted successfully! We will contact you soon.');
+                form.reset();
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('error', 'There was an error submitting your application. Please try again later.');
+            } finally {
+                submitButton.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
