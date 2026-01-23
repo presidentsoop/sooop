@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import Image from "next/image";
 import AddMemberModal from "./AddMemberModal";
 import { format, addYears, isPast } from "date-fns";
+import AdminDocumentViewer from "./AdminDocumentViewer";
 
 type Member = {
     id: string;
@@ -137,188 +138,201 @@ export default function MemberManagement() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8 animate-fade-in pb-16">
             {/* Header Control Area */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Community Management</h2>
-                    <p className="text-gray-500 text-sm">Manage memberships, approvals, and subscriptions.</p>
+                    <h2 className="text-3xl font-heading font-bold text-gray-900 tracking-tight">Community Management</h2>
+                    <p className="text-gray-500 mt-1">Manage memberships, approvals, and subscriptions.</p>
                 </div>
                 <button
                     onClick={() => setShowAddModal(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-600 transition shadow-sm font-medium"
+                    className="flex items-center gap-2 px-6 py-3 bg-primary-900 text-white rounded-xl hover:bg-primary-800 transition-all shadow-lg shadow-primary-900/20 font-semibold hover:-translate-y-0.5"
                 >
-                    <UserPlus className="w-5 h-5" /> Add Member
+                    <UserPlus className="w-5 h-5" />
+                    <span>Add Member</span>
                 </button>
             </div>
 
-            {/* Tabs & Search Bar (Facebook style separate container) */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between p-2">
-                    {/* Tabs */}
-                    <div className="flex overflow-x-auto no-scrollbar">
-                        {TABS.map(tab => (
+            {/* Controls Filter Bar */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-soft-xl p-1.5 flex flex-col md:flex-row gap-2">
+                {/* Segmented Tabs */}
+                <div className="flex bg-gray-50 p-1 rounded-xl overflow-x-auto no-scrollbar flex-1">
+                    {TABS.map(tab => {
+                        const isActive = activeTab === tab.id;
+                        return (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`px-6 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors duration-200 ${activeTab === tab.id
-                                        ? 'border-primary text-primary'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                                className={`flex items-center gap-2 px-6 py-2.5 text-sm font-semibold rounded-lg transition-all whitespace-nowrap ${isActive
+                                    ? 'bg-white text-gray-900 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                                     }`}
                             >
                                 {tab.label}
-                                {tab.id === 'pending' && members.filter(m => m.membership_status === 'pending').length > 0 && activeTab !== 'pending' && (
-                                    <span className="ml-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                                        New
+                                {tab.id === 'pending' && members.filter(m => m.membership_status === 'pending').length > 0 && (
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? 'bg-red-500 text-white' : 'bg-red-100 text-red-600'}`}>
+                                        {members.filter(m => m.membership_status === 'pending').length}
                                     </span>
                                 )}
                             </button>
-                        ))}
-                    </div>
-
-                    {/* Search */}
-                    <div className="p-2 w-full md:w-80">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                            <input
-                                type="text"
-                                placeholder="Search members..."
-                                className="w-full pl-9 pr-4 py-2 bg-gray-50 border-none rounded-lg focus:ring-2 focus:ring-primary/20 text-sm outline-none"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                    </div>
+                        );
+                    })}
                 </div>
 
-                {/* Table Content */}
-                <div className="overflow-x-auto">
+                {/* Search */}
+                <div className="relative w-full md:w-80">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                        type="text"
+                        placeholder="Search by name, email, or CNIC..."
+                        className="w-full pl-11 pr-4 py-3.5 bg-gray-50/50 hover:bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-primary/10 transition-all text-sm outline-none font-medium text-gray-700 placeholder:text-gray-400"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+            </div>
+
+            {/* Data Grid */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-280px)] min-h-[500px]">
+                <div className="overflow-auto flex-1 custom-scrollbar relative">
                     <table className="w-full text-left border-collapse">
-                        <thead className="bg-gray-50/50 text-gray-500 text-xs uppercase font-medium tracking-wider">
+                        <thead className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10 shadow-sm">
                             <tr>
-                                <th className="px-6 py-4">Member</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4">Subscription</th>
-                                <th className="px-6 py-4 text-right">Actions</th>
+                                <th className="px-6 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50">Member Profile</th>
+                                <th className="px-6 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50">Status</th>
+                                <th className="px-6 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50">Subscription</th>
+                                <th className="px-6 py-5 text-right text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 bg-white">
+
+                        <tbody className="divide-y divide-gray-50">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-24 text-center">
-                                        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto mb-3"></div>
-                                        <p className="text-gray-500 text-sm">Loading community data...</p>
+                                    <td colSpan={4} className="px-6 py-32 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <div className="w-8 h-8 border-2 border-primary-100 border-t-primary-600 rounded-full animate-spin"></div>
+                                            <p className="text-gray-400 text-sm font-medium">Fetching community data...</p>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : filteredMembers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-24 text-center">
-                                        <div className="mx-auto w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                                            <UserPlus className="w-8 h-8 text-gray-300" />
+                                    <td colSpan={4} className="px-6 py-32 text-center">
+                                        <div className="mx-auto w-20 h-20 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 border border-gray-100 transform rotate-3">
+                                            <Search className="w-8 h-8 text-gray-300" />
                                         </div>
-                                        <p className="text-gray-900 font-medium">No members found</p>
-                                        <p className="text-gray-500 text-sm mt-1">Try adjusting your filters or search terms.</p>
+                                        <h3 className="text-gray-900 font-bold text-lg">No Results Found</h3>
+                                        <p className="text-gray-500 text-sm mt-1 max-w-xs mx-auto">We couldn't find any members matching your search or filter criteria.</p>
+                                        <button
+                                            onClick={() => { setSearchTerm(''); setActiveTab('all'); }}
+                                            className="mt-4 text-primary font-semibold text-sm hover:underline"
+                                        >
+                                            Clear Filters
+                                        </button>
                                     </td>
                                 </tr>
                             ) : (
                                 filteredMembers.map((member) => (
-                                    <tr key={member.id} className="group hover:bg-gray-50/50 transition-colors">
+                                    <tr key={member.id} className="group hover:bg-blue-50/30 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-full bg-gray-100 flex-shrink-0 relative overflow-hidden border border-gray-100">
-                                                    {member.profile_photo_url ? (
-                                                        <Image src={member.profile_photo_url} alt={member.full_name} fill className="object-cover" />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-50 font-bold text-lg">
-                                                            {member.full_name?.[0]}
-                                                        </div>
-                                                    )}
+                                                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-gray-100 to-gray-200 p-[2px] flex-shrink-0 cursor-pointer hover:scale-105 transition-transform" onClick={() => { setSelectedMember(member); setShowModal(true); }}>
+                                                    <div className="w-full h-full rounded-full overflow-hidden bg-white relative">
+                                                        {member.profile_photo_url ? (
+                                                            <Image src={member.profile_photo_url} alt={member.full_name} fill className="object-cover" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-50 font-bold text-lg select-none">
+                                                                {member.full_name?.[0]?.toUpperCase()}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <div>
                                                     <div className="flex items-center gap-2">
-                                                        <p className="font-semibold text-gray-900 text-sm">{member.full_name}</p>
-                                                        {member.role === 'student' && <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium">Student</span>}
-                                                        {member.role === 'professional' && <span className="text-[10px] px-2 py-0.5 bg-purple-50 text-purple-600 rounded-full font-medium">Pro</span>}
+                                                        <p className="font-bold text-gray-900 text-sm hover:text-primary cursor-pointer transition-colors" onClick={() => { setSelectedMember(member); setShowModal(true); }}>
+                                                            {member.full_name}
+                                                        </p>
+                                                        {member.role === 'student' && <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded border border-blue-100 font-bold uppercase tracking-wider">Student</span>}
                                                     </div>
-                                                    <p className="text-xs text-gray-500">{member.email}</p>
-                                                    <p className="text-[10px] text-gray-400 mt-0.5">{member.institution || member.city}</p>
+                                                    <p className="text-xs text-gray-500 font-mono">{member.cnic}</p>
+                                                    <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[180px]">{member.institution || member.city || 'No Location'}</p>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
                                             {member.membership_status === 'approved' && (
-                                                <div className="flex items-center gap-2 text-green-700 text-sm font-medium bg-green-50 px-3 py-1 rounded-full w-fit">
-                                                    <CheckCircle className="w-4 h-4" /> Active
-                                                </div>
+                                                <span className="inline-flex items-center gap-1.5 text-emerald-700 text-xs font-bold bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div> Active
+                                                </span>
                                             )}
                                             {member.membership_status === 'pending' && (
-                                                <div className="flex items-center gap-2 text-yellow-700 text-sm font-medium bg-yellow-50 px-3 py-1 rounded-full w-fit">
-                                                    <Clock className="w-4 h-4" /> Pending Review
-                                                </div>
+                                                <span className="inline-flex items-center gap-1.5 text-amber-700 text-xs font-bold bg-amber-50 px-2.5 py-1 rounded-md border border-amber-100">
+                                                    <Clock className="w-3 h-3" /> Reviewing
+                                                </span>
                                             )}
                                             {member.membership_status === 'blocked' && (
-                                                <div className="flex items-center gap-2 text-red-700 text-sm font-medium bg-red-50 px-3 py-1 rounded-full w-fit">
-                                                    <Ban className="w-4 h-4" /> Blocked
-                                                </div>
+                                                <span className="inline-flex items-center gap-1.5 text-red-700 text-xs font-bold bg-red-50 px-2.5 py-1 rounded-md border border-red-100">
+                                                    <Ban className="w-3 h-3" /> Blocked
+                                                </span>
                                             )}
                                             {(member.membership_status === 'expired' || member.membership_status === 'revoked') && (
-                                                <div className="flex items-center gap-2 text-gray-700 text-sm font-medium bg-gray-100 px-3 py-1 rounded-full w-fit">
-                                                    <AlertTriangle className="w-4 h-4" /> Expired
-                                                </div>
+                                                <span className="inline-flex items-center gap-1.5 text-gray-600 text-xs font-bold bg-gray-100 px-2.5 py-1 rounded-md border border-gray-200">
+                                                    <AlertTriangle className="w-3 h-3" /> Inactive
+                                                </span>
                                             )}
                                         </td>
                                         <td className="px-6 py-4">
                                             {member.subscription_end_date ? (
                                                 <div>
-                                                    <p className="text-sm font-medium text-gray-900">
-                                                        Expires {format(new Date(member.subscription_end_date), 'MMM d, yyyy')}
+                                                    <p className={`text-sm font-semibold ${isPast(new Date(member.subscription_end_date)) ? 'text-red-600' : 'text-gray-900'}`}>
+                                                        {format(new Date(member.subscription_end_date), 'MMM d, yyyy')}
                                                     </p>
-                                                    <p className="text-xs text-gray-500">
-                                                        Started {format(new Date(member.subscription_start_date!), 'MMM d, yyyy')}
-                                                    </p>
+                                                    <div className="w-full bg-gray-100 h-1 mt-2 rounded-full overflow-hidden">
+                                                        <div
+                                                            className={`h-full rounded-full ${isPast(new Date(member.subscription_end_date)) ? 'bg-red-500' : 'bg-green-500'}`}
+                                                            style={{
+                                                                width: `${Math.min(100, Math.max(0, ((new Date(member.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24 * 365)) * 100))}%`
+                                                            }}
+                                                        ></div>
+                                                    </div>
                                                 </div>
                                             ) : (
-                                                <span className="text-xs text-gray-400 italic">No active subscription</span>
+                                                <span className="text-xs text-gray-400 italic">No Subscription</span>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="flex items-center justify-end gap-1 opacity-40 group-hover:opacity-100 transition-all duration-200">
                                                 <button
                                                     onClick={() => { setSelectedMember(member); setShowModal(true); }}
-                                                    className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition"
-                                                    title="View Details"
+                                                    className="p-2 text-gray-400 hover:text-primary hover:bg-primary-50 rounded-lg transition-colors"
+                                                    title="View Profile"
                                                 >
-                                                    <Eye className="w-5 h-5" />
+                                                    <Eye className="w-4 h-4" />
                                                 </button>
 
                                                 {member.membership_status === 'pending' && (
                                                     <>
                                                         <button
-                                                            className="p-2 text-green-600 hover:bg-green-50 rounded-full transition"
+                                                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                                                             onClick={() => handleAction(member.id, 'approve')}
-                                                            title="Approve & Activate"
+                                                            title="Approve"
                                                         >
-                                                            <CheckCircle className="w-5 h-5" />
+                                                            <CheckCircle className="w-4 h-4" />
                                                         </button>
                                                         <button
-                                                            className="p-2 text-red-600 hover:bg-red-50 rounded-full transition"
+                                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                                             onClick={() => handleAction(member.id, 'reject')}
                                                             title="Reject"
                                                         >
-                                                            <XCircle className="w-5 h-5" />
+                                                            <XCircle className="w-4 h-4" />
                                                         </button>
                                                     </>
                                                 )}
 
-                                                {member.membership_status === 'approved' && (
-                                                    <button
-                                                        className="p-2 text-orange-600 hover:bg-orange-50 rounded-full transition"
-                                                        onClick={() => handleAction(member.id, 'revoke')}
-                                                        title="Revoke Access"
-                                                    >
-                                                        <Shield className="w-5 h-5" />
-                                                    </button>
-                                                )}
+                                                <button className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+                                                    <MoreVertical className="w-4 h-4" />
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -335,125 +349,181 @@ export default function MemberManagement() {
                 onSuccess={() => { setShowAddModal(false); fetchMembers(); }}
             />
 
-            {/* View/Edit Modal (Can be extracted) */}
+            {/* HIGH END MEMBER DETAIL MODAL */}
             {showModal && selectedMember && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowModal(false)}></div>
-                    <div className="relative bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl animate-scale-in">
-                        <div className="sticky top-0 bg-white/80 backdrop-blur-md z-10 border-b p-4 flex justify-between items-center">
-                            <h3 className="font-bold text-lg text-gray-800">Member Details</h3>
-                            <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-full"><X className="w-5 h-5" /></button>
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-primary-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowModal(false)}></div>
+                    <div className="relative bg-[#F8FAFC] rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl animate-scale-in flex flex-col">
+
+                        {/* HERO HEADER */}
+                        <div className="relative bg-primary-900 h-48 flex-shrink-0">
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary-800 to-black/50"></div>
+                            {/* Texture */}
+                            <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-colors z-20"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
                         </div>
 
-                        <div className="p-8">
-                            {/* Profile Header */}
-                            <div className="flex flex-col md:flex-row gap-8 items-start mb-8">
-                                <div className="w-32 h-32 rounded-2xl bg-gray-100 relative overflow-hidden shadow-card border-4 border-white">
-                                    {selectedMember.profile_photo_url ? (
-                                        <Image src={selectedMember.profile_photo_url} alt="Profile" fill className="object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-gray-300">
-                                            {selectedMember.full_name[0]}
+                        {/* CONTENT WRAPPER */}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar">
+                            <div className="px-8 pb-8 -mt-20 relative z-10">
+                                {/* Summary Card */}
+                                <div className="flex flex-col md:flex-row gap-6 mb-8">
+                                    <div className="w-40 h-40 rounded-3xl bg-white p-2 shadow-xl shrink-0 mx-auto md:mx-0">
+                                        <div className="w-full h-full rounded-2xl overflow-hidden relative bg-gray-100">
+                                            {selectedMember.profile_photo_url ? (
+                                                <Image src={selectedMember.profile_photo_url} alt="Profile" fill className="object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-gray-300">
+                                                    {selectedMember.full_name[0]}
+                                                </div>
+                                            )}
                                         </div>
+                                    </div>
+
+                                    <div className="flex-1 pt-20 md:pt-24 text-center md:text-left">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            <div>
+                                                <h2 className="text-3xl font-bold text-gray-900 leading-none mb-2">{selectedMember.full_name}</h2>
+                                                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 text-sm text-gray-500 font-medium">
+                                                    <span className="bg-white px-2 py-0.5 rounded border border-gray-200 shadow-sm">{selectedMember.role}</span>
+                                                    <span>•</span>
+                                                    <span>{selectedMember.institution || 'Unknown Institution'}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Status Badge */}
+                                            <div className={`px-4 py-2 rounded-xl text-sm font-bold shadow-sm border
+                                                ${selectedMember.membership_status === 'approved' ? 'bg-green-50 text-green-700 border-green-100' : ''}
+                                                ${selectedMember.membership_status === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-100' : ''}
+                                                ${selectedMember.membership_status === 'blocked' ? 'bg-red-50 text-red-700 border-red-100' : ''}
+                                            `}>
+                                                {selectedMember.membership_status.toUpperCase()}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Action Bar */}
+                                <div className="flex items-center gap-3 mb-8 p-1 bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
+                                    <button className="flex-1 min-w-[120px] px-4 py-2 text-sm font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                        <AlertTriangle className="w-4 h-4" /> Reset Password
+                                    </button>
+                                    <div className="w-px h-6 bg-gray-200 my-auto"></div>
+                                    {selectedMember.membership_status === 'pending' ? (
+                                        <>
+                                            <button onClick={() => handleAction(selectedMember.id, 'approve')} className="flex-1 min-w-[120px] bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary-600 transition-colors shadow-lg shadow-primary/20">
+                                                Approve Application
+                                            </button>
+                                            <button onClick={() => handleAction(selectedMember.id, 'reject')} className="flex-1 min-w-[120px] text-red-600 px-4 py-2 text-sm font-bold hover:bg-red-50 rounded-lg transition-colors">
+                                                Reject
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <button onClick={() => handleAction(selectedMember.id, 'revoke')} className="flex-1 min-w-[120px] text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 text-sm font-bold rounded-lg transition-colors">
+                                            Revoke Access
+                                        </button>
                                     )}
                                 </div>
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-4 mb-2">
-                                        <h1 className="text-3xl font-bold text-gray-900">{selectedMember.full_name}</h1>
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${selectedMember.membership_status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-800'
-                                            }`}>
-                                            {selectedMember.membership_status}
-                                        </span>
-                                    </div>
-                                    <p className="text-lg text-gray-600 mb-4">{selectedMember.role} • {selectedMember.institution}</p>
 
-                                    <div className="flex flex-wrap gap-3">
-                                        {selectedMember.membership_status === 'pending' ? (
-                                            <>
-                                                <button onClick={() => handleAction(selectedMember.id, 'approve')} className="btn btn-primary px-6">
-                                                    Approve Application
-                                                </button>
-                                                <button onClick={() => handleAction(selectedMember.id, 'reject')} className="btn bg-gray-100 hover:bg-gray-200 text-gray-700 px-6">
-                                                    Reject
-                                                </button>
-                                            </>
-                                        ) : (
-                                            <button onClick={() => handleAction(selectedMember.id, 'revoke')} className="btn bg-red-50 hover:bg-red-100 text-red-600 px-6">
-                                                Revoke Membership
-                                            </button>
+                                {/* Two Column Grid */}
+                                <div className="grid md:grid-cols-3 gap-8">
+                                    {/* Left Data Column */}
+                                    <div className="md:col-span-2 space-y-6">
+                                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                                            <h3 className="text-gray-900 font-bold mb-4 flex items-center gap-2">
+                                                <UserPlus className="w-5 h-5 text-primary" /> Personal Information
+                                            </h3>
+                                            <div className="grid sm:grid-cols-2 gap-6">
+                                                <div>
+                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Email Address</label>
+                                                    <p className="text-gray-900 font-medium break-all">{selectedMember.email}</p>
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">CNIC Number</label>
+                                                    <p className="text-gray-900 font-medium font-mono tracking-tight">{selectedMember.cnic}</p>
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Phone Number</label>
+                                                    <p className="text-gray-900 font-medium">{selectedMember.contact_number}</p>
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">City / Location</label>
+                                                    <p className="text-gray-900 font-medium">{selectedMember.city || 'Not Specified'}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                                            <h3 className="text-gray-900 font-bold mb-4 flex items-center gap-2">
+                                                <FileText className="w-5 h-5 text-primary" /> Professional Details
+                                            </h3>
+                                            <div className="grid sm:grid-cols-2 gap-6">
+                                                <div>
+                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Institution</label>
+                                                    <p className="text-gray-900 font-medium">{selectedMember.institution || 'N/A'}</p>
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Qualification</label>
+                                                    <p className="text-gray-900 font-medium">{selectedMember.qualification || 'N/A'}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                                            <h3 className="text-gray-900 font-bold mb-4 flex items-center gap-2">
+                                                <Shield className="w-5 h-5 text-primary" /> Verification Documents
+                                            </h3>
+                                            <AdminDocumentViewer userId={selectedMember.id} />
+                                        </div>
+
+                                    </div>
+
+                                    {/* Right Meta Column */}
+                                    <div className="space-y-6">
+                                        {selectedMember.subscription_end_date && (
+                                            <div className="bg-gradient-to-br from-primary-900 to-primary-800 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                                                <div className="relative z-10">
+                                                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                                                        <Shield className="w-5 h-5 text-accent-400" /> Subscription
+                                                    </h3>
+                                                    <div className="space-y-4">
+                                                        <div>
+                                                            <p className="text-primary-200 text-xs font-bold uppercase">Expires On</p>
+                                                            <p className="text-2xl font-bold">{format(new Date(selectedMember.subscription_end_date), 'MMM d, yyyy')}</p>
+                                                        </div>
+                                                        <div className="pt-4 border-t border-white/10">
+                                                            <p className="text-primary-200 text-xs font-bold uppercase">Started</p>
+                                                            <p className="text-sm opacity-80">{format(new Date(selectedMember.subscription_start_date!), 'MMM d, yyyy')}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {/* Circles */}
+                                                <div className="absolute right-0 bottom-0 w-32 h-32 bg-white/10 rounded-full blur-2xl translate-y-1/2 translate-x-1/2"></div>
+                                            </div>
                                         )}
+
+                                        <div className="bg-gray-100 rounded-2xl p-6 border border-gray-200/50">
+                                            <h4 className="font-bold text-gray-500 text-xs uppercase tracking-wider mb-3">System Metadata</h4>
+                                            <ul className="space-y-3 text-sm">
+                                                <li className="flex justify-between">
+                                                    <span className="text-gray-500">Joined</span>
+                                                    <span className="font-medium text-gray-900">{format(new Date(selectedMember.created_at), 'MMM d, yyyy')}</span>
+                                                </li>
+                                                <li className="flex justify-between">
+                                                    <span className="text-gray-500">ID</span>
+                                                    <span className="font-mono text-xs text-gray-400 truncate max-w-[100px]">{selectedMember.id}</span>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Details Grid */}
-                            <div className="grid md:grid-cols-2 gap-10">
-                                <div>
-                                    <h4 className="flex items-center gap-2 font-bold text-gray-900 border-b pb-2 mb-4">
-                                        <UserPlus className="w-5 h-5 text-gray-400" /> Personal Info
-                                    </h4>
-                                    <dl className="space-y-4">
-                                        <div>
-                                            <dt className="text-xs text-gray-500 uppercase font-semibold">Email</dt>
-                                            <dd className="text-gray-900">{selectedMember.email}</dd>
-                                        </div>
-                                        <div>
-                                            <dt className="text-xs text-gray-500 uppercase font-semibold">Phone</dt>
-                                            <dd className="text-gray-900">{selectedMember.contact_number}</dd>
-                                        </div>
-                                        <div>
-                                            <dt className="text-xs text-gray-500 uppercase font-semibold">CNIC</dt>
-                                            <dd className="text-gray-900">{selectedMember.cnic}</dd>
-                                        </div>
-                                        <div>
-                                            <dt className="text-xs text-gray-500 uppercase font-semibold">City</dt>
-                                            <dd className="text-gray-900">{selectedMember.city || '-'}</dd>
-                                        </div>
-                                    </dl>
-                                </div>
-                                <div>
-                                    <h4 className="flex items-center gap-2 font-bold text-gray-900 border-b pb-2 mb-4">
-                                        <FileText className="w-5 h-5 text-gray-400" /> Professional Info
-                                    </h4>
-                                    <dl className="space-y-4">
-                                        <div>
-                                            <dt className="text-xs text-gray-500 uppercase font-semibold">Current Institution</dt>
-                                            <dd className="text-gray-900">{selectedMember.institution || '-'}</dd>
-                                        </div>
-                                        <div>
-                                            <dt className="text-xs text-gray-500 uppercase font-semibold">Qualification</dt>
-                                            <dd className="text-gray-900">{selectedMember.qualification || '-'}</dd>
-                                        </div>
-                                    </dl>
-                                </div>
-                            </div>
-
-                            {/* Subscription Info */}
-                            {selectedMember.subscription_end_date && (
-                                <div className="mt-8 bg-blue-50 border border-blue-100 rounded-xl p-6">
-                                    <h4 className="font-bold text-blue-900 mb-4 flex items-center gap-2">
-                                        <Shield className="w-5 h-5" /> Subscription Status
-                                    </h4>
-                                    <div className="flex gap-8">
-                                        <div>
-                                            <p className="text-xs text-blue-500 font-bold uppercase">Start Date</p>
-                                            <p className="text-blue-900 font-medium">{format(new Date(selectedMember.subscription_start_date!), 'MMMM d, yyyy')}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-blue-500 font-bold uppercase">Expiration Date</p>
-                                            <p className="text-blue-900 font-medium">{format(new Date(selectedMember.subscription_end_date), 'MMMM d, yyyy')}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-blue-500 font-bold uppercase">Days Remaining</p>
-                                            {/* Calculate days remaining roughly */}
-                                            <p className="text-blue-900 font-medium">
-                                                {Math.ceil((new Date(selectedMember.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))} Days
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
                         </div>
                     </div>
                 </div>

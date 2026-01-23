@@ -1,24 +1,28 @@
-import { Metadata } from 'next';
+import { createStaticClient } from "@/lib/supabase/static";
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Link from 'next/link';
 
-export const metadata: Metadata = {
+export const revalidate = 3600;
+
+export const metadata = {
     title: 'Nomination Fees - SOOOP',
     description: 'View the nomination fee structure for SOOOP cabinet positions.',
 };
 
-const fees = [
-    { position: 'President-Elect', fee: '5,000/-' },
-    { position: 'Vice President', fee: '4,000/-' },
-    { position: 'General Secretary', fee: '4,000/-' },
-    { position: 'Joint Secretary', fee: '3,000/-' },
-    { position: 'Treasurer', fee: '3,000/-' },
-    { position: 'Media Secretary', fee: '3,000/-' },
-    { position: 'Wing Presidents', fee: '2,000/-' },
-];
+export default async function NominationPage() {
+    const supabase = createStaticClient();
 
-export default function NominationPage() {
+    // Parallel Fetch
+    const [pageRes, feesRes] = await Promise.all([
+        supabase.from('pages').select('content').eq('slug', 'nomination').single(),
+        supabase.from('nomination_fees').select('*').order('sort_order', { ascending: true })
+    ]);
+
+    const filesContent = pageRes.data?.content || {};
+    const hero = filesContent.hero || { title: "Nomination Fees", subtitle: "Fee structure for Executive Committee positions" };
+    const fees = feesRes.data || [];
+
     return (
         <>
             <Header />
@@ -33,10 +37,10 @@ export default function NominationPage() {
                             Back to Cabinet
                         </Link>
                         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                            Nomination <span className="text-accent">Fees</span>
+                            {hero.title}
                         </h1>
                         <p className="text-white/80 text-lg max-w-xl mx-auto">
-                            Fee structure for Executive Committee positions
+                            {hero.subtitle}
                         </p>
                     </div>
                 </section>
@@ -53,10 +57,10 @@ export default function NominationPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {fees.map((item, index) => (
+                                    {(fees || []).map((item, index) => (
                                         <tr
                                             key={index}
-                                            className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${index === fees.length - 1 ? 'border-0' : ''}`}
+                                            className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${index === (fees || []).length - 1 ? 'border-0' : ''}`}
                                         >
                                             <td className="px-6 py-4 font-medium text-gray-900">{item.position}</td>
                                             <td className="px-6 py-4 text-right">
@@ -64,6 +68,13 @@ export default function NominationPage() {
                                             </td>
                                         </tr>
                                     ))}
+                                    {(!fees || fees.length === 0) && (
+                                        <tr>
+                                            <td colSpan={2} className="px-6 py-8 text-center text-gray-500">
+                                                No fee data available.
+                                            </td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>

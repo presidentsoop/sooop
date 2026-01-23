@@ -43,7 +43,7 @@ const defaultStats: StatItem[] = [
 ];
 
 export default function ImpactStats({ content }: { content?: StatItem[] | null }) {
-    const stats = content || defaultStats;
+    const stats = Array.isArray(content) ? content : defaultStats;
 
     return (
         <section className="py-8 md:py-12 bg-white relative z-20 -mt-4 md:-mt-8">

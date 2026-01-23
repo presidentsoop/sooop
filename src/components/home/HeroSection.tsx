@@ -21,10 +21,11 @@ export default async function HeroSection({ content: propContent }: HeroSectionP
     // However, to standalone this, let's keep it simple.
 
     // Default Fallback Content
+    const currentYear = new Date().getFullYear();
     const defaultContent: HeroContent = {
         title: "Advancing **Eye Care Excellence** Together",
         description: "Join Pakistan's premier society for optometrists, orthoptists, and vision scientists. Dedicated to professional growth and innovation.",
-        announcement: "📢 6th International Conference on Vision Sciences; May 2025 • 🗳️ General Election May 2025",
+        announcement: `📢 6th International Conference on Vision Sciences; May ${currentYear} • 🗳️ General Election May ${currentYear}`,
         stats: []
     };
 
@@ -110,13 +111,13 @@ export default async function HeroSection({ content: propContent }: HeroSectionP
                         {/* Decorative Background Element */}
                         <div className="absolute -top-12 -right-12 w-48 h-48 md:w-64 md:h-64 bg-accent/10 rounded-full blur-3xl" />
 
-                        <div className="relative rounded-2xl overflow-hidden shadow-2xl border-2 md:border-4 border-white aspect-[4/3] md:aspect-auto">
+                        <div className="relative rounded-2xl overflow-hidden shadow-2xl border-2 md:border-4 border-white">
                             <Image
-                                src="/images/hero_pakistani_medical_group.png"
+                                src={content.image || "/images/hero_pakistani_medical_group.png"}
                                 alt="Pakistani Vision Care Professionals Team"
                                 width={800}
                                 height={600}
-                                className="object-cover w-full h-full transform transition-transform duration-700 hover:scale-105"
+                                className="w-full h-auto object-cover transform transition-transform duration-700 hover:scale-105"
                                 priority
                             />
 

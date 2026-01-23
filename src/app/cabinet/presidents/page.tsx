@@ -1,23 +1,29 @@
-import { Metadata } from 'next';
+import { createStaticClient } from "@/lib/supabase/static";
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Link from 'next/link';
 
-export const metadata: Metadata = {
+export const revalidate = 3600;
+
+export const metadata = {
     title: 'Previous Presidents - SOOOP',
     description: 'Explore the history of SOOOP leadership through our previous presidents.',
 };
 
-const presidents = [
-    { year: '2021 - Present', name: 'Ayesha Saleem', current: true },
-    { year: '2019', name: 'Mahar Safdar Ali Qasim', current: false },
-    { year: '2017', name: 'Imran Khalid Bhutta', current: false },
-    { year: '2016', name: 'Sara Khan', current: false },
-    { year: '2015', name: 'Ayesha Sarfraz', current: false },
-    { year: '2014', name: 'Ayesha Saleem', current: false },
-];
+export default async function PresidentsPage() {
+    const supabase = createStaticClient();
 
-export default function PresidentsPage() {
+    // Fetch all Presidents (Current and Past)
+    // Parallel Fetch
+    const [pageRes, historyRes] = await Promise.all([
+        supabase.from('pages').select('content').eq('slug', 'presidents').single(),
+        supabase.from('leadership_history').select('*').eq('role', 'President').order('start_year', { ascending: false })
+    ]);
+
+    const filesContent = pageRes.data?.content || {};
+    const hero = filesContent.hero || { title: "Presidential History", subtitle: "A timeline of SOOOP leadership through the years" };
+    const presidents = historyRes.data || [];
+
     return (
         <>
             <Header />
@@ -32,10 +38,10 @@ export default function PresidentsPage() {
                             Back to Cabinet
                         </Link>
                         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                            Previous <span className="text-accent">Presidents</span>
+                            {hero.title}
                         </h1>
                         <p className="text-white/80 text-lg max-w-xl mx-auto">
-                            A timeline of SOOOP leadership through the years
+                            {hero.subtitle}
                         </p>
                     </div>
                 </section>
@@ -49,27 +55,41 @@ export default function PresidentsPage() {
 
                             {/* Timeline Items */}
                             <div className="space-y-8">
-                                {presidents.map((president, index) => (
-                                    <div key={index} className="relative">
-                                        {/* Dot */}
-                                        <div className={`absolute -left-8 md:-left-12 top-1 w-6 h-6 rounded-full border-4 border-white shadow-lg ${president.current ? 'bg-accent' : 'bg-primary'}`}></div>
+                                {(presidents || []).map((president, index) => {
+                                    const isCurrent = president.end_year === null || president.end_year >= new Date().getFullYear();
 
-                                        {/* Content */}
-                                        <div className={`card ${president.current ? 'border-2 border-accent' : ''}`}>
-                                            <div className="flex items-center gap-4">
-                                                <div>
-                                                    <div className={`text-lg font-bold ${president.current ? 'text-accent' : 'text-primary'}`}>
-                                                        {president.year}
+                                    return (
+                                        <div key={index} className="relative">
+                                            {/* Dot */}
+                                            <div className={`absolute -left-8 md:-left-12 top-1 w-6 h-6 rounded-full border-4 border-white shadow-lg ${isCurrent ? 'bg-accent' : 'bg-primary'}`}></div>
+
+                                            {/* Content */}
+                                            <div className={`card ${isCurrent ? 'border-2 border-accent' : ''}`}>
+                                                <div className="flex items-center gap-4">
+                                                    <div>
+                                                        <div className={`text-lg font-bold ${isCurrent ? 'text-accent' : 'text-primary'}`}>
+                                                            {president.start_year === president.end_year
+                                                                ? president.start_year
+                                                                : `${president.start_year} - ${president.end_year || 'Present'}`
+                                                            }
+                                                        </div>
+                                                        <div className="text-gray-900 font-medium">{president.name}</div>
                                                     </div>
-                                                    <div className="text-gray-900 font-medium">{president.name}</div>
+                                                    {isCurrent && (
+                                                        <span className="badge badge-accent ml-auto">Current</span>
+                                                    )}
                                                 </div>
-                                                {president.current && (
-                                                    <span className="badge badge-accent ml-auto">Current</span>
+                                                {president.bio && (
+                                                    <p className="mt-2 text-sm text-gray-500">{president.bio}</p>
                                                 )}
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
+
+                                {(!presidents || presidents.length === 0) && (
+                                    <div className="text-gray-500">No history found.</div>
+                                )}
                             </div>
                         </div>
                     </div>

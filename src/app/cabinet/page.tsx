@@ -41,7 +41,17 @@ const cabinetSections = [
     },
 ];
 
-export default function CabinetPage() {
+import { createStaticClient } from "@/lib/supabase/static";
+
+export const revalidate = 3600;
+
+export default async function CabinetPage() {
+    const supabase = createStaticClient();
+    const { data: page } = await supabase.from('pages').select('content').eq('slug', 'cabinet').single();
+
+    const filesContent = page?.content || {};
+    const hero = filesContent.hero || { title: "Our Cabinet", subtitle: "Meet the dedicated leaders who guide SOOOP towards excellence in vision care" };
+
     return (
         <>
             <Header />
@@ -51,10 +61,10 @@ export default function CabinetPage() {
                     <div className="container text-center">
                         <span className="badge bg-accent text-white mb-4">Leadership</span>
                         <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
-                            Our <span className="text-accent">Cabinet</span>
+                            {hero.title}
                         </h1>
                         <p className="text-white/80 text-lg max-w-2xl mx-auto">
-                            Meet the dedicated leaders who guide SOOOP towards excellence in vision care
+                            {hero.subtitle}
                         </p>
                     </div>
                 </section>

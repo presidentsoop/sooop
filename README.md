@@ -237,7 +237,7 @@ This project is licensed under the MIT License.
 
 SOOOP - Society of Optometrists, Orthoptists & Ophthalmic Technologists Pakistan
 
-- **Email**: info@sooopvision.org
+- **Email**: info@sooopvision.com
 - **Phone**: +92-332-4513876
 - **Address**: SOOOP House, COAVS, KEMU, Lahore, Pakistan
 

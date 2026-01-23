@@ -19,7 +19,9 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
     const supabase = createClient();
 
     // Form states
-    const [fullName, setFullName] = useState(profile?.full_name || "");
+    const [contactNumber, setContactNumber] = useState(profile?.contact_number || "");
+    const [address, setAddress] = useState(profile?.residential_address || "");
+    const [designation, setDesignation] = useState(profile?.designation || "");
     const [email, setEmail] = useState(user?.email || "");
 
     // Password change states
@@ -39,7 +41,9 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
             const { error: profileError } = await supabase
                 .from('profiles')
                 .update({
-                    full_name: fullName,
+                    contact_number: contactNumber,
+                    residential_address: address,
+                    designation: designation,
                     updated_at: new Date().toISOString(),
                 })
                 .eq('id', user.id);
@@ -180,19 +184,52 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
 
                     <form onSubmit={handleUpdateProfile} className="p-6 md:p-8 space-y-8">
                         <div className="grid md:grid-cols-2 gap-8">
+                            {/* LOCKED FIELDS */}
                             <div className="space-y-2">
-                                <label className="text-sm font-semibold text-gray-700">Full Name</label>
-                                <div className="relative group">
-                                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                                <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                    Full Name <Lock className="w-3 h-3 text-gray-400" />
+                                </label>
+                                <div className="relative">
+                                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                                     <input
                                         type="text"
-                                        value={fullName}
-                                        onChange={(e) => setFullName(e.target.value)}
-                                        className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary-50 transition-all outline-none font-medium text-gray-900"
-                                        placeholder="Enter your name"
+                                        value={profile?.full_name || ''}
+                                        disabled
+                                        className="w-full pl-11 pr-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 cursor-not-allowed font-medium"
+                                        title="Name cannot be changed as it is linked to your ID Card."
                                     />
                                 </div>
+                                <p className="text-xs text-gray-400">Locked to match official ID Card.</p>
                             </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                    CNIC <Lock className="w-3 h-3 text-gray-400" />
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center font-bold text-gray-400 text-xs border border-gray-400 rounded">#</div>
+                                    <input
+                                        type="text"
+                                        value={profile?.cnic || ''}
+                                        disabled
+                                        className="w-full pl-11 pr-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 cursor-not-allowed font-mono"
+                                    />
+                                </div>
+                                <p className="text-xs text-gray-400">Unique Identity Number (Locked).</p>
+                            </div>
+
+                            {/* EDITABLE FIELDS */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700">Phone / Contact</label>
+                                <input
+                                    type="tel"
+                                    value={contactNumber}
+                                    onChange={(e) => setContactNumber(e.target.value)}
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary-50 transition-all outline-none"
+                                    placeholder="0300-1234567"
+                                />
+                            </div>
+
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-gray-700">Email Address</label>
                                 <div className="relative group">
@@ -201,11 +238,33 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
                                         type="email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary-50 transition-all outline-none font-medium text-gray-900"
+                                        className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary-50 transition-all outline-none"
                                         placeholder="your@email.com"
                                     />
                                 </div>
-                                <p className="text-xs text-gray-500 ml-1">Confirmation required for email changes.</p>
+                                <p className="text-xs text-xs text-orange-500 font-medium ml-1">Note: Changing email requires re-verification.</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700">Designation / Job Title</label>
+                                <input
+                                    type="text"
+                                    value={designation}
+                                    onChange={(e) => setDesignation(e.target.value)}
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary-50 transition-all outline-none"
+                                    placeholder="e.g. Senior Optometrist"
+                                />
+                            </div>
+
+                            <div className="space-y-2 md:col-span-2">
+                                <label className="text-sm font-semibold text-gray-700">Residential Address</label>
+                                <input
+                                    type="text"
+                                    value={address}
+                                    onChange={(e) => setAddress(e.target.value)}
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary-50 transition-all outline-none"
+                                    placeholder="Complete mailing address for card delivery"
+                                />
                             </div>
                         </div>
 
@@ -221,8 +280,8 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
                                     type="button"
                                     onClick={() => setIsPasswordSectionOpen(!isPasswordSectionOpen)}
                                     className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${isPasswordSectionOpen
-                                            ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                            : "bg-white border border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50 shadow-sm"
+                                        ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                        : "bg-white border border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50 shadow-sm"
                                         }`}
                                 >
                                     {isPasswordSectionOpen ? "Cancel Change" : "Change Password"}

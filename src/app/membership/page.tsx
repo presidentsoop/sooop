@@ -3,6 +3,9 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Link from 'next/link';
 import { Users, Ticket, BookOpen, Coins, Contact, Check } from 'lucide-react';
+import { createStaticClient } from "@/lib/supabase/static";
+
+export const revalidate = 3600;
 
 interface MembershipBenefit {
     id: number;
@@ -37,84 +40,27 @@ export const metadata: Metadata = {
 };
 
 const defaultContent: MembershipPageContent = {
-    benefits: [
-        {
-            id: 1,
-            title: 'Professional Development',
-            description: 'Access to training resources, workshops, and continuous education programs.',
-            image: '', // Unused in this view but part of type
-            link: ''
-        },
-        {
-            id: 2,
-            title: 'Networking Opportunities',
-            description: 'Connect with vision care professionals across Pakistan and internationally.',
-            image: '',
-            link: ''
-        },
-        {
-            id: 3,
-            title: 'Conference Discounts',
-            description: 'Reduced registration fees for all SOOOP conferences and events.',
-            image: '',
-            link: ''
-        },
-        {
-            id: 4,
-            title: 'Quarterly Journal',
-            description: 'Digital subscription to our quarterly publication on vision sciences.',
-            image: '',
-            link: ''
-        },
-        {
-            id: 5,
-            title: 'Research Grants',
-            description: 'Access to funding opportunities for vision care research projects.',
-            image: '',
-            link: ''
-        },
-        {
-            id: 6,
-            title: 'Member Directory',
-            description: 'Access to exclusive member directory for professional connections.',
-            image: '',
-            link: ''
-        },
-    ],
-    types: [
-        {
-            type: 'Student',
-            fee: 'Rs. 1,000',
-            description: 'For students currently enrolled in vision sciences programs',
-            features: ['All basic benefits', 'Student networking events', 'Mentorship program'],
-            popular: false,
-        },
-        {
-            type: 'Full',
-            fee: 'Rs. 1,500',
-            description: 'For qualified optometrists, orthoptists, and ophthalmic technologists',
-            features: ['All student benefits', 'Voting rights', 'Leadership opportunities', 'Research grants'],
-            popular: true,
-        },
-        {
-            type: 'Overseas',
-            fee: 'Rs. 2,000',
-            description: 'For professionals based outside Pakistan',
-            features: ['All full member benefits', 'International networking', 'Virtual event access'],
-            popular: false,
-        },
-    ],
-    downloads: [
-        { name: 'Membership Oath', url: '/membership-oath.pdf' },
-        { name: 'Membership Application Form', url: '/membership-form.pdf' }
-    ]
+    benefits: [],
+    types: [],
+    downloads: []
 };
 
 // Map hardcoded icons for default list if dynamic icons aren't supported yet
 const Icons = [BookOpen, Users, Ticket, BookOpen, Coins, Contact];
 
-export default function MembershipPage() {
-    const content = defaultContent;
+export default async function MembershipPage() {
+    const supabase = createStaticClient();
+    const { data: page } = await supabase.from('pages').select('content').eq('slug', 'membership').single();
+
+    const content = page?.content || defaultContent;
+    const hero = content.hero || { title: "Become a **Member**", subtitle: "Join the leading society of vision care professionals in Pakistan and unlock exclusive benefits." };
+
+    const renderTitle = (text: string) => {
+        const parts = text.split("**");
+        return parts.map((part, i) =>
+            i % 2 === 1 ? <span key={i} className="text-accent">{part}</span> : part
+        );
+    };
 
     return (
         <>
@@ -125,10 +71,10 @@ export default function MembershipPage() {
                     <div className="container text-center">
                         <span className="badge bg-accent text-white mb-4">Join Our Community</span>
                         <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
-                            Become a <span className="text-accent">Member</span>
+                            {renderTitle(hero.title)}
                         </h1>
                         <p className="text-white/80 text-lg max-w-2xl mx-auto">
-                            Join the leading society of vision care professionals in Pakistan and unlock exclusive benefits.
+                            {hero.subtitle}
                         </p>
                     </div>
                 </section>
@@ -144,7 +90,7 @@ export default function MembershipPage() {
                         </div>
 
                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {content.benefits.map((benefit, index) => {
+                            {content.benefits?.map((benefit: MembershipBenefit, index: number) => {
                                 const Icon = Icons[index % Icons.length];
                                 return (
                                     <div key={index} className="card card-hover group">
@@ -171,7 +117,7 @@ export default function MembershipPage() {
                         </div>
 
                         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-                            {content.types.map((membership, index) => (
+                            {content.types?.map((membership: MembershipType, index: number) => (
                                 <div
                                     key={index}
                                     className={`card relative ${membership.popular ? 'border-2 border-accent shadow-soft-xl' : ''}`}
@@ -187,7 +133,7 @@ export default function MembershipPage() {
                                         <p className="text-gray-600 text-sm">{membership.description}</p>
                                     </div>
                                     <ul className="space-y-3 mb-8">
-                                        {membership.features.map((feature, i) => (
+                                        {membership.features?.map((feature: string, i: number) => (
                                             <li key={i} className="flex items-center gap-3 text-gray-600">
                                                 <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
                                                 {feature}
@@ -216,7 +162,7 @@ export default function MembershipPage() {
                             </p>
 
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                                {content.downloads.map((doc, i) => (
+                                {content.downloads?.map((doc: DownloadItem, i: number) => (
                                     <a
                                         key={i}
                                         href={doc.url}

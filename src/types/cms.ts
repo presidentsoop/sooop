@@ -61,6 +61,7 @@ export interface HeroContent {
     description: string;
     announcement: string;
     stats: StatItem[];
+    image?: string;
 }
 
 export interface AboutContent {

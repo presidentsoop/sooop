@@ -9,17 +9,7 @@ import { toast } from "sonner";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
-// Utility for file upload simulation (replace with actual Supabase storage upload)
-async function uploadFile(file: File, bucket: string, path: string) {
-    // In a real scenario:
-    // const { data, error } = await supabase.storage.from(bucket).upload(path, file);
-    // if (error) throw error;
-    // return data.path;
 
-    // For now returning a mock URL or just relying on the logic
-    // We will assume the bucket 'documents' exists.
-    return URL.createObjectURL(file); // Temporary for demo
-}
 
 export default function SignupPage() {
     const router = useRouter();
@@ -103,10 +93,47 @@ export default function SignupPage() {
             const userId = authData.user?.id;
             if (!userId) throw new Error("User creation failed");
 
-            // 2. Upload Files (Mocking real upload for now or implement if buckets are ready)
-            // Ideally we upload to 'documents' bucket users/{userId}/{fileType}
-            // For this quick implementation we might skip actual file upload unless we have the bucket.
-            // Let's assume we just save the metadata or skip file upload logic failure if bucket doesn't exist.
+            // 2. Upload Files & Create Document Records
+            const fileUploads = [
+                { file: files.profilePhoto, type: 'profile_photo', bucket: 'profile-photos', public: true },
+                { file: files.cnicFront, type: 'cnic_front', bucket: 'documents', public: false },
+                { file: files.cnicBack, type: 'cnic_back', bucket: 'documents', public: false },
+                { file: files.paymentProof, type: 'payment_proof', bucket: 'documents', public: false }
+            ];
+
+            let profilePhotoUrl = "";
+
+            for (const upload of fileUploads) {
+                if (!upload.file) continue;
+
+                const fileExt = upload.file.name.split('.').pop();
+                const fileName = `${userId}/${upload.type}_${Date.now()}.${fileExt}`;
+
+                const { error: uploadError, data: uploadData } = await supabase.storage
+                    .from(upload.bucket)
+                    .upload(fileName, upload.file, { upsert: true });
+
+                if (uploadError) {
+                    console.error(`Failed to upload ${upload.type}:`, uploadError);
+                    continue; // Skip failed upload but continue signup? Or fail hard? Let's continue.
+                }
+
+                // If Profile Photo, get Public URL for profile table
+                if (upload.type === 'profile_photo') {
+                    const { data: { publicUrl } } = supabase.storage.from(upload.bucket).getPublicUrl(fileName);
+                    profilePhotoUrl = publicUrl;
+                }
+
+                const filePath = uploadData.path;
+
+                // Insert into documents table
+                await supabase.from('documents').insert({
+                    user_id: userId,
+                    document_type: upload.type,
+                    file_url: filePath, // Store path for private buckets, or public URL for public. Path is safer.
+                    verified: false
+                });
+            }
 
             // 3. Update Profile
             const { error: profileError } = await supabase
@@ -121,26 +148,37 @@ export default function SignupPage() {
                     blood_group: formData.bloodGroup,
                     residential_address: formData.address,
 
-                    // Added columns
+                    // Professional
                     institution: formData.institution,
                     qualification: formData.qualification,
                     city: formData.city,
                     current_status: formData.currentStatus,
-                    role: formData.role.toLowerCase(), // 'student' or 'professional' usually maps to app roles or just descriptive
-                    membership_status: 'pending'
+                    role: 'member',
+                    // Store 'student' or 'professional' in membership_type or separate column? 
+                    // Schema has 'membership_type'. 
+                    membership_type: formData.role, // 'Student' or 'Professional'
+                    membership_status: 'pending',
+
+                    profile_photo_url: profilePhotoUrl || null
                 })
                 .eq('id', userId);
 
             if (profileError) throw profileError;
 
-            // 4. Create Membership Application Record (if needed for tracking status history or specific uploads)
-            // const { error: appError } = await supabase.from('membership_applications').insert({
-            //     user_id: userId,
-            //     membership_type: formData.role,
-            //     status: 'pending'
-            // });
+            // 4. Create initial Payment Record if payment proof uploaded
+            // (Optional, or handled via 'documents' table trigger/admin view)
+            // But let's create a pending payment record so it shows up in Payments too.
+            if (files.paymentProof) {
+                await supabase.from('payments').insert({
+                    user_id: userId,
+                    amount: 0, // Admin will verify amount or we ask user input? For now 0/Unknown.
+                    payment_mode: 'Upload',
+                    status: 'pending',
+                    receipt_url: 'Refer to Documents'
+                });
+            }
 
-            toast.success("Registration successful! Verify your email and await admin approval.");
+            toast.success("Registration successful! verifying your email...");
             router.push("/login?registered=true");
 
         } catch (error: any) {

@@ -133,8 +133,8 @@
                         </div>
                     </div>
                     <div class="flex-1 text-right w-full md:w-auto">
-                        <div>Email: <a href="mailto:info@sooopvision.org"
-                                class="underline hover:text-gray-200">info@sooopvision.org</a></div>
+                        <div>Email: <a href="mailto:info@sooopvision.com"
+                                class="underline hover:text-gray-200">info@sooopvision.com</a></div>
                     </div>
                 </div>
             </footer>

@@ -18,31 +18,36 @@ export const metadata: Metadata = {
     description: 'Get in touch with the Society of Optometrists, Orthoptists and Ophthalmic Technologists Pakistan.',
 };
 
-const defaultContent: ContactPageContent = {
-    hero: {
-        title: "Contact **Us**",
-        subtitle: "Have questions? We'd love to hear from you."
-    },
-    info: {
-        address: "SOOOP House\nCollege of Ophthalmology and Allied Vision Sciences\nKing Edward Medical University\nLahore, Pakistan",
-        phone: "+92-332-4513876",
-        email: "info@sooopvision.org"
-    }
-};
+import { createStaticClient } from "@/lib/supabase/static";
 
-function renderBold(text: string) {
-    return text.split(/(\*\*.*?\*\*)/).map((part, index) =>
-        part.startsWith('**') && part.endsWith('**') ?
-            <span key={index} className="text-accent">{part.slice(2, -2)}</span> :
-            part
-    );
-}
+export const revalidate = 3600;
 
-export default function ContactPage() {
-    const content = defaultContent;
+export default async function ContactPage() {
+    const supabase = createStaticClient();
+    const { data: page } = await supabase.from('pages').select('content').eq('slug', 'contact').single();
+
+    const content = page?.content || {
+        hero: {
+            title: "Contact **Us**",
+            subtitle: "Have questions? We'd love to hear from you."
+        },
+        info: {
+            address: "SOOOP House\nCollege of Ophthalmology and Allied Vision Sciences\nKing Edward Medical University\nLahore, Pakistan",
+            phone: "+92-332-4513876",
+            email: "info@sooopvision.com"
+        }
+    };
 
     // Helper to process address newlines
-    const addressLines = content.info.address.split('\n');
+    const addressLines = (content.info.address || "").split('\n');
+
+    const renderBold = (text: string) => {
+        return text.split(/(\*\*.*?\*\*)/).map((part, index) =>
+            part.startsWith('**') && part.endsWith('**') ?
+                <span key={index} className="text-accent">{part.slice(2, -2)}</span> :
+                part
+        );
+    };
 
     return (
         <>
@@ -84,7 +89,7 @@ export default function ContactPage() {
                                         <div>
                                             <h3 className="font-semibold text-gray-900 mb-1">Address</h3>
                                             <p className="text-gray-600">
-                                                {addressLines.map((line, i) => (
+                                                {addressLines.map((line: string, i: number) => (
                                                     <span key={i} className="block">{line}</span>
                                                 ))}
                                             </p>

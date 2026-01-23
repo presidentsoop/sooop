@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "SOOOP - Society of Optometrists Pakistan",
     description: "Advancing eye care and supporting the next generation of vision professionals",
-    url: "https://sooopvision.org",
+    url: "https://sooopvision.com",
     siteName: "SOOOP",
     images: [
       {
