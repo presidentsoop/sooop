@@ -10,7 +10,16 @@ const staticContent = {
     image: "/meetings/first-clinical-meeting.png"
 };
 
-export default function HeroSection() {
+interface HeroContent {
+    title?: string;
+    description?: string;
+    announcement?: string;
+    image?: string;
+}
+
+export default function HeroSection({ content }: { content?: HeroContent }) {
+    const data = { ...staticContent, ...content };
+
     // Helper to render bold text from **markdown** style simple syntax
     const renderTitle = (text: string) => {
         const parts = text.split("**");
@@ -20,7 +29,7 @@ export default function HeroSection() {
     };
 
     // Construct marquee string (repeated for seamless flow)
-    const marqueeText = Array(4).fill(staticContent.announcement).join(" • ");
+    const marqueeText = Array(4).fill(data.announcement).join(" • ");
 
     return (
         <section className="relative w-full overflow-hidden bg-white pt-10 md:pt-0">
@@ -46,11 +55,11 @@ export default function HeroSection() {
                             </div>
 
                             <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight text-primary-900 text-balance leading-tight">
-                                {renderTitle(staticContent.title)}
+                                {renderTitle(data.title)}
                             </h1>
 
                             <p className="max-w-[600px] mx-auto lg:mx-0 text-base md:text-lg text-gray-600 md:text-xl leading-relaxed">
-                                {staticContent.description}
+                                {data.description}
                             </p>
                         </div>
 
@@ -93,7 +102,7 @@ export default function HeroSection() {
 
                         <div className="relative rounded-2xl overflow-hidden shadow-2xl border-2 md:border-4 border-white">
                             <Image
-                                src={staticContent.image}
+                                src={data.image}
                                 alt="Pakistani Vision Care Professionals Team"
                                 width={800}
                                 height={600}
