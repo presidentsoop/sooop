@@ -14,7 +14,7 @@ export default async function AuditLogsPage() {
         .limit(50);
 
     return (
-        <DashboardLayout userRole="admin" userName="Admin" userEmail={user?.email}>
+        <>
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-900">System Audit Logs</h1>
                 <p className="text-gray-500 mt-2">Track all critical administrative actions and system events.</p>
@@ -64,6 +64,6 @@ export default async function AuditLogsPage() {
                     </table>
                 </div>
             </div>
-        </DashboardLayout>
+        </>
     );
 }

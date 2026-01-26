@@ -93,17 +93,11 @@ export default async function CmsPage({ params }: PageProps) {
 
     // 3. Render
     return (
-        <DashboardLayout
-            userRole={profile?.role || 'member'}
-            userName={profile?.full_name}
-            userEmail={user.email}
-        >
-            <RichCmsEditor
-                pageId={page.id}
-                initialContent={page.content}
-                pageTitle={page.title}
-            />
-        </DashboardLayout>
+        <RichCmsEditor
+            pageId={page.id}
+            initialContent={page.content}
+            pageTitle={page.title}
+        />
     );
 }
 

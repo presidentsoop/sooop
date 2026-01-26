@@ -31,12 +31,26 @@ export default function SignupPage() {
         phone: "",
         address: "",
         city: "",
+        province: "Punjab",
 
         // Professional/Academic
-        role: "Student", // Student or Professional
+        role: "Student", // Determine UI layout
+        membershipType: "Student", // Full, Overseas, Associate, Student
+        isRenewal: false,
+
         institution: "",
-        qualification: "", // Degree/Designation
+        collegeAttended: "",
+        qualification: "",
+        otherQualification: "",
+
+        postGraduateDegrees: [] as string[],
+        hasRelevantPg: false,
+        hasNonRelevantPg: false,
+        postGraduateInstitution: "",
+
         currentStatus: "", // Job title or Study year
+        designation: "",
+        employmentStatus: "Student",
 
         // Password
         password: "",
@@ -48,11 +62,27 @@ export default function SignupPage() {
         cnicFront?: File;
         cnicBack?: File;
         transcript?: File;
+        transcriptBack?: File;
+        studentId?: File;
         paymentProof?: File;
+        renewalCard?: File;
     }>({});
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+        const { name, value, type } = e.target;
+
+        if (type === 'checkbox') {
+            const checked = (e.target as HTMLInputElement).checked;
+            if (name === 'isRenewal') {
+                setFormData(prev => ({ ...prev, isRenewal: checked }));
+            } else if (name === 'hasRelevantPg') {
+                setFormData(prev => ({ ...prev, hasRelevantPg: checked }));
+            } else if (name === 'hasNonRelevantPg') {
+                setFormData(prev => ({ ...prev, hasNonRelevantPg: checked }));
+            }
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
@@ -98,10 +128,14 @@ export default function SignupPage() {
                 { file: files.profilePhoto, type: 'profile_photo', bucket: 'profile-photos', public: true },
                 { file: files.cnicFront, type: 'cnic_front', bucket: 'documents', public: false },
                 { file: files.cnicBack, type: 'cnic_back', bucket: 'documents', public: false },
-                { file: files.paymentProof, type: 'payment_proof', bucket: 'documents', public: false }
+                { file: files.paymentProof, type: 'payment_proof', bucket: 'documents', public: false },
+                { file: files.transcript, type: 'transcript_front', bucket: 'documents', public: false },
+                { file: files.transcriptBack, type: 'transcript_back', bucket: 'documents', public: false },
+                { file: files.studentId, type: 'student_id', bucket: 'documents', public: false },
+                { file: files.renewalCard, type: 'renewal_card', bucket: 'documents', public: false }
             ];
 
-            let profilePhotoUrl = "";
+            let fileUrls: Record<string, string> = {};
 
             for (const upload of fileUploads) {
                 if (!upload.file) continue;
@@ -115,22 +149,26 @@ export default function SignupPage() {
 
                 if (uploadError) {
                     console.error(`Failed to upload ${upload.type}:`, uploadError);
-                    continue; // Skip failed upload but continue signup? Or fail hard? Let's continue.
+                    continue;
                 }
 
-                // If Profile Photo, get Public URL for profile table
-                if (upload.type === 'profile_photo') {
+                // Get Public URL for all (or construct path)
+                // For 'documents' bucket which is private, we store the PATH.
+                // For 'profile-photos' which is public, we calculate publicUrl.
+
+                let storedPath = uploadData.path;
+                if (upload.bucket === 'profile-photos') {
                     const { data: { publicUrl } } = supabase.storage.from(upload.bucket).getPublicUrl(fileName);
-                    profilePhotoUrl = publicUrl;
+                    storedPath = publicUrl;
                 }
 
-                const filePath = uploadData.path;
+                fileUrls[upload.type] = storedPath;
 
                 // Insert into documents table
                 await supabase.from('documents').insert({
                     user_id: userId,
                     document_type: upload.type,
-                    file_url: filePath, // Store path for private buckets, or public URL for public. Path is safer.
+                    file_url: storedPath,
                     verified: false
                 });
             }
@@ -147,21 +185,41 @@ export default function SignupPage() {
                     date_of_birth: formData.dob,
                     blood_group: formData.bloodGroup,
                     residential_address: formData.address,
+                    city: formData.city,
+                    province: formData.province,
 
                     // Professional
                     institution: formData.institution,
+                    college_attended: formData.collegeAttended,
                     qualification: formData.qualification,
-                    city: formData.city,
-                    current_status: formData.currentStatus,
-                    role: 'member',
-                    // Store 'student' or 'professional' in membership_type or separate column? 
-                    // Schema has 'membership_type'. 
-                    membership_type: formData.role, // 'Student' or 'Professional'
-                    membership_status: 'pending',
+                    other_qualification: formData.otherQualification,
+                    post_graduate_institution: formData.postGraduateInstitution,
 
-                    profile_photo_url: profilePhotoUrl || null
+                    has_relevant_pg: formData.hasRelevantPg,
+                    has_non_relevant_pg: formData.hasNonRelevantPg,
+
+                    current_status: formData.currentStatus,
+                    designation: formData.designation,
+                    employment_status: formData.employmentStatus,
+
+                    role: 'member',
+                    membership_type: formData.membershipType,
+                    membership_status: 'pending',
+                    profile_photo_url: fileUrls['profile_photo'] || null
                 })
                 .eq('id', userId);
+
+            // 3b. Create Membership Application Record
+            await supabase.from('membership_applications').insert({
+                user_id: userId,
+                membership_type: formData.membershipType,
+                is_renewal: formData.isRenewal,
+                status: 'pending',
+                renewal_card_url: fileUrls['renewal_card'] || null,
+                student_id_url: fileUrls['student_id'] || null,
+                transcript_front_url: fileUrls['transcript_front'] || null,
+                transcript_back_url: fileUrls['transcript_back'] || null
+            });
 
             if (profileError) throw profileError;
 
@@ -171,10 +229,10 @@ export default function SignupPage() {
             if (files.paymentProof) {
                 await supabase.from('payments').insert({
                     user_id: userId,
-                    amount: 0, // Admin will verify amount or we ask user input? For now 0/Unknown.
+                    amount: 0,
                     payment_mode: 'Upload',
                     status: 'pending',
-                    receipt_url: 'Refer to Documents'
+                    receipt_url: fileUrls['payment_proof'] || 'Refer to Documents'
                 });
             }
 
@@ -300,6 +358,23 @@ export default function SignupPage() {
                                             <label className="label">City</label>
                                             <input name="city" value={formData.city} onChange={handleChange} className="input" required />
                                         </div>
+                                        <div className="form-group">
+                                            <label className="label">City</label>
+                                            <input name="city" value={formData.city} onChange={handleChange} className="input" required />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="label">Province</label>
+                                            <select name="province" value={formData.province} onChange={handleChange} className="input" required>
+                                                <option value="Punjab">Punjab</option>
+                                                <option value="Sindh">Sindh</option>
+                                                <option value="Khyber Pakhtunkhwa">Khyber Pakhtunkhwa</option>
+                                                <option value="Balochistan">Balochistan</option>
+                                                <option value="Islamabad">Islamabad</option>
+                                                <option value="Gilgit-Baltistan">Gilgit-Baltistan</option>
+                                                <option value="Azad Kashmir">Azad Kashmir</option>
+                                                <option value="International">International</option>
+                                            </select>
+                                        </div>
                                     </div>
 
                                     <div className="flex justify-end pt-4">
@@ -311,42 +386,131 @@ export default function SignupPage() {
                             {/* Step 2: Professional Info */}
                             {step === 2 && (
                                 <div className="space-y-6 animate-fade-in">
-                                    <h3 className="text-xl font-bold text-gray-800 border-b pb-2">Professional / Academic</h3>
+                                    <h3 className="text-xl font-bold text-gray-800 border-b pb-2">Membership & Qualification</h3>
 
+                                    {/* Membership Type Selection */}
                                     <div className="space-y-4">
-                                        <div>
-                                            <label className="label block mb-2">Member Category</label>
-                                            <div className="flex gap-4">
-                                                <label className={`flex-1 border p-4 rounded-xl cursor-pointer transition-all ${formData.role === 'Student' ? 'border-primary bg-primary/5 ring-2 ring-primary ring-opacity-50' : 'hover:bg-gray-50'}`}>
-                                                    <input type="radio" name="role" value="Student" checked={formData.role === 'Student'} onChange={handleChange} className="hidden" />
-                                                    <div className="flex flex-col items-center gap-2">
-                                                        <GraduationCap className={`w-8 h-8 ${formData.role === 'Student' ? 'text-primary' : 'text-gray-400'}`} />
-                                                        <span className="font-bold">Student</span>
+                                        <label className="label block">Membership Category</label>
+                                        <div className="grid sm:grid-cols-2 gap-4">
+                                            {[
+                                                { id: 'Full', label: 'Full Member', fee: 'Rs. 1500', icon: Briefcase },
+                                                { id: 'Overseas', label: 'Overseas Member', fee: 'Rs. 3000', icon: MapPin },
+                                                { id: 'Associate', label: 'Associate Member', fee: 'Rs. 500', icon: User },
+                                                { id: 'Student', label: 'Student Member', fee: 'Rs. 1000', icon: GraduationCap }
+                                            ].map((type) => (
+                                                <label key={type.id} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${formData.membershipType === type.id ? 'border-primary bg-primary/5 ring-2 ring-primary ring-opacity-50' : 'hover:bg-gray-50'}`}>
+                                                    <input
+                                                        type="radio"
+                                                        name="membershipType"
+                                                        value={type.id}
+                                                        checked={formData.membershipType === type.id}
+                                                        onChange={(e) => {
+                                                            setFormData(p => ({
+                                                                ...p,
+                                                                membershipType: type.id,
+                                                                role: type.id === 'Student' ? 'Student' : 'Professional',
+                                                                employmentStatus: type.id === 'Student' ? 'Student' : ''
+                                                            }));
+                                                        }}
+                                                        className="hidden"
+                                                    />
+                                                    <div className="flex items-center gap-3">
+                                                        <type.icon className={`w-6 h-6 ${formData.membershipType === type.id ? 'text-primary' : 'text-gray-400'}`} />
+                                                        <div>
+                                                            <div className="font-bold text-sm">{type.label}</div>
+                                                            <div className="text-xs text-gray-500">{type.fee}</div>
+                                                        </div>
                                                     </div>
                                                 </label>
-                                                <label className={`flex-1 border p-4 rounded-xl cursor-pointer transition-all ${formData.role === 'Professional' ? 'border-primary bg-primary/5 ring-2 ring-primary ring-opacity-50' : 'hover:bg-gray-50'}`}>
-                                                    <input type="radio" name="role" value="Professional" checked={formData.role === 'Professional'} onChange={handleChange} className="hidden" />
-                                                    <div className="flex flex-col items-center gap-2">
-                                                        <Briefcase className={`w-8 h-8 ${formData.role === 'Professional' ? 'text-primary' : 'text-gray-400'}`} />
-                                                        <span className="font-bold">Professional</span>
-                                                    </div>
-                                                </label>
-                                            </div>
+                                            ))}
                                         </div>
 
-                                        <div className="grid md:grid-cols-2 gap-6">
+                                        <div className="flex items-center gap-2 mt-4 bg-gray-50 p-3 rounded-lg">
+                                            <input type="checkbox" name="isRenewal" checked={formData.isRenewal} onChange={handleChange} id="renewal" className="w-5 h-5 text-primary rounded" />
+                                            <label htmlFor="renewal" className="text-sm font-medium cursor-pointer">
+                                                This is a Membership Renewal (I am already registered)
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {/* Education */}
+                                    <div className="grid md:grid-cols-1 gap-6">
+                                        <div className="form-group">
+                                            <label className="label">Qualification</label>
+                                            <select name="qualification" value={formData.qualification} onChange={handleChange} className="input" required>
+                                                <option value="">Select Qualification</option>
+                                                <option value="BSc (HONS) Vision Sciences (Optometry)">BSc (HONS) Vision Sciences (Optometry)</option>
+                                                <option value="BSc (HONS) Vision Sciences (Orthoptics)">BSc (HONS) Vision Sciences (Orthoptics)</option>
+                                                <option value="BSc (HONS) Optometry & Orthoptics">BSc (HONS) Optometry & Orthoptics</option>
+                                                <option value="OD">OD</option>
+                                                <option value="BS Optometry">BS Optometry</option>
+                                                <option value="BS Optometry & Vision Sciences">BS Optometry & Vision Sciences</option>
+                                                <option value="Transitional Doctor of Optometry">Transitional Doctor of Optometry</option>
+                                                <option value="Post Professional Doctor of Optometry">Post Professional Doctor of Optometry</option>
+                                                <option value="BSc (HONS) Vision Sciences (Investigative Ophthalmology)">BSc (HONS) Vision Sciences (Investigative Ophthalmology)</option>
+                                                <option value="BS Vision Sciences">BS Vision Sciences</option>
+                                                <option value="Ophthalmic Technician/Optometric Diploma">Ophthalmic Technician/Optometric Diploma</option>
+                                                <option value="Other">Other (Specify below)</option>
+                                            </select>
+                                        </div>
+                                        {formData.qualification === 'Other' && (
                                             <div className="form-group">
-                                                <label className="label">Institution / Organization</label>
-                                                <input name="institution" value={formData.institution} onChange={handleChange} className="input" placeholder={formData.role === 'Student' ? "University / College Name" : "Current Employer / Clinic"} required />
+                                                <label className="label">Other Qualification</label>
+                                                <input name="otherQualification" value={formData.otherQualification} onChange={handleChange} className="input" placeholder="Specify Qualification" />
                                             </div>
+                                        )}
+
+                                        <div className="form-group">
+                                            <label className="label">College Attended (Graduation)</label>
+                                            <input name="collegeAttended" value={formData.collegeAttended} onChange={handleChange} className="input" required />
+                                        </div>
+
+                                        {/* Post Grad Checkboxes */}
+                                        <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                                            <h4 className="text-sm font-bold text-gray-700">Post Graduate Degrees</h4>
+
+                                            <div className="flex items-center gap-2">
+                                                <input type="checkbox" name="hasRelevantPg" checked={formData.hasRelevantPg} onChange={handleChange} id="pg_relevent" />
+                                                <label htmlFor="pg_relevent" className="text-sm">Relevant PG (MS, MPhil, PhD, PGD in Optometry/Orthoptics)</label>
+                                            </div>
+
+                                            <div className="flex items-center gap-2">
+                                                <input type="checkbox" name="hasNonRelevantPg" checked={formData.hasNonRelevantPg} onChange={handleChange} id="pg_non_relevent" />
+                                                <label htmlFor="pg_non_relevent" className="text-sm">Other PG Degree (Not relevant to Vision Sciences)</label>
+                                            </div>
+
+                                            {(formData.hasRelevantPg || formData.hasNonRelevantPg) && (
+                                                <div className="form-group mt-2">
+                                                    <label className="label">Postgraduate Institution</label>
+                                                    <input name="postGraduateInstitution" value={formData.postGraduateInstitution} onChange={handleChange} className="input" placeholder="Institution Name" />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Employment */}
+                                    <div className="space-y-4">
+                                        <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Employment Status</h4>
+                                        <div className="grid md:grid-cols-2 gap-4">
                                             <div className="form-group">
-                                                <label className="label">{formData.role === 'Student' ? 'Degree Program' : 'Designation'}</label>
-                                                <input name="qualification" value={formData.qualification} onChange={handleChange} className="input" placeholder={formData.role === 'Student' ? "e.g. BS Optometry" : "e.g. Senior Optometrist"} required />
+                                                <label className="label">Current Status</label>
+                                                <select name="employmentStatus" value={formData.employmentStatus} onChange={handleChange} className="input" required>
+                                                    <option value="Student">Student</option>
+                                                    <option value="Full Time Practitioner (Optical)">Full Time Practitioner (Optical)</option>
+                                                    <option value="Part Time Practitioner (Optical)">Part Time Practitioner (Optical)</option>
+                                                    <option value="Academia">Academia (Faculty)</option>
+                                                    <option value="Govt Employee">Govt Employee</option>
+                                                    <option value="Private Hospital (Part Time)">Private Hospital (Part Time)</option>
+                                                    <option value="Private Hospital (Full Time)">Private Hospital (Full Time)</option>
+                                                    <option value="Unemployed">Unemployed</option>
+                                                </select>
                                             </div>
-                                            <div className="form-group">
-                                                <label className="label">{formData.role === 'Student' ? 'Current Year / Session' : 'Experience / Specialization'}</label>
-                                                <input name="currentStatus" value={formData.currentStatus} onChange={handleChange} className="input" placeholder={formData.role === 'Student' ? "e.g. 3rd Year (2022-2026)" : "e.g. 5 Years Exp / Low Vision"} required />
-                                            </div>
+                                            {formData.employmentStatus !== 'Student' && formData.employmentStatus !== 'Unemployed' && (
+                                                <div className="form-group">
+                                                    <label className="label">Designation</label>
+                                                    <input name="designation" value={formData.designation} onChange={handleChange} className="input" />
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
@@ -376,25 +540,31 @@ export default function SignupPage() {
                                         <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm space-y-2 text-sm">
                                             <div className="flex justify-between border-b pb-2">
                                                 <span className="text-gray-500">Bank Name</span>
-                                                <span className="font-semibold text-gray-900">Habib Bank Limited (HBL)</span>
+                                                <span className="font-semibold text-gray-900">Meezan Bank (NASERABDFERZPRRD-LHR)</span>
                                             </div>
                                             <div className="flex justify-between border-b pb-2">
                                                 <span className="text-gray-500">Account Title</span>
-                                                <span className="font-semibold text-gray-900">SOOOP Pakistan</span>
+                                                <span className="font-semibold text-gray-900">RUHULLAH</span>
                                             </div>
                                             <div className="flex justify-between border-b pb-2">
                                                 <span className="text-gray-500">Account Number</span>
-                                                <span className="font-semibold text-gray-900 select-all">0123-45678901-23</span> {/* REPLACE WITH ACTUAL */}
+                                                <span className="font-semibold text-gray-900 select-all">02750112976719</span>
+                                            </div>
+                                            <div className="flex justify-between border-b pb-2">
+                                                <span className="text-gray-500">IBAN</span>
+                                                <span className="font-semibold text-gray-900 select-all">PK75MEZN0002750112976719</span>
                                             </div>
                                             <div className="flex justify-between">
                                                 <span className="text-gray-500">Fee Amount</span>
                                                 <span className="font-semibold text-primary">
-                                                    {formData.role === 'Student' ? 'Rs. 1,000' : 'Rs. 2,000'}
+                                                    {formData.membershipType === 'Student' ? 'Rs. 1,000' :
+                                                        formData.membershipType === 'Associate' ? 'Rs. 500' :
+                                                            formData.membershipType === 'Overseas' ? 'Rs. 3,000' : 'Rs. 1,500'}
                                                 </span>
                                             </div>
                                         </div>
                                         <p className="text-xs text-primary-600 mt-3 font-medium text-center">
-                                            * Please keep your transaction ID handy for verification
+                                            * To avoid bank charges, prefer IBAN transfer. Please keep your transaction ID handy.
                                         </p>
                                     </div>
 
@@ -427,6 +597,31 @@ export default function SignupPage() {
                                             <input type="file" className="file-input w-full" onChange={(e) => handleFileChange(e, 'cnicBack')} />
                                         </div>
                                     </div>
+
+                                    <div className="grid md:grid-cols-2 gap-6 mt-4">
+                                        <div className="form-group">
+                                            <label className="label">Transcript Front</label>
+                                            <input type="file" className="file-input w-full" onChange={(e) => handleFileChange(e, 'transcript')} />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="label">Transcript Back</label>
+                                            <input type="file" className="file-input w-full" onChange={(e) => handleFileChange(e, 'transcriptBack')} />
+                                        </div>
+                                    </div>
+
+                                    {formData.membershipType === 'Student' && (
+                                        <div className="form-group mt-4">
+                                            <label className="label">Student ID Card (Copy)</label>
+                                            <input type="file" className="file-input w-full" onChange={(e) => handleFileChange(e, 'studentId')} />
+                                        </div>
+                                    )}
+
+                                    {formData.isRenewal && (
+                                        <div className="form-group mt-4">
+                                            <label className="label">Old Membership Card</label>
+                                            <input type="file" className="file-input w-full" onChange={(e) => handleFileChange(e, 'renewalCard')} />
+                                        </div>
+                                    )}
 
                                     <div className="border-t pt-6 mt-6">
                                         <h4 className="font-bold text-gray-800 mb-4">Set Password</h4>

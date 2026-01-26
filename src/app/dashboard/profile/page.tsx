@@ -21,17 +21,13 @@ export default async function ProfilePage() {
     const role = profile?.role || user.user_metadata?.role || 'member';
 
     return (
-        <DashboardLayout
-            userRole={role}
-            userName={profile?.full_name}
-            userEmail={user.email}
-        >
+        <>
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
                 <p className="text-gray-500 mt-2">Manage your account information and preferences.</p>
             </div>
 
             <ProfileForm user={user} profile={profile} />
-        </DashboardLayout>
+        </>
     );
 }

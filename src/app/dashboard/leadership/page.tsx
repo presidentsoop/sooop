@@ -19,8 +19,6 @@ export default async function ManageLeadershipPage() {
     if (profile?.role !== 'admin') redirect('/dashboard');
 
     return (
-        <DashboardLayout userRole="admin" userName={user.user_metadata.full_name || 'Admin'} userEmail={user.email}>
-            <LeadershipManager />
-        </DashboardLayout>
+        <LeadershipManager />
     );
 }

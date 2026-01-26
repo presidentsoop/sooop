@@ -17,9 +17,12 @@ export const membershipSchema = z.object({
     isRenewal: z.boolean().default(false),
 
     // Academic Information
-    qualification: z.string().min(1, "Qualification is required"),
+    qualification: z.string().min(1, "Qualification is required"), // Dropdown in UI
     otherQualification: z.string().optional(),
-    postGraduateDegrees: z.array(z.string()).optional(),
+    postGraduateDegrees: z.array(z.string()).optional(), // Handled as array of strings
+    hasRelevantPg: z.boolean().optional(), // Checkbox logic
+    hasNonRelevantPg: z.boolean().optional(),
+
     collegeAttended: z.string().min(2, "College name is required"),
     postGraduateInstitution: z.string().optional(),
 
@@ -37,14 +40,15 @@ export const membershipSchema = z.object({
     ]),
     designation: z.string().optional(),
     employmentCity: z.string().min(2, "City is required"),
-    province: z.string().min(2, "Province is required"),
+    province: z.enum([
+        "Punjab", "Sindh", "Khyber Pakhtunkhwa", "Balochistan", "Islamabad", "Gilgit-Baltistan", "Azad Kashmir", "International"
+    ]),
 
     // Payment Information
-    transactionId: z.string().min(4, "Transaction ID is required"),
+    transactionId: z.string().optional(), // Made optional for initial submit if just uploading receipt
 
-    // File Uploads (We'll store URLs here after upload, or use a separate internal state for File objects)
-    // These validations are for the final payload
-    photoUrl: z.string().optional(), // Required in UI logic
+    // File Uploads
+    photoUrl: z.string().optional(),
     cnicFrontUrl: z.string().optional(),
     cnicBackUrl: z.string().optional(),
     transcriptFrontUrl: z.string().optional(),

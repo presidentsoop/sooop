@@ -19,11 +19,7 @@ export default async function SettingsPage() {
         .single();
 
     return (
-        <DashboardLayout
-            userRole={profile?.role || 'member'}
-            userName={profile?.full_name}
-            userEmail={user.email}
-        >
+        <>
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-900">System Settings</h1>
                 <p className="text-gray-500 mt-2">Manage application preferences and security.</p>
@@ -72,6 +68,6 @@ export default async function SettingsPage() {
                     </div>
                 </div>
             </div>
-        </DashboardLayout>
+        </>
     );
 }

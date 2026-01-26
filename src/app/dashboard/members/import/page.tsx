@@ -20,24 +20,18 @@ export default async function ImportMembersPage() {
     if (profile?.role !== 'admin') redirect("/dashboard");
 
     return (
-        <DashboardLayout
-            userRole="admin"
-            userName={profile?.full_name || 'Admin'}
-            userEmail={user.email}
-        >
-            <div className="space-y-6 fade-in-up">
-                <div className="flex items-center gap-4">
-                    <Link href="/dashboard/members" className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-gray-900">
-                        <ChevronLeft className="w-5 h-5" />
-                    </Link>
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Import Members</h1>
-                        <p className="text-gray-500">Add members in bulk from Excel records.</p>
-                    </div>
+        <div className="space-y-6 fade-in-up">
+            <div className="flex items-center gap-4">
+                <Link href="/dashboard/members" className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-gray-900">
+                    <ChevronLeft className="w-5 h-5" />
+                </Link>
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Import Members</h1>
+                    <p className="text-gray-500">Add members in bulk from Excel records.</p>
                 </div>
-
-                <UserImporter />
             </div>
-        </DashboardLayout>
+
+            <UserImporter />
+        </div>
     );
 }

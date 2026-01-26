@@ -27,12 +27,6 @@ export default async function MembersPage() {
     }
 
     return (
-        <DashboardLayout
-            userRole="admin"
-            userName={displayName}
-            userEmail={user.email}
-        >
-            <MemberManagement />
-        </DashboardLayout>
+        <MemberManagement />
     );
 }
