@@ -1,36 +1,16 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, CheckCircle2, Users } from "lucide-react";
-import { type LucideIcon } from "lucide-react";
-import { HeroContent, StatItem } from "@/types/cms";
 
-type HeroSectionProps = {
-    content?: HeroContent | null;
+// Static content - no database calls, hardcoded for fast loading
+const staticContent = {
+    title: "Advancing **Eye Care Excellence** Together",
+    description: "Join Pakistan's premier society for optometrists, orthoptists, and vision scientists. Dedicated to professional growth and innovation.",
+    announcement: "📢 6th International Conference on Vision Sciences - 2026 • 🗳️ Registration Now Open!",
+    image: "/meetings/first-clinical-meeting.png"
 };
 
-export default async function HeroSection({ content: propContent }: HeroSectionProps) {
-    // If content is passed (e.g. from parent page), use it. otherwise fetch it.
-    // For now we assume this is a Server Component or we can fetch in a useEffect if client side.
-    // But HeroSection was "use client"; let's turn it into Server Component if possible,
-    // OR fetch data inside it. 
-    // Since "use client" was just for 'animate-marquee' or interactions? 
-    // Actually the marquee is CSS-based. "use client" is likely default or needed for something else?
-    // Wait, the previous file had "use client". 
-    // To be truly dynamic from a Server Component perspective (Next.js 13+), 
-    // it is better to fetch data in the PARENT Page and pass it down.
-    // However, to standalone this, let's keep it simple.
-
-    // Default Fallback Content
-    const currentYear = new Date().getFullYear();
-    const defaultContent: HeroContent = {
-        title: "Advancing **Eye Care Excellence** Together",
-        description: "Join Pakistan's premier society for optometrists, orthoptists, and vision scientists. Dedicated to professional growth and innovation.",
-        announcement: `📢 6th International Conference on Vision Sciences; May ${currentYear} • 🗳️ General Election May ${currentYear}`,
-        stats: []
-    };
-
-    const content = propContent || defaultContent;
-
+export default function HeroSection() {
     // Helper to render bold text from **markdown** style simple syntax
     const renderTitle = (text: string) => {
         const parts = text.split("**");
@@ -40,11 +20,11 @@ export default async function HeroSection({ content: propContent }: HeroSectionP
     };
 
     // Construct marquee string (repeated for seamless flow)
-    const marqueeText = Array(4).fill(content.announcement).join(" • ");
+    const marqueeText = Array(4).fill(staticContent.announcement).join(" • ");
 
     return (
         <section className="relative w-full overflow-hidden bg-white pt-10 md:pt-0">
-            {/* Announcement Marquee - Dynamic */}
+            {/* Announcement Marquee - Static */}
             <div className="absolute top-0 left-0 w-full bg-primary-900 text-white z-20 py-2 overflow-hidden">
                 <div className="animate-marquee whitespace-nowrap inline-block">
                     <span className="mx-4 font-medium text-sm md:text-base">{marqueeText}</span>
@@ -66,11 +46,11 @@ export default async function HeroSection({ content: propContent }: HeroSectionP
                             </div>
 
                             <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight text-primary-900 text-balance leading-tight">
-                                {renderTitle(content.title)}
+                                {renderTitle(staticContent.title)}
                             </h1>
 
                             <p className="max-w-[600px] mx-auto lg:mx-0 text-base md:text-lg text-gray-600 md:text-xl leading-relaxed">
-                                {content.description}
+                                {staticContent.description}
                             </p>
                         </div>
 
@@ -113,7 +93,7 @@ export default async function HeroSection({ content: propContent }: HeroSectionP
 
                         <div className="relative rounded-2xl overflow-hidden shadow-2xl border-2 md:border-4 border-white">
                             <Image
-                                src={content.image || "/images/hero_pakistani_medical_group.png"}
+                                src={staticContent.image}
                                 alt="Pakistani Vision Care Professionals Team"
                                 width={800}
                                 height={600}

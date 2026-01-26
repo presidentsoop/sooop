@@ -80,6 +80,35 @@ CREATE POLICY "Users insert own profile" ON public.profiles FOR INSERT WITH CHEC
 
 
 -- ========================================
+-- 1a. MEMBERSHIP APPLICATIONS (New)
+-- ========================================
+CREATE TABLE public.membership_applications (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    membership_type TEXT NOT NULL,
+    is_renewal BOOLEAN DEFAULT FALSE,
+    status TEXT DEFAULT 'pending',
+    renewal_card_url TEXT,
+    student_id_url TEXT,
+    transcript_front_url TEXT,
+    transcript_back_url TEXT,
+    submitted_at TIMESTAMPTZ DEFAULT NOW(),
+    rejection_reason TEXT,
+    reviewed_by UUID REFERENCES public.profiles(id),
+    reviewed_at TIMESTAMPTZ
+);
+
+ALTER TABLE public.membership_applications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users view own applications" ON public.membership_applications FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Admins view all applications" ON public.membership_applications FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin'))
+);
+CREATE POLICY "Users insert own applications" ON public.membership_applications FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Admins update applications" ON public.membership_applications FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin'))
+);
+
+-- ========================================
 -- 2. DOCUMENTS
 -- ========================================
 -- Centralized storage references for all user uploads
@@ -120,6 +149,7 @@ CREATE POLICY "Admins manage documents" ON public.documents FOR ALL USING (
 CREATE TABLE public.payments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  application_id UUID REFERENCES public.membership_applications(id), -- Linked to application
   
   -- Payment Details
   transaction_id TEXT, -- Can be manual ID or system generated
@@ -218,9 +248,67 @@ CREATE POLICY "Admins manage campaigns" ON public.email_campaigns FOR ALL USING 
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin'))
 );
 
+-- ========================================
+-- 7. WINGS (New)
+-- ========================================
+CREATE TABLE public.wings (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    acronym TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.wings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public view wings" ON public.wings FOR SELECT USING (true);
+CREATE POLICY "Admins manage wings" ON public.wings FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin'))
+);
 
 -- ========================================
--- 7. HELPERS & TRIGGERS
+-- 8. WING MEMBERS (New)
+-- ========================================
+CREATE TABLE public.wing_members (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    wing_id UUID REFERENCES public.wings(id) ON DELETE CASCADE,
+    profile_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL, -- Optional if manual entry
+    role TEXT NOT NULL, -- President, General Secretary, etc.
+    manual_name TEXT, -- For members not in system yet
+    manual_image TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.wing_members ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public view wing members" ON public.wing_members FOR SELECT USING (true);
+CREATE POLICY "Admins manage wing members" ON public.wing_members FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin'))
+);
+
+-- ========================================
+-- 9. LEADERSHIP HISTORY (New)
+-- ========================================
+CREATE TABLE public.leadership_history (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    role TEXT NOT NULL,
+    start_year TEXT,
+    end_year TEXT, -- Null means current
+    category TEXT CHECK (category IN ('cabinet', 'council', 'past_president')),
+    bio TEXT,
+    image_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.leadership_history ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public view leadership" ON public.leadership_history FOR SELECT USING (true);
+CREATE POLICY "Admins manage leadership" ON public.leadership_history FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin'))
+);
+
+
+-- ========================================
+-- 10. HELPERS & TRIGGERS
 -- ========================================
 
 -- Sequence for Membership IDs (Starts at 1001)

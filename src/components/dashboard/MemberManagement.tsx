@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
+
 import { useState, useEffect } from "react";
 import {
     Search, Filter, ChevronDown, Check, X, Ban, MoreVertical,
     Eye, UserPlus, XCircle, CheckCircle, FileText, Download,
-    Calendar, Clock, Shield, AlertTriangle
+    Calendar, Clock, Shield, AlertTriangle, Upload
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -145,13 +147,22 @@ export default function MemberManagement() {
                     <h2 className="text-3xl font-heading font-bold text-gray-900 tracking-tight">Community Management</h2>
                     <p className="text-gray-500 mt-1">Manage memberships, approvals, and subscriptions.</p>
                 </div>
-                <button
-                    onClick={() => setShowAddModal(true)}
-                    className="flex items-center gap-2 px-6 py-3 bg-primary-900 text-white rounded-xl hover:bg-primary-800 transition-all shadow-lg shadow-primary-900/20 font-semibold hover:-translate-y-0.5"
-                >
-                    <UserPlus className="w-5 h-5" />
-                    <span>Add Member</span>
-                </button>
+                <div className="flex gap-2">
+                    <Link
+                        href="/dashboard/members/import"
+                        className="flex items-center gap-2 px-6 py-3 bg-white text-gray-700 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all font-semibold"
+                    >
+                        <Upload className="w-5 h-5" />
+                        <span>Import CSV</span>
+                    </Link>
+                    <button
+                        onClick={() => setShowAddModal(true)}
+                        className="flex items-center gap-2 px-6 py-3 bg-primary-900 text-white rounded-xl hover:bg-primary-800 transition-all shadow-lg shadow-primary-900/20 font-semibold hover:-translate-y-0.5"
+                    >
+                        <UserPlus className="w-5 h-5" />
+                        <span>Add Member</span>
+                    </button>
+                </div>
             </div>
 
             {/* Controls Filter Bar */}

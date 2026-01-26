@@ -366,6 +366,38 @@ export default function SignupPage() {
                                         Please upload clear images/scans of your documents. Allowed formats: JPG, PNG, PDF. Max size: 5MB.
                                     </div>
 
+                                    <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 mb-6">
+                                        <h4 className="text-lg font-bold text-primary-900 mb-3 flex items-center gap-2">
+                                            <CreditCard className="w-5 h-5" /> Bank Account Details
+                                        </h4>
+                                        <p className="text-sm text-gray-600 mb-4">
+                                            Please transfer the membership fee to the following account and upload the receipt below.
+                                        </p>
+                                        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm space-y-2 text-sm">
+                                            <div className="flex justify-between border-b pb-2">
+                                                <span className="text-gray-500">Bank Name</span>
+                                                <span className="font-semibold text-gray-900">Habib Bank Limited (HBL)</span>
+                                            </div>
+                                            <div className="flex justify-between border-b pb-2">
+                                                <span className="text-gray-500">Account Title</span>
+                                                <span className="font-semibold text-gray-900">SOOOP Pakistan</span>
+                                            </div>
+                                            <div className="flex justify-between border-b pb-2">
+                                                <span className="text-gray-500">Account Number</span>
+                                                <span className="font-semibold text-gray-900 select-all">0123-45678901-23</span> {/* REPLACE WITH ACTUAL */}
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-500">Fee Amount</span>
+                                                <span className="font-semibold text-primary">
+                                                    {formData.role === 'Student' ? 'Rs. 1,000' : 'Rs. 2,000'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-primary-600 mt-3 font-medium text-center">
+                                            * Please keep your transaction ID handy for verification
+                                        </p>
+                                    </div>
+
                                     <div className="grid md:grid-cols-2 gap-6">
                                         <div className="form-group">
                                             <label className="label">Profile Photo (Passport Size)</label>
@@ -376,10 +408,11 @@ export default function SignupPage() {
                                             </div>
                                         </div>
                                         <div className="form-group">
-                                            <label className="label">Payment Proof</label>
+                                            <label className="label">Payment Proof (Receipt)</label>
                                             <div className="border border-dashed border-gray-300 rounded-lg p-6 text-center hover:bg-gray-50 transition-colors">
                                                 <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
                                                 <input type="file" accept="image/*,application/pdf" className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" onChange={(e) => handleFileChange(e, 'paymentProof')} />
+                                                <p className="text-xs text-gray-400 mt-2">Upload Bank Receipt</p>
                                             </div>
                                         </div>
                                     </div>

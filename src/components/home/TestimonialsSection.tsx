@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import { Star, Quote } from "lucide-react";
 import { TestimonialsContent, TestimonialItem } from "@/types/cms";
 
@@ -61,45 +62,53 @@ export default function TestimonialsSection({ content }: TestimonialsSectionProp
 
                 <div className="grid md:grid-cols-3 gap-8">
                     {testimonials.map((testimonial: TestimonialItem) => (
-                        <div
-                            key={testimonial.id}
-                            className="bg-white p-8 rounded-2xl shadow-soft hover:shadow-soft-xl transition-all duration-300 relative group border border-gray-100"
-                        >
-                            {/* Quote Icon */}
-                            <div className="absolute top-6 right-6 text-gray-200 group-hover:text-accent/20 transition-colors">
-                                <Quote className="w-10 h-10 fill-current" />
-                            </div>
-
-                            <div className="flex items-center gap-1 mb-6 text-yellow-400">
-                                {[...Array(testimonial.rating)].map((_, i) => (
-                                    <Star key={i} className="w-5 h-5 fill-current" />
-                                ))}
-                            </div>
-
-                            <blockquote className="text-gray-600 mb-8 text-lg italic leading-relaxed">
-                                "{testimonial.quote}"
-                            </blockquote>
-
-                            <div className="flex items-center gap-4 border-t border-gray-100 pt-6">
-                                <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-white shadow-md">
-                                    <Image
-                                        src={testimonial.image || '/images/avatar_placeholder.png'}
-                                        alt={testimonial.name}
-                                        fill
-                                        className="object-cover"
-                                    />
-                                </div>
-                                <div>
-                                    <h4 className="font-bold text-primary-900 text-lg leading-tight">
-                                        {testimonial.name}
-                                    </h4>
-                                    <p className="text-sm text-gray-500">{testimonial.role}</p>
-                                </div>
-                            </div>
-                        </div>
+                        <TestimonialCard key={testimonial.id} testimonial={testimonial} />
                     ))}
                 </div>
             </div>
         </section>
+    );
+}
+
+function TestimonialCard({ testimonial }: { testimonial: TestimonialItem }) {
+    const [imgSrc, setImgSrc] = useState(testimonial.image && testimonial.image.startsWith('/') ? testimonial.image : '/images/portrait_pakistani_male_dr.png');
+
+    return (
+        <div
+            className="bg-white p-8 rounded-2xl shadow-soft hover:shadow-soft-xl transition-all duration-300 relative group border border-gray-100"
+        >
+            {/* Quote Icon */}
+            <div className="absolute top-6 right-6 text-gray-200 group-hover:text-accent/20 transition-colors">
+                <Quote className="w-10 h-10 fill-current" />
+            </div>
+
+            <div className="flex items-center gap-1 mb-6 text-yellow-400">
+                {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} className="w-5 h-5 fill-current" />
+                ))}
+            </div>
+
+            <blockquote className="text-gray-600 mb-8 text-lg italic leading-relaxed">
+                "{testimonial.quote}"
+            </blockquote>
+
+            <div className="flex items-center gap-4 border-t border-gray-100 pt-6">
+                <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-white shadow-md bg-gray-50">
+                    <Image
+                        src={imgSrc}
+                        alt={testimonial.name}
+                        fill
+                        className="object-cover"
+                        onError={() => setImgSrc('/images/portrait_pakistani_male_dr.png')}
+                    />
+                </div>
+                <div>
+                    <h4 className="font-bold text-primary-900 text-lg leading-tight">
+                        {testimonial.name}
+                    </h4>
+                    <p className="text-sm text-gray-500">{testimonial.role}</p>
+                </div>
+            </div>
+        </div>
     );
 }

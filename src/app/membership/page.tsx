@@ -3,58 +3,60 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Link from 'next/link';
 import { Users, Ticket, BookOpen, Coins, Contact, Check } from 'lucide-react';
-import { createStaticClient } from "@/lib/supabase/static";
 
 export const revalidate = 3600;
-
-interface MembershipBenefit {
-    id: number;
-    title: string;
-    description: string;
-    image: string;
-    link: string;
-}
-
-interface MembershipType {
-    type: string;
-    fee: string;
-    description: string;
-    features: string[];
-    popular: boolean;
-}
-
-interface DownloadItem {
-    name: string;
-    url: string;
-}
-
-interface MembershipPageContent {
-    benefits: MembershipBenefit[];
-    types: MembershipType[];
-    downloads: DownloadItem[];
-}
 
 export const metadata: Metadata = {
     title: 'Membership - SOOOP',
     description: 'Join the Society of Optometrists, Orthoptists and Ophthalmic Technologists Pakistan. Access professional development, networking, and exclusive member benefits.',
 };
 
-const defaultContent: MembershipPageContent = {
-    benefits: [],
-    types: [],
-    downloads: []
+// Static content - no database calls
+const staticContent = {
+    hero: {
+        title: "Become a **Member**",
+        subtitle: "Join the leading society of vision care professionals in Pakistan and unlock exclusive benefits."
+    },
+    benefits: [
+        { id: 1, title: "Professional Network", description: "Connect with over 300 vision care professionals across Pakistan.", icon: Users },
+        { id: 2, title: "Conference Access", description: "Discounted access to international conferences and workshops.", icon: Ticket },
+        { id: 3, title: "Educational Resources", description: "Access to journals, webinars, and continuing education materials.", icon: BookOpen },
+        { id: 4, title: "Research Grants", description: "Apply for research funding and publication opportunities.", icon: BookOpen },
+        { id: 5, title: "Career Support", description: "Job listings, career guidance, and mentorship programs.", icon: Coins },
+        { id: 6, title: "Government Advocacy", description: "Representation in policy matters affecting the profession.", icon: Contact },
+    ],
+    types: [
+        {
+            type: "Student",
+            fee: "Rs. 500",
+            description: "For enrolled optometry students",
+            features: ["Conference discounts", "Study materials", "Mentorship access", "Student network"],
+            popular: false
+        },
+        {
+            type: "Professional",
+            fee: "Rs. 2,000",
+            description: "For practicing optometrists",
+            features: ["Full conference access", "Voting rights", "All resources", "Career portal", "Research grants"],
+            popular: true
+        },
+        {
+            type: "Lifetime",
+            fee: "Rs. 15,000",
+            description: "One-time payment forever",
+            features: ["All professional benefits", "Lifetime access", "Honorary recognition", "Priority registration"],
+            popular: false
+        }
+    ],
+    downloads: [
+        { name: "Membership Form", url: "/membership-form.pdf" },
+        { name: "Oath Document", url: "/membership-oath.pdf" }
+    ]
 };
 
-// Map hardcoded icons for default list if dynamic icons aren't supported yet
-const Icons = [BookOpen, Users, Ticket, BookOpen, Coins, Contact];
+const Icons = [Users, Ticket, BookOpen, BookOpen, Coins, Contact];
 
-export default async function MembershipPage() {
-    const supabase = createStaticClient();
-    const { data: page } = await supabase.from('pages').select('content').eq('slug', 'membership').single();
-
-    const content = page?.content || defaultContent;
-    const hero = content.hero || { title: "Become a **Member**", subtitle: "Join the leading society of vision care professionals in Pakistan and unlock exclusive benefits." };
-
+export default function MembershipPage() {
     const renderTitle = (text: string) => {
         const parts = text.split("**");
         return parts.map((part, i) =>
@@ -71,10 +73,10 @@ export default async function MembershipPage() {
                     <div className="container text-center">
                         <span className="badge bg-accent text-white mb-4">Join Our Community</span>
                         <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
-                            {renderTitle(hero.title)}
+                            {renderTitle(staticContent.hero.title)}
                         </h1>
                         <p className="text-white/80 text-lg max-w-2xl mx-auto">
-                            {hero.subtitle}
+                            {staticContent.hero.subtitle}
                         </p>
                     </div>
                 </section>
@@ -90,10 +92,10 @@ export default async function MembershipPage() {
                         </div>
 
                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {content.benefits?.map((benefit: MembershipBenefit, index: number) => {
+                            {staticContent.benefits.map((benefit, index) => {
                                 const Icon = Icons[index % Icons.length];
                                 return (
-                                    <div key={index} className="card card-hover group">
+                                    <div key={benefit.id} className="card card-hover group">
                                         <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:bg-primary group-hover:text-white transition-all">
                                             <Icon className="w-6 h-6" />
                                         </div>
@@ -117,7 +119,7 @@ export default async function MembershipPage() {
                         </div>
 
                         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-                            {content.types?.map((membership: MembershipType, index: number) => (
+                            {staticContent.types.map((membership, index) => (
                                 <div
                                     key={index}
                                     className={`card relative ${membership.popular ? 'border-2 border-accent shadow-soft-xl' : ''}`}
@@ -133,7 +135,7 @@ export default async function MembershipPage() {
                                         <p className="text-gray-600 text-sm">{membership.description}</p>
                                     </div>
                                     <ul className="space-y-3 mb-8">
-                                        {membership.features?.map((feature: string, i: number) => (
+                                        {membership.features.map((feature, i) => (
                                             <li key={i} className="flex items-center gap-3 text-gray-600">
                                                 <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
                                                 {feature}
@@ -162,7 +164,7 @@ export default async function MembershipPage() {
                             </p>
 
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                                {content.downloads?.map((doc: DownloadItem, i: number) => (
+                                {staticContent.downloads.map((doc, i) => (
                                     <a
                                         key={i}
                                         href={doc.url}

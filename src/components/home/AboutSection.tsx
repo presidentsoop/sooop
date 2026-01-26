@@ -14,7 +14,7 @@ export default function AboutSection({ content }: { content?: AboutContent }) {
             "Filtering quackery from the field",
             "Organizing international conferences"
         ],
-        image: "/images/conference_event_hall.png",
+        image: "/meetings/first-clinical-meeting.png",
         years_count: "15+",
         years_text: "Years of Dedicated Service"
     };

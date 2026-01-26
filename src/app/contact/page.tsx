@@ -1,45 +1,29 @@
 import { Metadata } from 'next';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-interface ContactPageContent {
-    hero: {
-        title: string;
-        subtitle: string;
-    };
-    info: {
-        address: string;
-        phone: string;
-        email: string;
-    };
-}
 
 export const metadata: Metadata = {
     title: 'Contact Us - SOOOP',
     description: 'Get in touch with the Society of Optometrists, Orthoptists and Ophthalmic Technologists Pakistan.',
 };
 
-import { createStaticClient } from "@/lib/supabase/static";
-
 export const revalidate = 3600;
 
-export default async function ContactPage() {
-    const supabase = createStaticClient();
-    const { data: page } = await supabase.from('pages').select('content').eq('slug', 'contact').single();
+// Static content - no database calls
+const staticContent = {
+    hero: {
+        title: "Contact **Us**",
+        subtitle: "Have questions? We'd love to hear from you."
+    },
+    info: {
+        address: "SOOOP House\nCollege of Ophthalmology and Allied Vision Sciences\nKing Edward Medical University\nLahore, Pakistan",
+        phone: "+92-332-4513876",
+        email: "info@sooopvision.com"
+    }
+};
 
-    const content = page?.content || {
-        hero: {
-            title: "Contact **Us**",
-            subtitle: "Have questions? We'd love to hear from you."
-        },
-        info: {
-            address: "SOOOP House\nCollege of Ophthalmology and Allied Vision Sciences\nKing Edward Medical University\nLahore, Pakistan",
-            phone: "+92-332-4513876",
-            email: "info@sooopvision.com"
-        }
-    };
-
-    // Helper to process address newlines
-    const addressLines = (content.info.address || "").split('\n');
+export default function ContactPage() {
+    const addressLines = staticContent.info.address.split('\n');
 
     const renderBold = (text: string) => {
         return text.split(/(\*\*.*?\*\*)/).map((part, index) =>
@@ -58,10 +42,10 @@ export default async function ContactPage() {
                     <div className="container text-center">
                         <span className="badge bg-accent text-white mb-4">Get in Touch</span>
                         <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
-                            {renderBold(content.hero.title)}
+                            {renderBold(staticContent.hero.title)}
                         </h1>
                         <p className="text-white/80 text-lg max-w-2xl mx-auto">
-                            {content.hero.subtitle}
+                            {staticContent.hero.subtitle}
                         </p>
                     </div>
                 </section>
@@ -89,7 +73,7 @@ export default async function ContactPage() {
                                         <div>
                                             <h3 className="font-semibold text-gray-900 mb-1">Address</h3>
                                             <p className="text-gray-600">
-                                                {addressLines.map((line: string, i: number) => (
+                                                {addressLines.map((line, i) => (
                                                     <span key={i} className="block">{line}</span>
                                                 ))}
                                             </p>
@@ -105,8 +89,8 @@ export default async function ContactPage() {
                                         </div>
                                         <div>
                                             <h3 className="font-semibold text-gray-900 mb-1">Phone</h3>
-                                            <a href={`tel:${content.info.phone.replace(/[^0-9]/g, '')}`} className="text-gray-600 hover:text-primary">
-                                                {content.info.phone}
+                                            <a href={`tel:${staticContent.info.phone.replace(/[^0-9]/g, '')}`} className="text-gray-600 hover:text-primary">
+                                                {staticContent.info.phone}
                                             </a>
                                         </div>
                                     </div>
@@ -120,8 +104,8 @@ export default async function ContactPage() {
                                         </div>
                                         <div>
                                             <h3 className="font-semibold text-gray-900 mb-1">Email</h3>
-                                            <a href={`mailto:${content.info.email}`} className="text-gray-600 hover:text-primary">
-                                                {content.info.email}
+                                            <a href={`mailto:${staticContent.info.email}`} className="text-gray-600 hover:text-primary">
+                                                {staticContent.info.email}
                                             </a>
                                         </div>
                                     </div>

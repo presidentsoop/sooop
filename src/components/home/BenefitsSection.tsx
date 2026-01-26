@@ -78,15 +78,15 @@ export default function BenefitsSection({ content }: BenefitsSectionProps) {
 
                 {/* Mobile: 2 col, Desktop: 3 col */}
                 <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
-                    {benefits.map((benefit: BenefitItem) => (
+                    {benefits.map((benefit: BenefitItem, index: number) => (
                         <div
-                            key={benefit.id}
+                            key={benefit.id || index}
                             className="group bg-white rounded-2xl p-4 md:p-6 border border-gray-100 shadow-soft hover:shadow-soft-xl transition-all duration-300 hover:-translate-y-1 relative overflow-hidden flex flex-col"
                         >
                             {/* Image Area - Smaller on mobile */}
                             <div className="relative h-24 md:h-48 w-full mb-4 md:mb-6 bg-gray-50 rounded-xl overflow-hidden group-hover:bg-blue-50/50 transition-colors">
                                 <Image
-                                    src={benefit.image || '/images/placeholder_icon.png'}
+                                    src={benefit.image || '/images/benefit_illustration_networking.png'}
                                     alt={benefit.title}
                                     fill
                                     className="object-contain p-2 md:p-4 transition-transform duration-500 group-hover:scale-110"

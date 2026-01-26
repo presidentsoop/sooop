@@ -3,33 +3,22 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import AboutSection from '@/components/home/AboutSection';
 import HistorySection from '@/components/home/HistorySection';
-import { AboutContent } from '@/types/cms';
 
 export const metadata: Metadata = {
     title: 'About Us - SOOOP',
     description: 'Learn about the Society of Optometrists, Orthoptists and Ophthalmic Technologists Pakistan.',
 };
 
-import { createStaticClient } from "@/lib/supabase/static";
-
+// ISR: Revalidate every hour - page is statically generated
 export const revalidate = 3600;
 
-export default async function AboutPage() {
-    const supabase = createStaticClient();
-    const { data: page } = await supabase.from('pages').select('content').eq('slug', 'about').single();
+// Static hero content
+const heroContent = {
+    title: "About **SOOOP**",
+    subtitle: "The comprehensive representative body of vision care professionals in Pakistan"
+};
 
-    // Default fallback (though DB should have it now)
-    const content = page?.content?.about || {
-        title: "Pioneering Vision Sciences Since 2009",
-        description: "The Society of Optometrists, Orthoptists and Ophthalmic Technologists, Pakistan (SOOOP) is the leading professional body...",
-        points: [],
-        image: "/images/conference_event_hall.png",
-        years_count: "15+",
-        years_text: "Years of Dedicated Service"
-    };
-
-    const hero = page?.content?.hero || { title: "About **SOOOP**", subtitle: "The comprehensive representative body of vision care professionals in Pakistan" };
-
+export default function AboutPage() {
     const renderTitle = (text: string) => {
         const parts = text.split("**");
         return parts.map((part, i) =>
@@ -41,20 +30,19 @@ export default async function AboutPage() {
         <>
             <Header />
             <main>
-                {/* Hero */}
                 <section className="bg-gradient-primary py-16 md:py-24">
                     <div className="container text-center">
                         <span className="badge bg-accent text-white mb-4">Who We Are</span>
                         <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
-                            {renderTitle(hero.title)}
+                            {renderTitle(heroContent.title)}
                         </h1>
                         <p className="text-white/80 text-lg max-w-2xl mx-auto">
-                            {hero.subtitle}
+                            {heroContent.subtitle}
                         </p>
                     </div>
                 </section>
 
-                <AboutSection content={content} />
+                <AboutSection />
                 <HistorySection />
             </main>
             <Footer />
