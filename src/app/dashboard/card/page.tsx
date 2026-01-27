@@ -20,7 +20,7 @@ export default async function IDCardPage() {
         .single();
 
     // Auth Check
-    if (profile?.membership_status !== 'approved') {
+    if (profile?.membership_status !== 'active') {
         redirect("/dashboard"); // Only approved members can see this
     }
 

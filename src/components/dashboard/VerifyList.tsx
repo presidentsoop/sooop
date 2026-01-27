@@ -419,9 +419,19 @@ export default function VerifyList({ initialMembers }: VerifyListProps) {
                                     {memberDocuments.filter(d => d.document_type === 'payment_proof').map((doc) => (
                                         <div key={doc.id} className="border-2 border-green-500/20 bg-green-50/10 rounded-xl overflow-hidden shadow-sm col-span-1 md:col-span-2 relative group">
                                             <div className="bg-green-50 px-4 py-3 border-b border-green-100 flex justify-between items-center">
-                                                <span className="text-sm font-bold uppercase text-green-700 flex items-center gap-2">
-                                                    <CreditCard className="w-4 h-4" /> Bank Payment Receipt
-                                                </span>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-sm font-bold uppercase text-green-700 flex items-center gap-2">
+                                                        <CreditCard className="w-4 h-4" /> Bank Payment Receipt
+                                                    </span>
+                                                    {/* Expected Fee Badge */}
+                                                    <span className="text-xs bg-white text-green-700 border border-green-200 px-2 py-0.5 rounded-md font-mono font-bold">
+                                                        Expected: {
+                                                            selectedMember.membership_type === 'Student' ? 'Rs. 1,000' :
+                                                                selectedMember.membership_type === 'Associate' ? 'Rs. 500' :
+                                                                    selectedMember.membership_type === 'Overseas' ? 'Rs. 3,000' : 'Rs. 1,500' // Full Member
+                                                        }
+                                                    </span>
+                                                </div>
                                                 <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="text-xs bg-white border border-green-200 text-green-700 px-3 py-1 rounded-full font-bold hover:bg-green-50 transition flex items-center gap-1">
                                                     View Full <ExternalLink className="w-3 h-3" />
                                                 </a>

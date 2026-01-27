@@ -540,53 +540,69 @@ export default function SignupPage() {
                                         <p>Please upload clear images or scans. Max size 5MB per file.</p>
                                     </div>
 
-                                    {/* Bank Details Card */}
-                                    <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 text-white shadow-lg overflow-hidden relative">
-                                        <div className="absolute top-0 right-0 p-8 opacity-10">
-                                            <CreditCard className="w-32 h-32 transform rotate-12" />
-                                        </div>
+                                    {/* Bank Details Card - Premium Design */}
+                                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-8 text-white shadow-2xl relative overflow-hidden group">
+                                        {/* Abstract Decoration */}
+                                        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-white/10 transition-colors duration-700"></div>
+
                                         <div className="relative z-10">
-                                            <h4 className="font-bold text-lg mb-4 flex items-center gap-2 opacity-90">
-                                                <CreditCard className="w-5 h-5" /> Fee Submission Details
-                                            </h4>
-                                            <div className="space-y-4 font-mono text-sm opacity-90 mb-6">
-                                                <div className="flex justify-between items-center border-b border-white/10 pb-2">
-                                                    <span className="text-gray-300">Bank Name</span>
-                                                    <span className="font-bold text-base">Meezan Bank</span>
+                                            <div className="flex items-center gap-3 mb-8">
+                                                <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
+                                                    <CreditCard className="w-6 h-6 text-blue-300" />
                                                 </div>
-                                                <div className="flex justify-between items-center border-b border-white/10 pb-2">
-                                                    <span className="text-gray-300">Account Number</span>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-bold text-lg tracking-wide select-all">02750112976719</span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                navigator.clipboard.writeText('02750112976719')
-                                                                    .then(() => toast.success('Account Number Copied!'))
-                                                                    .catch(() => toast.error('Failed to copy'));
-                                                            }}
-                                                            className="p-2 hover:bg-white/20 rounded-lg transition-colors active:scale-95"
-                                                            title="Copy Account Number"
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
-                                                        </button>
+                                                <h4 className="font-bold text-xl tracking-tight">Fee Submission Details</h4>
+                                            </div>
+
+                                            <div className="space-y-6">
+                                                <div className="grid sm:grid-cols-2 gap-6">
+                                                    <div className="space-y-1">
+                                                        <p className="text-xs font-semibold text-blue-300 uppercase tracking-widest">Bank Name</p>
+                                                        <p className="font-bold text-lg text-white">Meezan Bank</p>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-xs font-semibold text-blue-300 uppercase tracking-widest">Account Title</p>
+                                                        <p className="font-bold text-lg text-white">RUHULLAH</p>
                                                     </div>
                                                 </div>
-                                                <div className="flex justify-between items-center border-b border-white/10 pb-2">
-                                                    <span className="text-gray-300">Title</span>
-                                                    <span className="font-bold">RUHULLAH</span>
+
+                                                <div className="bg-white/5 rounded-xl p-4 border border-white/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 group-hover:border-white/20 transition-colors">
+                                                    <div className="space-y-1">
+                                                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Account Number</p>
+                                                        <p className="font-mono text-xl md:text-2xl font-bold text-white tracking-widest select-all">
+                                                            02750112976719
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText('02750112976719')
+                                                                .then(() => toast.success('Account Number Copied!'))
+                                                                .catch(() => toast.error('Failed to copy'));
+                                                        }}
+                                                        className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-semibold transition-all active:scale-95 flex items-center gap-2"
+                                                    >
+                                                        Copy <span className="sr-only">Account Number</span>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
+                                                    </button>
                                                 </div>
-                                            </div>
-                                            <div className="flex items-center justify-between bg-white/10 p-4 rounded-lg backdrop-blur-sm border border-white/5">
-                                                <span className="text-sm font-medium">Total Payable Fee</span>
-                                                <span className="text-2xl font-bold text-green-300">
-                                                    {formData.membershipType === 'Student' ? 'Rs. 1,000' :
-                                                        formData.membershipType === 'Associate' ? 'Rs. 500' :
-                                                            formData.membershipType === 'Overseas' ? 'Rs. 3,000' : 'Rs. 1,500'}
-                                                </span>
+
+                                                <div className="pt-6 border-t border-white/10 flex items-end justify-between">
+                                                    <div>
+                                                        <p className="text-sm text-gray-400 mb-1">Total Payable Amount</p>
+                                                        <p className="text-xs text-blue-300">Non-refundable</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <span className="text-3xl md:text-4xl font-bold text-emerald-400">
+                                                            {formData.membershipType === 'Student' ? 'Rs. 1,000' :
+                                                                formData.membershipType === 'Associate' ? 'Rs. 500' :
+                                                                    formData.membershipType === 'Overseas' ? 'Rs. 3,000' : 'Rs. 1,500'}
+                                                        </span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
+
 
                                     <div className="grid md:grid-cols-2 gap-6">
                                         <FileUploadField
@@ -668,14 +684,19 @@ export default function SignupPage() {
                                         <button
                                             type="submit"
                                             disabled={isLoading}
-                                            className="btn-primary-action flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed w-full md:w-auto"
+                                            className="group relative overflow-hidden btn-primary-action flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed w-full md:w-auto bg-gradient-to-r from-primary to-blue-600 hover:from-primary-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50"
                                         >
+                                            <span className="absolute inset-0 w-full h-full bg-white/20 -translate-x-full group-hover:translate-x-0 transition-transform duration-500 ease-out skew-x-12"></span>
+
                                             {isLoading ? (
-                                                <div className="w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>
+                                                <>
+                                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                    <span className="font-medium">Processing Application...</span>
+                                                </>
                                             ) : (
                                                 <>
-                                                    <CheckCircle className="w-5 h-5" />
-                                                    <span>Complete Registration</span>
+                                                    <CheckCircle className="w-5 h-5 relative z-10" />
+                                                    <span className="relative z-10 font-bold tracking-wide">Complete Registration</span>
                                                 </>
                                             )}
                                         </button>

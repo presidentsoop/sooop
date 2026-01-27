@@ -195,7 +195,7 @@ export async function registerMember(formData: FormData) {
         status: 'pending',
         membership_type: membershipType,
         is_renewal: isRenewal,
-        reviewed_by: null,
+
         renewal_card_url: fileUrls['renewal_card'] || null,
         student_id_url: fileUrls['student_id'] || null,
         transcript_front_url: fileUrls['transcript_front'] || null,

@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import {
     Search, Filter, ChevronDown, Check, X, Ban, MoreVertical,
     Eye, UserPlus, XCircle, CheckCircle, FileText, Download,
-    Calendar, Clock, Shield, AlertTriangle, Upload, RefreshCw
+    Calendar, Clock, Shield, AlertTriangle, Upload, RefreshCw, Settings
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -387,37 +387,23 @@ export default function MemberManagement() {
                                             )}
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-1 opacity-40 group-hover:opacity-100 transition-all duration-200">
-                                                <button
-                                                    onClick={() => { setSelectedMember(member); setShowModal(true); }}
-                                                    className="p-2 text-gray-400 hover:text-primary hover:bg-primary-50 rounded-lg transition-colors"
-                                                    title="View Profile"
-                                                >
-                                                    <Eye className="w-4 h-4" />
-                                                </button>
-
-                                                {member.membership_status === 'pending' && (
-                                                    <>
-                                                        <button
-                                                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                                            onClick={() => handleAction(member.id, 'approve')}
-                                                            title="Approve"
-                                                        >
-                                                            <CheckCircle className="w-4 h-4" />
-                                                        </button>
-                                                        <button
-                                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                            onClick={() => handleAction(member.id, 'reject')}
-                                                            title="Reject"
-                                                        >
-                                                            <XCircle className="w-4 h-4" />
-                                                        </button>
-                                                    </>
+                                            <div className="flex items-center justify-end gap-2 group-hover:opacity-100 transition-all duration-200">
+                                                {/* Pending Actions */}
+                                                {member.membership_status === 'pending' ? (
+                                                    <button
+                                                        onClick={() => { setSelectedMember(member); setShowModal(true); }}
+                                                        className="px-4 py-1.5 bg-primary-900 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-primary-800 transition-colors flex items-center gap-2"
+                                                    >
+                                                        Review Application
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => { setSelectedMember(member); setShowModal(true); }}
+                                                        className="px-4 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors flex items-center gap-2 shadow-sm"
+                                                    >
+                                                        <Settings className="w-3 h-3" /> Manage Member
+                                                    </button>
                                                 )}
-
-                                                <button className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
-                                                    <MoreVertical className="w-4 h-4" />
-                                                </button>
                                             </div>
                                         </td>
                                     </tr>
