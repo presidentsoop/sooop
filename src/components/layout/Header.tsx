@@ -11,6 +11,7 @@ const navLinks = [
     { href: '/membership', label: 'Membership' },
     { href: '/events', label: 'Events' },
     { href: '/cabinet', label: 'Cabinet' },
+    { href: '/founder-members', label: 'Founders' },
     { href: '/contact', label: 'Contact' },
 ];
 
