@@ -7,7 +7,7 @@ const staticContent = {
     title: "Advancing **Eye Care Excellence** Together",
     description: "Join Pakistan's premier society for optometrists, orthoptists, and vision scientists. Dedicated to professional growth and innovation.",
     announcement: "📢 6th International Conference on Vision Sciences - 2026 • 🗳️ Registration Now Open!",
-    image: "/meetings/first-clinical-meeting.png"
+    image: "/meetings/first-clinical-meeting.webp"
 };
 
 interface HeroContent {

@@ -34,7 +34,7 @@ export default function CTASection({ content }: CTASectionProps) {
             {/* Background Image */}
             <div className="absolute inset-0 z-0">
                 <Image
-                    src="/images/textured_background_navy.png"
+                    src="/images/textured_background_navy.webp"
                     alt="Background Texture"
                     fill
                     className="object-cover"

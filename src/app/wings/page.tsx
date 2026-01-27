@@ -18,8 +18,8 @@ const staticWings = [
         acronym: "RW",
         description: "Dedicated to advancing research standards and practices in vision sciences. Promotes scientific inquiry and evidence-based practice.",
         members: [
-            { id: 1, manual_name: "Dr. Research Lead", role: "President", manual_image: "/images/portrait_pakistani_male_dr.png" },
-            { id: 2, manual_name: "Dr. Research Secretary", role: "General Secretary", manual_image: "/images/portrait_pakistani_female_dr.png" },
+            { id: 1, manual_name: "Dr. Research Lead", role: "President", manual_image: "/images/portrait_pakistani_male_dr.webp" },
+            { id: 2, manual_name: "Dr. Research Secretary", role: "General Secretary", manual_image: "/images/portrait_pakistani_female_dr.webp" },
         ]
     },
     {
@@ -28,8 +28,8 @@ const staticWings = [
         acronym: "EW",
         description: "Focused on promoting uniform education standards and continuous professional development in optometry and related fields.",
         members: [
-            { id: 3, manual_name: "Dr. Education Lead", role: "President", manual_image: "/images/portrait_pakistani_male_dr.png" },
-            { id: 4, manual_name: "Dr. Education Secretary", role: "General Secretary", manual_image: "/images/portrait_pakistani_female_dr.png" },
+            { id: 3, manual_name: "Dr. Education Lead", role: "President", manual_image: "/images/portrait_pakistani_male_dr.webp" },
+            { id: 4, manual_name: "Dr. Education Secretary", role: "General Secretary", manual_image: "/images/portrait_pakistani_female_dr.webp" },
         ]
     },
     {
@@ -38,8 +38,8 @@ const staticWings = [
         acronym: "WW",
         description: "Committed to member welfare, support programs, and community outreach initiatives for vision care professionals.",
         members: [
-            { id: 5, manual_name: "Dr. Welfare Lead", role: "President", manual_image: "/images/portrait_pakistani_male_dr.png" },
-            { id: 6, manual_name: "Dr. Welfare Secretary", role: "General Secretary", manual_image: "/images/portrait_pakistani_female_dr.png" },
+            { id: 5, manual_name: "Dr. Welfare Lead", role: "President", manual_image: "/images/portrait_pakistani_male_dr.webp" },
+            { id: 6, manual_name: "Dr. Welfare Secretary", role: "General Secretary", manual_image: "/images/portrait_pakistani_female_dr.webp" },
         ]
     }
 ];

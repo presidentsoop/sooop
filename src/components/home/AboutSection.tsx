@@ -14,7 +14,7 @@ export default function AboutSection({ content }: { content?: AboutContent }) {
             "Filtering quackery from the field",
             "Organizing international conferences"
         ],
-        image: "/meetings/first-clinical-meeting.png",
+        image: "/meetings/first-clinical-meeting.webp",
         years_count: "15+",
         years_text: "Years of Dedicated Service"
     };
@@ -33,7 +33,7 @@ export default function AboutSection({ content }: { content?: AboutContent }) {
             {/* Decorative Background */}
             <div className="absolute top-0 right-0 w-1/3 h-full opacity-5 pointer-events-none">
                 <Image
-                    src="/images/abstract_cta_background_v2.png"
+                    src="/images/abstract_cta_background_v2.webp"
                     alt="background"
                     fill
                     className="object-cover"

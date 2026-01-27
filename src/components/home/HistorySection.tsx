@@ -18,7 +18,7 @@ export default function HistorySection() {
 
                 <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden shadow-2xl">
                     <Image
-                        src="/images/first-general-meeting.jpg"
+                        src="/meetings/first-clinical-meeting.webp"
                         alt="SOOOP First General Meeting Group Photo"
                         fill
                         className="object-cover"

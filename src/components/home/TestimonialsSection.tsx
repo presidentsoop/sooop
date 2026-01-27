@@ -16,7 +16,7 @@ export default function TestimonialsSection({ content }: TestimonialsSectionProp
             id: 1,
             name: "Dr. Ayesha Khan",
             role: "Senior Optometrist, Lahore",
-            image: "/images/portrait_pakistani_female_dr.png",
+            image: "/images/portrait_pakistani_female_dr.webp",
             quote: "SOOOP has been instrumental in my professional growth. The conferences provide world-class learning opportunities right here in Pakistan.",
             rating: 5,
         },
@@ -24,7 +24,7 @@ export default function TestimonialsSection({ content }: TestimonialsSectionProp
             id: 2,
             name: "Dr. Bilal Ahmed",
             role: "Ophthalmologist & Researcher",
-            image: "/images/portrait_pakistani_male_dr.png",
+            image: "/images/portrait_pakistani_male_dr.webp",
             quote: "The networking opportunities through SOOOP are unmatched. I found my research partners through their annual meetup.",
             rating: 5,
         },
@@ -32,7 +32,7 @@ export default function TestimonialsSection({ content }: TestimonialsSectionProp
             id: 3,
             name: "Prof. Dr. Haroon",
             role: "Vision Scientist",
-            image: "/images/testimonial_pakistani_researcher.png",
+            image: "/images/testimonial_pakistani_researcher.webp",
             quote: "Standardizing optometry education was a dream that SOOOP turned into reality. Proud to be part of this change.",
             rating: 5,
         },
@@ -71,7 +71,7 @@ export default function TestimonialsSection({ content }: TestimonialsSectionProp
 }
 
 function TestimonialCard({ testimonial }: { testimonial: TestimonialItem }) {
-    const [imgSrc, setImgSrc] = useState(testimonial.image && testimonial.image.startsWith('/') ? testimonial.image : '/images/portrait_pakistani_male_dr.png');
+    const [imgSrc, setImgSrc] = useState(testimonial.image && testimonial.image.startsWith('/') ? testimonial.image : '/images/portrait_pakistani_male_dr.webp');
 
     return (
         <div
@@ -99,7 +99,7 @@ function TestimonialCard({ testimonial }: { testimonial: TestimonialItem }) {
                         alt={testimonial.name}
                         fill
                         className="object-cover"
-                        onError={() => setImgSrc('/images/portrait_pakistani_male_dr.png')}
+                        onError={() => setImgSrc('/images/portrait_pakistani_male_dr.webp')}
                     />
                 </div>
                 <div>

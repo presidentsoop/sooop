@@ -22,7 +22,7 @@ export default function ResourcesSection({ content }: ResourcesSectionProps) {
         badge: "Knowledge Hub",
         title: content?.heading || "Pakistan Journal of Vision Sciences",
         description: content?.subheading || "Stay at the forefront of ophthalmic research. Our quarterly journal features peer-reviewed studies, clinical case reports, and latest advancements in vision care from Pakistan and around the globe.",
-        journal_image: content?.journal_image || "/images/journal_cover_pakistan_v2.png"
+        journal_image: content?.journal_image || "/images/journal_cover_pakistan_v2.webp"
     };
 
     return (

@@ -16,42 +16,42 @@ export default function BenefitsSection({ content }: BenefitsSectionProps) {
             id: 1,
             title: "Networking",
             description: "Connect with over 300 vision care professionals.",
-            image: "/images/benefit_illustration_networking.png",
+            image: "/images/benefit_illustration_networking.webp",
             link: "/membership",
         },
         {
             id: 2,
             title: "Research", // Shortened title for mobile
             description: "Access research grants and publish in our journal.",
-            image: "/images/benefit_illustration_research.png",
+            image: "/images/benefit_illustration_research.webp",
             link: "/resources",
         },
         {
             id: 3,
             title: "Education",
             description: "Workshops, seminars, and webinars.",
-            image: "/images/benefit_illustration_learning.png",
+            image: "/images/benefit_illustration_learning.webp",
             link: "/events",
         },
         {
             id: 4,
             title: "Career Ops",
             description: "Guidance on career paths and jobs.",
-            image: "/images/benefit_illus_career.png",
+            image: "/images/benefit_illus_career.webp",
             link: "/membership",
         },
         {
             id: 5,
             title: "Conferences",
             description: "Discounted access to international events.",
-            image: "/images/benefit_illus_conference.png",
+            image: "/images/benefit_illus_conference.webp",
             link: "/events",
         },
         {
             id: 6,
             title: "Library",
             description: "Unlimited access to digital journals.",
-            image: "/images/benefit_illus_journal_v2.png",
+            image: "/images/benefit_illus_journal_v2.webp",
             link: "/resources",
         },
     ];
@@ -86,7 +86,7 @@ export default function BenefitsSection({ content }: BenefitsSectionProps) {
                             {/* Image Area - Smaller on mobile */}
                             <div className="relative h-24 md:h-48 w-full mb-4 md:mb-6 bg-gray-50 rounded-xl overflow-hidden group-hover:bg-blue-50/50 transition-colors">
                                 <Image
-                                    src={benefit.image || '/images/benefit_illustration_networking.png'}
+                                    src={benefit.image || '/images/benefit_illustration_networking.webp'}
                                     alt={benefit.title}
                                     fill
                                     className="object-contain p-2 md:p-4 transition-transform duration-500 group-hover:scale-110"

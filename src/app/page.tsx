@@ -10,13 +10,29 @@ import SponsorsSection from '@/components/home/SponsorsSection';
 import ResourcesSection from '@/components/home/ResourcesSection';
 import LeadershipSection from '@/components/home/LeadershipSection';
 
+import { createClient } from '@/lib/supabase/server';
+
 // ISR: Revalidate every hour (3600 seconds).
 // Page is statically generated at build time and regenerated in the background.
 export const revalidate = 3600;
 
-// Static content - No database calls needed for homepage
-// Each component has its own defaults if no content is passed
-export default function HomePage() {
+export default async function HomePage() {
+  const supabase = await createClient();
+
+  // Fetch Leadership (Cabinet)
+  const { data: cabinet } = await supabase
+    .from('leadership_history')
+    .select('*')
+    .eq('category', 'cabinet')
+    .is('end_year', null)
+    .order('start_year', { ascending: false });
+
+  // Fetch Wings
+  const { data: wings } = await supabase
+    .from('wings')
+    .select('*, wing_members(*)')
+    .order('name');
+
   return (
     <>
       <Header />
@@ -26,7 +42,7 @@ export default function HomePage() {
         <AboutSection />
         <BenefitsSection />
         <ResourcesSection />
-        <LeadershipSection />
+        <LeadershipSection cabinet={cabinet || []} wings={wings || []} />
         <TestimonialsSection />
         <SponsorsSection />
         <CTASection />
