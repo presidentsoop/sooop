@@ -24,56 +24,67 @@ export default function LeadershipSection({ content, cabinet = [], wings = [] }:
                     </p>
                 </div>
 
-                {/* Patron in Chief (Static/Special) */}
-                <div className="flex justify-center mb-20">
-                    <div className="bg-white rounded-2xl overflow-hidden shadow-soft-xl hover:shadow-2xl transition-all duration-500 max-w-4xl w-full flex flex-col md:flex-row relative group border border-gray-100">
-                        <div className="relative w-full md:w-2/5 h-80 md:h-auto bg-gray-100 overflow-hidden">
+                {/* Unified Leadership Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-24 justify-center">
+                    {/* Patron Card (First) */}
+                    <div className="group relative bg-white rounded-xl overflow-hidden shadow-soft hover:shadow-soft-xl transition-all duration-300 lg:col-start-2 lg:col-span-2"> {/* Centered or larger span if desired, but user asked for "same size". Let's try uniform first, or maybe spans. 
+                    Wait, "Make the cards in the same size".
+                    If I put Patron in the same grid, it enforces same size. 
+                    Let's do a standalone centered Patron card SAME SIZE as others? Or just putting them all in one grid? 
+                    The Patron is "Prof Dr Asad Aslam Khan".  
+                    Let's keep Patron separate but use the EXACT SAME structural HTML/Classes as the cabinet cards below, just centered.
+                    */}
+                    </div>
+                </div>
+
+                {/* Actually, let's keep the sections distinct structurally but visually identical.
+                    User: "make the cards in the same size"
+                    I will replace the 'Patron in Chief' special horizontal layout with a Vertical Card Layout.
+                */}
+
+                {/* Patron in Chief - Now Vertical to match others */}
+                <div className="flex justify-center mb-12">
+                    <div className="group relative bg-white rounded-xl overflow-hidden shadow-soft hover:shadow-soft-xl transition-all duration-300 w-full max-w-sm border border-gray-100">
+                        {/* Image */}
+                        <div className="relative h-72 w-full bg-gray-200 overflow-hidden">
                             <Image
                                 src="/patron-chief-asad-khan.jpg"
                                 alt="Prof. Dr. Asad Aslam Khan"
                                 fill
-                                className="object-cover object-top transition-transform duration-700 group-hover:scale-105"
+                                className="object-cover object-top transition-transform duration-500 group-hover:scale-105"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent md:bg-none"></div>
-                            <div className="absolute bottom-4 left-4 text-white md:hidden">
-                                <span className="text-xs font-bold uppercase tracking-wider bg-primary/90 px-2 py-1 rounded">Patron in Chief</span>
+                            {/* Overlay Badge */}
+                            <div className="absolute top-4 left-4">
+                                <span className="bg-primary/90 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider backdrop-blur-sm shadow-sm">
+                                    Patron in Chief
+                                </span>
                             </div>
                         </div>
-                        <div className="p-8 md:p-12 flex flex-col justify-center text-left md:w-3/5 relative">
-                            <div className="hidden md:block mb-6">
-                                <span className="badge bg-primary/10 text-primary border-primary/20 text-sm px-4 py-1.5">Patron in Chief</span>
-                            </div>
-
-                            <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 leading-tight">
-                                Prof. Dr. Asad Aslam Khan
-                            </h3>
-                            <p className="text-accent font-bold text-lg mb-6 flex items-center gap-2">
-                                <Award className="w-5 h-5" /> Sitara-e-Imtiaz
-                            </p>
-
-                            <div className="space-y-4 text-gray-600 leading-relaxed">
-                                <p>
-                                    A visionary leader and the driving force behind the advancement of vision sciences in Pakistan. His lifelong dedication to ophthalmology and optometry has established world-class standards in eye care education and practice.
+                        {/* Content */}
+                        <div className="p-6 text-center space-y-3">
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-900 group-hover:text-primary transition-colors leading-tight">
+                                    Prof. Dr. Asad Aslam Khan
+                                </h3>
+                                <p className="text-accent font-semibold text-sm flex items-center justify-center gap-1 mt-1">
+                                    <Award className="w-4 h-4" /> Sitara-e-Imtiaz
                                 </p>
                             </div>
 
-                            <div className="mt-8 pt-6 border-t border-gray-100 flex items-center gap-4">
-                                <div>
-                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Role</p>
-                                    <p className="font-semibold text-gray-900">Founder & Guardian of SOOOP</p>
-                                </div>
-                            </div>
+                            <p className="text-gray-500 text-sm leading-relaxed line-clamp-3">
+                                A visionary leader and the driving force behind the advancement of vision sciences in Pakistan. Founder & Guardian of SOOOP.
+                            </p>
                         </div>
                     </div>
                 </div>
 
                 {/* Central Cabinet Grid */}
                 {cabinet.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-24 justify-center">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-24 justify-center max-w-6xl mx-auto px-4">
                         {cabinet.map((leader, index) => (
-                            <div key={leader.id || index} className="group relative bg-white rounded-xl overflow-hidden shadow-soft hover:shadow-soft-xl transition-all duration-300">
+                            <div key={leader.id || index} className="group relative bg-white rounded-xl overflow-hidden shadow-soft hover:shadow-soft-xl transition-all duration-300 border border-gray-100">
                                 {/* Image */}
-                                <div className="relative h-80 w-full bg-gray-200 overflow-hidden">
+                                <div className="relative h-72 w-full bg-gray-200 overflow-hidden">
                                     {leader.image_url ? (
                                         <Image
                                             src={leader.image_url}
@@ -86,16 +97,14 @@ export default function LeadershipSection({ content, cabinet = [], wings = [] }:
                                             <User className="w-24 h-24" />
                                         </div>
                                     )}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-primary-900/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
-                                    </div>
                                 </div>
                                 {/* Content */}
-                                <div className="p-4 text-center">
-                                    <h3 className="text-xl font-bold text-primary-900 group-hover:text-primary transition-colors">
+                                <div className="p-6 text-center space-y-2">
+                                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-primary transition-colors leading-tight">
                                         {leader.name}
                                     </h3>
-                                    <p className="text-accent font-medium text-sm mb-2">{leader.role}</p>
-                                    <p className="text-gray-500 text-sm line-clamp-2">{leader.bio}</p>
+                                    <p className="text-accent font-medium text-sm uppercase tracking-wide">{leader.role}</p>
+                                    <p className="text-gray-500 text-sm leading-relaxed line-clamp-3">{leader.bio}</p>
                                 </div>
                             </div>
                         ))}
