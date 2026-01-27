@@ -87,6 +87,17 @@ export default function MembershipForm() {
             formData.append('dob', data.dob);
             formData.append('gender', data.gender);
             formData.append('residentialAddress', data.residentialAddress);
+            formData.append('bloodGroup', data.bloodGroup || '');
+            formData.append('city', data.employmentCity);
+            formData.append('province', data.province);
+            formData.append('collegeAttended', data.collegeAttended);
+            formData.append('qualification', data.qualification);
+            if (data.otherQualification) formData.append('otherQualification', data.otherQualification);
+            if (data.postGraduateInstitution) formData.append('postGraduateInstitution', data.postGraduateInstitution);
+            formData.append('hasRelevantPg', String(data.hasRelevantPg || false));
+            formData.append('hasNonRelevantPg', String(data.hasNonRelevantPg || false));
+            formData.append('designation', data.designation || '');
+            formData.append('employmentStatus', data.employmentStatus);
             if (data.transactionId) formData.append('transactionId', data.transactionId);
 
             // Append Files from fileStates

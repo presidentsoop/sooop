@@ -74,6 +74,7 @@ export default function MemberManagement() {
         let query = supabase
             .from('profiles')
             .select('*')
+            .order('membership_status', { ascending: false }) // pending (p) > active (a) ? No, we want specific order.
             .order('created_at', { ascending: false });
 
         // Filter based on Tab

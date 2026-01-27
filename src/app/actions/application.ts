@@ -66,9 +66,25 @@ export async function submitApplication(formData: FormData) {
     const gender = formData.get('gender') as string;
     const residentialAddress = formData.get('residentialAddress') as string;
 
+    // New Fields
+    const bloodGroup = formData.get('bloodGroup') as string;
+    const city = formData.get('city') as string;
+    const province = formData.get('province') as string;
+    const collegeAttended = formData.get('collegeAttended') as string;
+    const qualification = formData.get('qualification') as string;
+    const otherQualification = formData.get('otherQualification') as string;
+    const postGraduateInstitution = formData.get('postGraduateInstitution') as string;
+    const hasRelevantPg = formData.get('hasRelevantPg') === 'true';
+    const hasNonRelevantPg = formData.get('hasNonRelevantPg') === 'true';
+    const designation = formData.get('designation') as string;
+    const employmentStatus = formData.get('employmentStatus') as string;
+
     const membershipType = formData.get('membershipType') as string;
     const isRenewal = formData.get('isRenewal') === 'true';
     const transactionId = formData.get('transactionId') as string;
+
+    // Helper to sanitize input (empty string -> null)
+    const s = (val: string | null) => (!val || val.trim() === '') ? null : val.trim();
 
     // Handle Files
     const filesToUpload = [
@@ -95,13 +111,33 @@ export async function submitApplication(formData: FormData) {
             id: userId,
             email: user.email,
             full_name: fullName,
-            father_name: fatherName,
+            father_name: s(fatherName),
             cnic: cnic,
             contact_number: contactNumber,
-            gender: gender,
-            date_of_birth: dob,
-            residential_address: residentialAddress,
-            profile_photo_url: fileUrls['profile_photo'],
+            gender: s(gender),
+            date_of_birth: s(dob),
+            residential_address: s(residentialAddress),
+            blood_group: s(bloodGroup),
+            city: s(city),
+            province: s(province),
+            college_attended: s(collegeAttended),
+            qualification: s(qualification),
+            other_qualification: s(otherQualification),
+            post_graduate_institution: s(postGraduateInstitution),
+            has_relevant_pg: hasRelevantPg,
+            has_non_relevant_pg: hasNonRelevantPg,
+            designation: s(designation),
+            employment_status: s(employmentStatus),
+
+            profile_photo_url: fileUrls['profile_photo'] || undefined, // Only update if new one uploaded? No, this is full upsert. But if undefined, it might clear it? use undefined to skip update if null? Upsert overwrites.
+            // If fileUrls['profile_photo'] is missing, we shouldn't overwrite existing URL with null if we want to keep it.
+            // But this action is mostly for NEW application or full update.
+            // If user didn't upload new photo, fileUrls[...] is undefined.
+            // We should use `...(fileUrls['profile_photo'] ? { profile_photo_url: fileUrls['profile_photo'] } : {})` logic or similar.
+            // Actually, for simplicity, if it's undefined, it's ignored in upsert usually if configured right, but for full replacement it might trouble.
+            // Let's rely on the spread below.
+            ...(fileUrls['profile_photo'] ? { profile_photo_url: fileUrls['profile_photo'] } : {}),
+
             membership_status: 'pending' // Reset to pending
         });
 

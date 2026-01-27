@@ -549,23 +549,37 @@ export default function SignupPage() {
                                             <h4 className="font-bold text-lg mb-4 flex items-center gap-2 opacity-90">
                                                 <CreditCard className="w-5 h-5" /> Fee Submission Details
                                             </h4>
-                                            <div className="space-y-3 font-mono text-sm opacity-80 mb-6">
-                                                <div className="flex justify-between border-b border-white/10 pb-2">
-                                                    <span>Bank Name</span>
-                                                    <span className="font-bold">Meezan Bank</span>
+                                            <div className="space-y-4 font-mono text-sm opacity-90 mb-6">
+                                                <div className="flex justify-between items-center border-b border-white/10 pb-2">
+                                                    <span className="text-gray-300">Bank Name</span>
+                                                    <span className="font-bold text-base">Meezan Bank</span>
                                                 </div>
-                                                <div className="flex justify-between border-b border-white/10 pb-2">
-                                                    <span>Account Number</span>
-                                                    <span className="font-bold select-all">02750112976719</span>
+                                                <div className="flex justify-between items-center border-b border-white/10 pb-2">
+                                                    <span className="text-gray-300">Account Number</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-bold text-lg tracking-wide select-all">02750112976719</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText('02750112976719')
+                                                                    .then(() => toast.success('Account Number Copied!'))
+                                                                    .catch(() => toast.error('Failed to copy'));
+                                                            }}
+                                                            className="p-2 hover:bg-white/20 rounded-lg transition-colors active:scale-95"
+                                                            title="Copy Account Number"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                                <div className="flex justify-between border-b border-white/10 pb-2">
-                                                    <span>Title</span>
+                                                <div className="flex justify-between items-center border-b border-white/10 pb-2">
+                                                    <span className="text-gray-300">Title</span>
                                                     <span className="font-bold">RUHULLAH</span>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center justify-between bg-white/10 p-4 rounded-lg backdrop-blur-sm">
-                                                <span className="text-sm">Total Payable Fee</span>
-                                                <span className="text-2xl font-bold text-primary-300">
+                                            <div className="flex items-center justify-between bg-white/10 p-4 rounded-lg backdrop-blur-sm border border-white/5">
+                                                <span className="text-sm font-medium">Total Payable Fee</span>
+                                                <span className="text-2xl font-bold text-green-300">
                                                     {formData.membershipType === 'Student' ? 'Rs. 1,000' :
                                                         formData.membershipType === 'Associate' ? 'Rs. 500' :
                                                             formData.membershipType === 'Overseas' ? 'Rs. 3,000' : 'Rs. 1,500'}
@@ -611,7 +625,6 @@ export default function SignupPage() {
                                                 file={files.cnicBack}
                                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'cnicBack')}
                                                 onRemove={() => removeFile('cnicBack')}
-                                            // Not strictly required for checking logic but good to have
                                             />
                                         </div>
                                     </div>
@@ -619,7 +632,7 @@ export default function SignupPage() {
                                     {/* Conditional Files */}
                                     <div className="grid md:grid-cols-2 gap-6">
                                         <FileUploadField
-                                            label="Transcript Front"
+                                            label="Transcript Front (Optional)"
                                             file={files.transcript}
                                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'transcript')}
                                             onRemove={() => removeFile('transcript')}
@@ -655,10 +668,16 @@ export default function SignupPage() {
                                         <button
                                             type="submit"
                                             disabled={isLoading}
-                                            className="btn-primary-action flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                            className="btn-primary-action flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed w-full md:w-auto"
                                         >
-                                            {isLoading && <div className="w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>}
-                                            Submit Application
+                                            {isLoading ? (
+                                                <div className="w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>
+                                            ) : (
+                                                <>
+                                                    <CheckCircle className="w-5 h-5" />
+                                                    <span>Complete Registration</span>
+                                                </>
+                                            )}
                                         </button>
                                     </div>
                                 </div>
