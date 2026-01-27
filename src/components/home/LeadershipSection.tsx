@@ -41,7 +41,7 @@ const staticWings = [
     {
         name: "Optometry Wing",
         members: [
-            { name: "Dr. Tahira Jabeen", role: "President", image: "/images/portrait_pakistani_female_dr.png" },
+            { name: "Dr. Tahira Jabeen", role: "President", image: "/profiles/tahira-jabeen.jpeg" },
             { name: "Dr. Mian Salaar Zafar", role: "General Secretary", image: "/profiles/salaar-zafar.jpg" },
         ]
     }
