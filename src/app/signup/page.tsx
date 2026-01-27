@@ -579,7 +579,7 @@ export default function SignupPage() {
                                             label="Profile Photo (Passport Size)"
                                             icon={User}
                                             file={files.profilePhoto}
-                                            onChange={(e) => handleFileChange(e, 'profilePhoto')}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'profilePhoto')}
                                             onRemove={() => removeFile('profilePhoto')}
                                             required
                                             error={errors.profilePhoto}
@@ -588,7 +588,7 @@ export default function SignupPage() {
                                             label="Payment Proof / Receipt"
                                             icon={FileText}
                                             file={files.paymentProof}
-                                            onChange={(e) => handleFileChange(e, 'paymentProof')}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'paymentProof')}
                                             onRemove={() => removeFile('paymentProof')}
                                             required
                                             error={errors.paymentProof}
@@ -601,7 +601,7 @@ export default function SignupPage() {
                                             <FileUploadField
                                                 label="CNIC Front"
                                                 file={files.cnicFront}
-                                                onChange={(e) => handleFileChange(e, 'cnicFront')}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'cnicFront')}
                                                 onRemove={() => removeFile('cnicFront')}
                                                 required
                                                 error={errors.cnicFront}
@@ -609,7 +609,7 @@ export default function SignupPage() {
                                             <FileUploadField
                                                 label="CNIC Back"
                                                 file={files.cnicBack}
-                                                onChange={(e) => handleFileChange(e, 'cnicBack')}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'cnicBack')}
                                                 onRemove={() => removeFile('cnicBack')}
                                             // Not strictly required for checking logic but good to have
                                             />
@@ -621,14 +621,14 @@ export default function SignupPage() {
                                         <FileUploadField
                                             label="Transcript Front"
                                             file={files.transcript}
-                                            onChange={(e) => handleFileChange(e, 'transcript')}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'transcript')}
                                             onRemove={() => removeFile('transcript')}
                                         />
                                         {formData.membershipType === 'Student' && (
                                             <FileUploadField
                                                 label="Student ID Card"
                                                 file={files.studentId}
-                                                onChange={(e) => handleFileChange(e, 'studentId')}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'studentId')}
                                                 onRemove={() => removeFile('studentId')}
                                             />
                                         )}

@@ -87,7 +87,7 @@ export default function MembershipForm() {
             formData.append('dob', data.dob);
             formData.append('gender', data.gender);
             formData.append('residentialAddress', data.residentialAddress);
-            formData.append('transactionId', data.transactionId);
+            if (data.transactionId) formData.append('transactionId', data.transactionId);
 
             // Append Files from fileStates
             if (fileStates.photo) formData.append('photo', fileStates.photo);

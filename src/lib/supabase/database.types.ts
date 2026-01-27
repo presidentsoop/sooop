@@ -614,12 +614,12 @@ export type Database = {
 export type Tables<
     PublicTableNameOrOptions extends
     | keyof (Database["public"]["Tables"] & Database["public"]["Views"])
-    | { schema: keyof Database },
-    TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+    | { schema: keyof Omit<Database, "__InternalSupabase"> },
+    TableName extends PublicTableNameOrOptions extends { schema: keyof Omit<Database, "__InternalSupabase"> }
     ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
         Database[PublicTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
+> = PublicTableNameOrOptions extends { schema: keyof Omit<Database, "__InternalSupabase"> }
     ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
         Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
             Row: infer R
@@ -638,18 +638,18 @@ export type Tables<
 
 export type TablesInsert<
     PublicTableNameOrOptions extends
-    | keyof Database["public"]["Tables"]
-    | { schema: keyof Database },
-    TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+    | keyof Omit<Database, "__InternalSupabase">["public"]["Tables"]
+    | { schema: keyof Omit<Database, "__InternalSupabase"> },
+    TableName extends PublicTableNameOrOptions extends { schema: keyof Omit<Database, "__InternalSupabase"> }
+    ? keyof Omit<Database, "__InternalSupabase">[PublicTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
+> = PublicTableNameOrOptions extends { schema: keyof Omit<Database, "__InternalSupabase"> }
     ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
         Insert: infer I
     }
     ? I
     : never
-    : PublicTableNameOrOptions extends keyof Database["public"]["Tables"]
+    : PublicTableNameOrOptions extends keyof Omit<Database, "__InternalSupabase">["public"]["Tables"]
     ? Database["public"]["Tables"][PublicTableNameOrOptions] extends {
         Insert: infer I
     }
@@ -659,18 +659,18 @@ export type TablesInsert<
 
 export type TablesUpdate<
     PublicTableNameOrOptions extends
-    | keyof Database["public"]["Tables"]
-    | { schema: keyof Database },
-    TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+    | keyof Omit<Database, "__InternalSupabase">["public"]["Tables"]
+    | { schema: keyof Omit<Database, "__InternalSupabase"> },
+    TableName extends PublicTableNameOrOptions extends { schema: keyof Omit<Database, "__InternalSupabase"> }
+    ? keyof Omit<Database, "__InternalSupabase">[PublicTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
+> = PublicTableNameOrOptions extends { schema: keyof Omit<Database, "__InternalSupabase"> }
     ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
         Update: infer U
     }
     ? U
     : never
-    : PublicTableNameOrOptions extends keyof Database["public"]["Tables"]
+    : PublicTableNameOrOptions extends keyof Omit<Database, "__InternalSupabase">["public"]["Tables"]
     ? Database["public"]["Tables"][PublicTableNameOrOptions] extends {
         Update: infer U
     }
@@ -680,29 +680,29 @@ export type TablesUpdate<
 
 export type Enums<
     PublicEnumNameOrOptions extends
-    | keyof Database["public"]["Enums"]
-    | { schema: keyof Database },
-    EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+    | keyof Omit<Database, "__InternalSupabase">["public"]["Enums"]
+    | { schema: keyof Omit<Database, "__InternalSupabase"> },
+    EnumName extends PublicEnumNameOrOptions extends { schema: keyof Omit<Database, "__InternalSupabase"> }
+    ? keyof Omit<Database, "__InternalSupabase">[PublicEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = PublicEnumNameOrOptions extends { schema: keyof Database }
+> = PublicEnumNameOrOptions extends { schema: keyof Omit<Database, "__InternalSupabase"> }
     ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-    : PublicEnumNameOrOptions extends keyof Database["public"]["Enums"]
+    : PublicEnumNameOrOptions extends keyof Omit<Database, "__InternalSupabase">["public"]["Enums"]
     ? Database["public"]["Enums"][PublicEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
     PublicCompositeTypeNameOrOptions extends
-    | keyof Database["public"]["CompositeTypes"]
-    | { schema: keyof Database },
+    | keyof Omit<Database, "__InternalSupabase">["public"]["CompositeTypes"]
+    | { schema: keyof Omit<Database, "__InternalSupabase"> },
     CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-        schema: keyof Database
+        schema: keyof Omit<Database, "__InternalSupabase">
     }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof Omit<Database, "__InternalSupabase">[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof Omit<Database, "__InternalSupabase"> }
     ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-    : PublicCompositeTypeNameOrOptions extends keyof Database["public"]["CompositeTypes"]
+    : PublicCompositeTypeNameOrOptions extends keyof Omit<Database, "__InternalSupabase">["public"]["CompositeTypes"]
     ? Database["public"]["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
