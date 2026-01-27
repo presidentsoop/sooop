@@ -1,12 +1,13 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server'; // Regular client for auth check
+import { createAdminClient } from '@/lib/supabase/admin'; // Admin client bypasses RLS
 import { revalidatePath } from 'next/cache';
 
 export async function submitApplication(formData: FormData) {
     const supabase = await createClient();
 
-    // 1. Authenticate
+    // 1. Authenticate - verify user identity with regular client
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         return { success: false, error: 'User not authenticated' };
@@ -14,6 +15,9 @@ export async function submitApplication(formData: FormData) {
 
     const userId = user.id;
     const fileUrls: Record<string, string> = {};
+
+    // Use admin client for database operations (bypasses RLS after auth verification)
+    const adminClient = createAdminClient();
 
     // Helper to upload
     const uploadFile = async (file: File, docType: string) => {
@@ -26,7 +30,8 @@ export async function submitApplication(formData: FormData) {
         let targetBucket = 'documents';
         if (docType === 'profile_photo') targetBucket = 'profile-photos';
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        // Use admin client for storage upload too
+        const { data: uploadData, error: uploadError } = await adminClient.storage
             .from(targetBucket)
             .upload(fileName, buffer, {
                 contentType: file.type,
@@ -41,14 +46,14 @@ export async function submitApplication(formData: FormData) {
         // Get URL
         let fileUrl = fileName;
         if (targetBucket === 'profile-photos') {
-            const { data: publicData } = supabase.storage.from(targetBucket).getPublicUrl(fileName);
+            const { data: publicData } = adminClient.storage.from(targetBucket).getPublicUrl(fileName);
             fileUrl = publicData.publicUrl;
         }
 
         fileUrls[docType] = fileUrl;
 
-        // Insert into documents table (using auth client)
-        await supabase.from('documents').insert({
+        // Insert into documents table using admin client
+        await adminClient.from('documents').insert({
             user_id: userId,
             document_type: docType,
             file_url: fileUrl,
@@ -106,8 +111,8 @@ export async function submitApplication(formData: FormData) {
     }
 
     try {
-        // 2. Update Profile
-        const { error: profileError } = await supabase.from('profiles').upsert({
+        // 2. Update Profile (using admin client to bypass RLS)
+        const { error: profileError } = await adminClient.from('profiles').upsert({
             id: userId,
             email: user.email,
             full_name: fullName,
@@ -128,23 +133,14 @@ export async function submitApplication(formData: FormData) {
             has_non_relevant_pg: hasNonRelevantPg,
             designation: s(designation),
             employment_status: s(employmentStatus),
-
-            profile_photo_url: fileUrls['profile_photo'] || undefined, // Only update if new one uploaded? No, this is full upsert. But if undefined, it might clear it? use undefined to skip update if null? Upsert overwrites.
-            // If fileUrls['profile_photo'] is missing, we shouldn't overwrite existing URL with null if we want to keep it.
-            // But this action is mostly for NEW application or full update.
-            // If user didn't upload new photo, fileUrls[...] is undefined.
-            // We should use `...(fileUrls['profile_photo'] ? { profile_photo_url: fileUrls['profile_photo'] } : {})` logic or similar.
-            // Actually, for simplicity, if it's undefined, it's ignored in upsert usually if configured right, but for full replacement it might trouble.
-            // Let's rely on the spread below.
             ...(fileUrls['profile_photo'] ? { profile_photo_url: fileUrls['profile_photo'] } : {}),
-
-            membership_status: 'pending' // Reset to pending
+            membership_status: 'pending'
         });
 
         if (profileError) throw profileError;
 
-        // 3. Create Application Record
-        const { data: appData, error: appError } = await supabase.from('membership_applications').insert({
+        // 3. Create Application Record (using admin client to bypass RLS)
+        const { data: appData, error: appError } = await adminClient.from('membership_applications').insert({
             user_id: userId,
             membership_type: membershipType,
             is_renewal: isRenewal,
@@ -158,7 +154,7 @@ export async function submitApplication(formData: FormData) {
 
         if (appError) throw appError;
 
-        // 4. Create Payment Record
+        // 4. Create Payment Record (using admin client to bypass RLS)
         const fees: any = {
             'Full': 1500,
             'Overseas': 3000,
@@ -169,7 +165,7 @@ export async function submitApplication(formData: FormData) {
 
         // If receipt uploaded, create payment record
         if (fileUrls['payment_proof']) {
-            const { error: payError } = await supabase.from('payments').insert({
+            const { error: payError } = await adminClient.from('payments').insert({
                 user_id: userId,
                 application_id: appData.id,
                 transaction_id: transactionId,
