@@ -483,11 +483,11 @@ export default function MemberManagement() {
 
                                             {/* Status Badge */}
                                             <div className={`px-4 py-2 rounded-xl text-sm font-bold shadow-sm border
-                                                ${selectedMember.membership_status === 'active' ? 'bg-green-50 text-green-700 border-green-100' : ''}
-                                                ${selectedMember.membership_status === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-100' : ''}
-                                                ${selectedMember.membership_status === 'blocked' ? 'bg-red-50 text-red-700 border-red-100' : ''}
+                                                ${(selectedMember.membership_status || 'pending') === 'active' ? 'bg-green-50 text-green-700 border-green-100' : ''}
+                                                ${(selectedMember.membership_status || 'pending') === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-100' : ''}
+                                                ${(selectedMember.membership_status || 'pending') === 'blocked' ? 'bg-red-50 text-red-700 border-red-100' : ''}
                                             `}>
-                                                {selectedMember.membership_status.toUpperCase()}
+                                                {(selectedMember.membership_status || 'PENDING').toUpperCase()}
                                             </div>
                                         </div>
                                     </div>
@@ -499,7 +499,7 @@ export default function MemberManagement() {
                                         <AlertTriangle className="w-4 h-4" /> Reset Password
                                     </button>
                                     <div className="w-px h-6 bg-gray-200 my-auto"></div>
-                                    {selectedMember.membership_status === 'pending' ? (
+                                    {(selectedMember.membership_status === 'pending' || !selectedMember.membership_status) ? (
                                         <>
                                             <button onClick={() => handleAction(selectedMember.id, 'approve')} className="flex-1 min-w-[120px] bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary-600 transition-colors shadow-lg shadow-primary/20">
                                                 Approve Application

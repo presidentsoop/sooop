@@ -45,6 +45,9 @@ export async function registerMember(formData: FormData) {
     const designation = formData.get('designation') as string;
     const employmentStatus = formData.get('employment_status') as string;
 
+    // Helper to sanitize input (empty string -> null)
+    const s = (val: string | null) => (!val || val.trim() === '') ? null : val.trim();
+
     // 1. Create Auth User
     const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -53,29 +56,29 @@ export async function registerMember(formData: FormData) {
             data: {
                 full_name: fullName,
                 cnic: cnic,
-                father_name: fatherName,
-                date_of_birth: dob,
-                gender: gender,
-                blood_group: bloodGroup,
+                father_name: s(fatherName),
+                date_of_birth: s(dob),
+                gender: s(gender),
+                blood_group: s(bloodGroup),
 
-                contact_number: phone,
-                residential_address: address,
-                city: city,
-                province: province,
+                contact_number: s(phone),
+                residential_address: s(address),
+                city: s(city),
+                province: s(province),
 
-                institution: institution,
-                college_attended: collegeAttended,
-                qualification: qualification,
-                other_qualification: otherQualification,
-                post_graduate_institution: postGraduateInstitution,
+                institution: s(institution),
+                college_attended: s(collegeAttended),
+                qualification: s(qualification),
+                other_qualification: s(otherQualification),
+                post_graduate_institution: s(postGraduateInstitution),
                 has_relevant_pg: hasRelevantPg,
                 has_non_relevant_pg: hasNonRelevantPg,
 
-                current_status: currentStatus,
-                designation: designation,
-                employment_status: employmentStatus,
+                current_status: s(currentStatus),
+                designation: s(designation),
+                employment_status: s(employmentStatus),
 
-                membership_type: membershipType,
+                membership_type: s(membershipType),
                 role: 'member'
             }
         }
