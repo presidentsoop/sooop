@@ -13,6 +13,16 @@ export default async function AuditLogsPage() {
         .order('created_at', { ascending: false })
         .limit(50);
 
+    // Fetch Actor Names
+    const userIds = Array.from(new Set((logs || []).map(l => l.performed_by).filter(Boolean)));
+    let profiles: any[] = [];
+    if (userIds.length > 0) {
+        const { data } = await supabase.from('profiles').select('id, full_name').in('id', userIds);
+        profiles = data || [];
+    }
+
+    const getName = (id: string) => profiles.find(p => p.id === id)?.full_name || id.slice(0, 8) + '...';
+
     return (
         <>
             <div className="mb-8">
@@ -27,7 +37,7 @@ export default async function AuditLogsPage() {
                             <tr>
                                 <th className="px-6 py-4">Timestamp</th>
                                 <th className="px-6 py-4">Action</th>
-                                <th className="px-6 py-4">Admin / User</th>
+                                <th className="px-6 py-4">Performed By</th>
                                 <th className="px-6 py-4">Details</th>
                                 <th className="px-6 py-4">IP Address</th>
                             </tr>
@@ -35,18 +45,30 @@ export default async function AuditLogsPage() {
                         <tbody className="divide-y divide-gray-100">
                             {logs?.map((log) => (
                                 <tr key={log.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 font-mono text-xs">
+                                    <td className="px-6 py-4 font-mono text-xs text-gray-500">
                                         {new Date(log.created_at).toLocaleString()}
                                     </td>
-                                    <td className="px-6 py-4 font-bold text-gray-900">
-                                        {log.action}
+                                    <td className="px-6 py-4">
+                                        <span className="font-bold text-gray-900 bg-gray-100 px-2 py-1 rounded text-xs">{log.action}</span>
                                     </td>
-                                    <td className="px-6 py-4 flex items-center gap-2">
-                                        <User className="w-4 h-4 text-gray-400" />
-                                        <span className="font-mono text-xs">{log.performed_by?.slice(0, 8)}...</span>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 rounded-full bg-primary-50 flex items-center justify-center text-primary text-xs font-bold">
+                                                <User className="w-3 h-3" />
+                                            </div>
+                                            <span className="font-medium text-gray-900">{getName(log.performed_by)}</span>
+                                        </div>
                                     </td>
-                                    <td className="px-6 py-4 max-w-xs truncate">
-                                        {JSON.stringify(log.details)}
+                                    <td className="px-6 py-4 max-w-sm">
+                                        {/* Render details as key-value tags if simple, or JSON block */}
+                                        <div className="flex flex-wrap gap-1">
+                                            {Object.entries(log.details || {}).map(([k, v]: any) => (
+                                                <span key={k} className="inline-flex text-[10px] items-center bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-100">
+                                                    <span className="font-semibold mr-1 opacity-70">{k}:</span> {typeof v === 'object' ? '...' : String(v).slice(0, 20)}
+                                                </span>
+                                            ))}
+                                            {(log.details && Object.keys(log.details).length === 0) && <span className="text-gray-300">-</span>}
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4 font-mono text-xs text-gray-400">
                                         {log.ip_address || 'N/A'}

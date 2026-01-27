@@ -16,33 +16,33 @@ const staticCabinet = [
         bio: "Ensuring smooth operations and strategic implementation of society goals.",
     },
     {
-        name: "Mr. Asmat Rasheed",
-        role: "Senior Vice President",
-        image_url: "/secretary-asmat-rasheed.jpg",
-        bio: "Supporting leadership initiatives and member engagement programs.",
+        name: "Mr. Ruhullah",
+        role: "Finance Secretary",
+        image_url: "/images/portrait_pakistani_male_dr.png",
+        bio: "Managing financial resources to ensure transparency and sustainable growth.",
     }
 ];
 
 const staticWings = [
     {
-        name: "Research Wing",
+        name: "Investigative Oculist Wing",
         members: [
-            { name: "Dr. Research Lead", role: "President", image: "/images/portrait_pakistani_male_dr.png" },
-            { name: "Dr. Research Member", role: "Secretary", image: "/images/portrait_pakistani_female_dr.png" },
+            { name: "Dr. Faiza Akhtar", role: "President", image: "/profiles/faiza-akhtar.jpg" },
+            { name: "Dr. Tahir Shaukat", role: "General Secretary", image: "/profiles/tahir-shaukat.jpg" },
         ]
     },
     {
-        name: "Education Wing",
+        name: "Orthoptic Wing",
         members: [
-            { name: "Dr. Education Lead", role: "President", image: "/images/portrait_pakistani_male_dr.png" },
-            { name: "Dr. Education Member", role: "Secretary", image: "/images/portrait_pakistani_female_dr.png" },
+            { name: "Dr. Ayesha Sarfaraz", role: "President", image: "/profiles/ayesha-sarfaraz.jpg" },
+            { name: "Dr. Sana Shahid", role: "General Secretary", image: "/profiles/sana-shahid.png" },
         ]
     },
     {
-        name: "Welfare Wing",
+        name: "Optometry Wing",
         members: [
-            { name: "Dr. Welfare Lead", role: "President", image: "/images/portrait_pakistani_male_dr.png" },
-            { name: "Dr. Welfare Member", role: "Secretary", image: "/images/portrait_pakistani_female_dr.png" },
+            { name: "Dr. Tahira Jabeen", role: "President", image: "/images/portrait_pakistani_female_dr.png" },
+            { name: "Dr. Mian Salaar Zafar", role: "General Secretary", image: "/profiles/salaar-zafar.jpg" },
         ]
     }
 ];

@@ -19,7 +19,7 @@ export default async function AdminView() {
     const stats = {
         total: profiles.length,
         pending: profiles.filter(p => p.membership_status === 'pending').length,
-        active: profiles.filter(p => p.membership_status === 'approved').length,
+        active: profiles.filter(p => p.membership_status === 'active').length,
         expired: profiles.filter(p => ['expired', 'rejected', 'revoked'].includes(p.membership_status)).length,
     };
 

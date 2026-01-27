@@ -11,11 +11,22 @@ interface MemberViewProps {
 
 export default function MemberView({ status, profile }: MemberViewProps) {
     // --------------------------------------------------------------------------
-    // STATE: NO MEMBERSHIP (ONBOARDING)
+    // STATE: NO MEMBERSHIP (ONBOARDING) OR REJECTED
     // --------------------------------------------------------------------------
-    if (status === 'none' || !status) {
+    if (status === 'none' || !status || status === 'rejected') {
         return (
             <div className="max-w-5xl mx-auto space-y-8 animate-fade-in">
+                {status === 'rejected' && (
+                    <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg mb-6">
+                        <div className="flex items-center">
+                            <AlertCircle className="w-6 h-6 text-red-600 mr-3" />
+                            <div>
+                                <h3 className="font-bold text-red-800">Application Returned</h3>
+                                <p className="text-sm text-red-700">Your previous application was returned/rejected. Please update your details and submit again.</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 {/* Onboarding Header */}
                 <div className="bg-gradient-to-r from-primary-900 to-primary-800 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden">
                     <div className="relative z-10 max-w-2xl">
@@ -114,9 +125,9 @@ export default function MemberView({ status, profile }: MemberViewProps) {
     }
 
     // --------------------------------------------------------------------------
-    // STATE: APPROVED (DASHBOARD)
+    // STATE: APPROVED OR EXPIRED (DASHBOARD)
     // --------------------------------------------------------------------------
-    if (status === 'approved') {
+    if (status === 'approved' || status === 'active' || status === 'expired') {
         const firstName = profile?.full_name?.split(' ')[0] || 'Member';
         const expiryDate = profile?.subscription_end_date ? new Date(profile.subscription_end_date) : null;
         const isValid = expiryDate && expiryDate > new Date();

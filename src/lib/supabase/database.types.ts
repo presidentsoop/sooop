@@ -7,6 +7,11 @@ export type Json =
     | Json[]
 
 export type Database = {
+    // Allows to automatically instantiate createClient with right options
+    // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+    __InternalSupabase: {
+        PostgrestVersion: "14.1"
+    }
     public: {
         Tables: {
             audit_logs: {
@@ -407,19 +412,28 @@ export type Database = {
                     blood_group: string | null
                     city: string | null
                     cnic: string
+                    college_attended: string | null
                     contact_number: string
                     created_at: string | null
                     current_status: string | null
                     date_of_birth: string | null
+                    designation: string | null
                     email: string
+                    employment_status: string | null
                     father_name: string | null
                     full_name: string
                     gender: string | null
+                    has_non_relevant_pg: boolean | null
+                    has_relevant_pg: boolean | null
                     id: string
                     institution: string | null
                     is_active: boolean | null
                     membership_status: string | null
+                    membership_type: string | null
+                    other_qualification: string | null
+                    post_graduate_institution: string | null
                     profile_photo_url: string | null
+                    province: string | null
                     qualification: string | null
                     residential_address: string | null
                     role: string | null
@@ -431,19 +445,28 @@ export type Database = {
                     blood_group?: string | null
                     city?: string | null
                     cnic: string
+                    college_attended?: string | null
                     contact_number: string
                     created_at?: string | null
                     current_status?: string | null
                     date_of_birth?: string | null
+                    designation?: string | null
                     email: string
+                    employment_status?: string | null
                     father_name?: string | null
                     full_name: string
                     gender?: string | null
+                    has_non_relevant_pg?: boolean | null
+                    has_relevant_pg?: boolean | null
                     id: string
                     institution?: string | null
                     is_active?: boolean | null
                     membership_status?: string | null
+                    membership_type?: string | null
+                    other_qualification?: string | null
+                    post_graduate_institution?: string | null
                     profile_photo_url?: string | null
+                    province?: string | null
                     qualification?: string | null
                     residential_address?: string | null
                     role?: string | null
@@ -455,19 +478,28 @@ export type Database = {
                     blood_group?: string | null
                     city?: string | null
                     cnic?: string
+                    college_attended?: string | null
                     contact_number?: string
                     created_at?: string | null
                     current_status?: string | null
                     date_of_birth?: string | null
+                    designation?: string | null
                     email?: string
+                    employment_status?: string | null
                     father_name?: string | null
                     full_name?: string
                     gender?: string | null
+                    has_non_relevant_pg?: boolean | null
+                    has_relevant_pg?: boolean | null
                     id?: string
                     institution?: string | null
                     is_active?: boolean | null
                     membership_status?: string | null
+                    membership_type?: string | null
+                    other_qualification?: string | null
+                    post_graduate_institution?: string | null
                     profile_photo_url?: string | null
+                    province?: string | null
                     qualification?: string | null
                     residential_address?: string | null
                     role?: string | null
@@ -535,6 +567,7 @@ export type Database = {
             }
             wings: {
                 Row: {
+                    acronym: string | null
                     created_at: string | null
                     description: string | null
                     icon: string | null
@@ -543,6 +576,7 @@ export type Database = {
                     slug: string | null
                 }
                 Insert: {
+                    acronym?: string | null
                     created_at?: string | null
                     description?: string | null
                     icon?: string | null
@@ -551,6 +585,7 @@ export type Database = {
                     slug?: string | null
                 }
                 Update: {
+                    acronym?: string | null
                     created_at?: string | null
                     description?: string | null
                     icon?: string | null
@@ -575,3 +610,104 @@ export type Database = {
         }
     }
 }
+
+export type Tables<
+    PublicTableNameOrOptions extends
+    | keyof (Database["public"]["Tables"] & Database["public"]["Views"])
+    | { schema: keyof Database },
+    TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
+        Database[PublicTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+    ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
+        Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+            Row: infer R
+        }
+    ? R
+    : never
+    : PublicTableNameOrOptions extends keyof (Database["public"]["Tables"] &
+        Database["public"]["Views"])
+    ? (Database["public"]["Tables"] &
+        Database["public"]["Views"])[PublicTableNameOrOptions] extends {
+            Row: infer R
+        }
+    ? R
+    : never
+    : never
+
+export type TablesInsert<
+    PublicTableNameOrOptions extends
+    | keyof Database["public"]["Tables"]
+    | { schema: keyof Database },
+    TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+    ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+        Insert: infer I
+    }
+    ? I
+    : never
+    : PublicTableNameOrOptions extends keyof Database["public"]["Tables"]
+    ? Database["public"]["Tables"][PublicTableNameOrOptions] extends {
+        Insert: infer I
+    }
+    ? I
+    : never
+    : never
+
+export type TablesUpdate<
+    PublicTableNameOrOptions extends
+    | keyof Database["public"]["Tables"]
+    | { schema: keyof Database },
+    TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+    ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+        Update: infer U
+    }
+    ? U
+    : never
+    : PublicTableNameOrOptions extends keyof Database["public"]["Tables"]
+    ? Database["public"]["Tables"][PublicTableNameOrOptions] extends {
+        Update: infer U
+    }
+    ? U
+    : never
+    : never
+
+export type Enums<
+    PublicEnumNameOrOptions extends
+    | keyof Database["public"]["Enums"]
+    | { schema: keyof Database },
+    EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = PublicEnumNameOrOptions extends { schema: keyof Database }
+    ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
+    : PublicEnumNameOrOptions extends keyof Database["public"]["Enums"]
+    ? Database["public"]["Enums"][PublicEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+    PublicCompositeTypeNameOrOptions extends
+    | keyof Database["public"]["CompositeTypes"]
+    | { schema: keyof Database },
+    CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+        schema: keyof Database
+    }
+    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
+    ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+    : PublicCompositeTypeNameOrOptions extends keyof Database["public"]["CompositeTypes"]
+    ? Database["public"]["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+    public: {
+        Enums: {},
+    },
+} as const

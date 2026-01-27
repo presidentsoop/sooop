@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { User } from '@supabase/supabase-js';
 
 const navLinks = [
     { href: '/', label: 'Home' },
@@ -14,6 +16,22 @@ const navLinks = [
 
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [user, setUser] = useState<User | null>(null);
+    const supabase = createClient();
+
+    useEffect(() => {
+        const getUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setUser(user);
+        };
+        getUser();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user ?? null);
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
 
     return (
         <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm shadow-soft">
@@ -44,9 +62,15 @@ export default function Header() {
                                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent group-hover:w-full transition-all duration-300" />
                             </Link>
                         ))}
-                        <Link href="/login" className="btn btn-primary">
-                            Member Login
-                        </Link>
+                        {user ? (
+                            <Link href="/dashboard" className="btn btn-primary">
+                                Dashboard
+                            </Link>
+                        ) : (
+                            <Link href="/login" className="btn btn-primary">
+                                Member Login
+                            </Link>
+                        )}
                     </nav>
 
                     {/* Mobile Menu Button */}
@@ -84,13 +108,23 @@ export default function Header() {
                                     {link.label}
                                 </Link>
                             ))}
-                            <Link
-                                href="/login"
-                                className="btn btn-primary w-full mt-2"
-                                onClick={() => setIsMenuOpen(false)}
-                            >
-                                Member Login
-                            </Link>
+                            {user ? (
+                                <Link
+                                    href="/dashboard"
+                                    className="btn btn-primary w-full mt-2"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    Dashboard
+                                </Link>
+                            ) : (
+                                <Link
+                                    href="/login"
+                                    className="btn btn-primary w-full mt-2"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    Member Login
+                                </Link>
+                            )}
                         </div>
                     </nav>
                 )}

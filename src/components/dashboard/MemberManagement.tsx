@@ -6,13 +6,13 @@ import { useState, useEffect } from "react";
 import {
     Search, Filter, ChevronDown, Check, X, Ban, MoreVertical,
     Eye, UserPlus, XCircle, CheckCircle, FileText, Download,
-    Calendar, Clock, Shield, AlertTriangle, Upload
+    Calendar, Clock, Shield, AlertTriangle, Upload, RefreshCw
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import Image from "next/image";
 import AddMemberModal from "./AddMemberModal";
-import { format, addYears, isPast } from "date-fns";
+import { format, addYears, isPast, formatDistanceToNow } from "date-fns";
 import AdminDocumentViewer from "./AdminDocumentViewer";
 
 type Member = {
@@ -30,13 +30,28 @@ type Member = {
     profile_photo_url?: string;
     subscription_start_date?: string;
     subscription_end_date?: string;
+    // New Fields
+    father_name?: string;
+    date_of_birth?: string;
+    gender?: string;
+    blood_group?: string;
+    residential_address?: string;
+    province?: string;
+    college_attended?: string;
+    other_qualification?: string;
+    post_graduate_institution?: string;
+    has_relevant_pg?: boolean;
+    has_non_relevant_pg?: boolean;
+    designation?: string;
+    employment_status?: string;
+    current_status?: string;
 };
 
 // UX: Tabs for better organization (Facebook Groups style)
 const TABS = [
     { id: 'all', label: 'All Members' },
     { id: 'pending', label: 'Membership Requests' },
-    { id: 'approved', label: 'Active Members' },
+    { id: 'active', label: 'Active Members' },
     { id: 'expired', label: 'Expired' },
 ];
 
@@ -64,8 +79,8 @@ export default function MemberManagement() {
         // Filter based on Tab
         if (activeTab === 'pending') {
             query = query.eq('membership_status', 'pending');
-        } else if (activeTab === 'approved') {
-            query = query.eq('membership_status', 'approved');
+        } else if (activeTab === 'active') {
+            query = query.eq('membership_status', 'active');
         } else if (activeTab === 'expired') {
             // This relies on status being updated to 'expired' or just checking dates logic client side?
             // Ideally status is source of truth.
@@ -95,19 +110,32 @@ export default function MemberManagement() {
         (m.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     );
 
-    const handleAction = async (id: string, action: 'approve' | 'block' | 'reject' | 'revoke') => {
+    const handleAction = async (id: string, action: 'approve' | 'block' | 'reject' | 'revoke' | 'renew') => {
         const updateData: any = {};
         let newStatus = 'pending';
         let successMessage = '';
 
         if (action === 'approve') {
-            newStatus = 'approved';
+            newStatus = 'active';
             const startDate = new Date();
             const endDate = addYears(startDate, 1);
             updateData.membership_status = newStatus;
             updateData.subscription_start_date = startDate.toISOString();
             updateData.subscription_end_date = endDate.toISOString();
             successMessage = 'Member Approved & Subscription Activated for 1 Year';
+        } else if (action === 'renew') {
+            newStatus = 'active';
+            // Extend existing or start new?
+            // If expired, start from now. If active, add year to end date.
+            const currentMember = members.find(m => m.id === id);
+            const baseDate = (currentMember?.subscription_end_date && !isPast(new Date(currentMember.subscription_end_date)))
+                ? new Date(currentMember.subscription_end_date)
+                : new Date();
+
+            const endDate = addYears(baseDate, 1);
+            updateData.membership_status = 'active'; // Ensure active
+            updateData.subscription_end_date = endDate.toISOString();
+            successMessage = 'Subscription Renewed for 1 Year';
         } else if (action === 'block') {
             newStatus = 'blocked';
             updateData.membership_status = newStatus;
@@ -134,9 +162,40 @@ export default function MemberManagement() {
             toast.success(successMessage);
             setMembers(members.map(m => m.id === id ? { ...m, ...updateData } : m));
             if (selectedMember && selectedMember.id === id) {
-                setShowModal(false);
+                // Update selected member local state too so modal updates
+                setSelectedMember({ ...selectedMember, ...updateData });
+                // If action was simple update, keep modal open? Yes.
+                if (action === 'block' || action === 'revoke' || action === 'reject') setShowModal(false);
             }
         }
+    };
+
+    const runExpirationScan = async () => {
+        setLoading(true);
+        toast.info("Scanning for expired memberships...");
+
+        // Fetch all approved members whose endDate is in the past
+        const now = new Date().toISOString();
+        const { data: candidates } = await supabase
+            .from('profiles')
+            .select('id, subscription_end_date')
+            .eq('membership_status', 'active')
+            .lt('subscription_end_date', now);
+
+        if (!candidates || candidates.length === 0) {
+            toast.success("No expired memberships found.");
+            setLoading(false);
+            return;
+        }
+
+        let updatedCount = 0;
+        for (const m of candidates) {
+            const { error } = await supabase.from('profiles').update({ membership_status: 'expired' }).eq('id', m.id);
+            if (!error) updatedCount++;
+        }
+
+        toast.success(`Processed expirations: ${updatedCount} users marked expired.`);
+        fetchMembers(); // Refetch
     };
 
     return (
@@ -147,7 +206,15 @@ export default function MemberManagement() {
                     <h2 className="text-3xl font-heading font-bold text-gray-900 tracking-tight">Community Management</h2>
                     <p className="text-gray-500 mt-1">Manage memberships, approvals, and subscriptions.</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                    <button
+                        onClick={runExpirationScan}
+                        className="flex items-center gap-2 px-4 py-3 bg-white text-orange-600 border border-orange-200 rounded-xl hover:bg-orange-50 transition-all font-semibold shadow-sm"
+                        title="Scan and block expired users"
+                    >
+                        <Clock className="w-5 h-5" />
+                        <span className="hidden md:inline">Scan Expired</span>
+                    </button>
                     <Link
                         href="/dashboard/members/import"
                         className="flex items-center gap-2 px-6 py-3 bg-white text-gray-700 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all font-semibold"
@@ -272,7 +339,7 @@ export default function MemberManagement() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            {member.membership_status === 'approved' && (
+                                            {member.membership_status === 'active' && (
                                                 <span className="inline-flex items-center gap-1.5 text-emerald-700 text-xs font-bold bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div> Active
                                                 </span>
@@ -296,8 +363,14 @@ export default function MemberManagement() {
                                         <td className="px-6 py-4">
                                             {member.subscription_end_date ? (
                                                 <div>
-                                                    <p className={`text-sm font-semibold ${isPast(new Date(member.subscription_end_date)) ? 'text-red-600' : 'text-gray-900'}`}>
-                                                        {format(new Date(member.subscription_end_date), 'MMM d, yyyy')}
+                                                    <p className={`text-sm font-semibold flex flex-col ${isPast(new Date(member.subscription_end_date)) ? 'text-red-600' : 'text-gray-900'}`}>
+                                                        <span>{format(new Date(member.subscription_end_date), 'MMM d, yyyy')}</span>
+                                                        <span className="text-[10px] opacity-80 font-normal">
+                                                            {isPast(new Date(member.subscription_end_date))
+                                                                ? `Expired ${formatDistanceToNow(new Date(member.subscription_end_date))} ago`
+                                                                : `Expires in ${formatDistanceToNow(new Date(member.subscription_end_date))}`
+                                                            }
+                                                        </span>
                                                     </p>
                                                     <div className="w-full bg-gray-100 h-1 mt-2 rounded-full overflow-hidden">
                                                         <div
@@ -410,7 +483,7 @@ export default function MemberManagement() {
 
                                             {/* Status Badge */}
                                             <div className={`px-4 py-2 rounded-xl text-sm font-bold shadow-sm border
-                                                ${selectedMember.membership_status === 'approved' ? 'bg-green-50 text-green-700 border-green-100' : ''}
+                                                ${selectedMember.membership_status === 'active' ? 'bg-green-50 text-green-700 border-green-100' : ''}
                                                 ${selectedMember.membership_status === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-100' : ''}
                                                 ${selectedMember.membership_status === 'blocked' ? 'bg-red-50 text-red-700 border-red-100' : ''}
                                             `}>
@@ -436,9 +509,15 @@ export default function MemberManagement() {
                                             </button>
                                         </>
                                     ) : (
-                                        <button onClick={() => handleAction(selectedMember.id, 'revoke')} className="flex-1 min-w-[120px] text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 text-sm font-bold rounded-lg transition-colors">
-                                            Revoke Access
-                                        </button>
+                                        <>
+                                            <button onClick={() => handleAction(selectedMember.id, 'renew')} className="flex-1 min-w-[120px] bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-4 py-2 text-sm font-bold rounded-lg transition-colors border border-emerald-100">
+                                                <RefreshCw className="w-4 h-4 inline mr-2" />
+                                                {(selectedMember.membership_status === 'expired' || selectedMember.membership_status === 'revoked') ? 'Reactivate Membership' : 'Extend Subscription'}
+                                            </button>
+                                            <button onClick={() => handleAction(selectedMember.id, 'revoke')} className="flex-1 min-w-[120px] text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 text-sm font-bold rounded-lg transition-colors border border-red-100">
+                                                Revoke Access
+                                            </button>
+                                        </>
                                     )}
                                 </div>
 
@@ -446,53 +525,101 @@ export default function MemberManagement() {
                                 <div className="grid md:grid-cols-3 gap-8">
                                     {/* Left Data Column */}
                                     <div className="md:col-span-2 space-y-6">
+                                        {/* Personal Info Card */}
                                         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                            <h3 className="text-gray-900 font-bold mb-4 flex items-center gap-2">
+                                            <h3 className="text-gray-900 font-bold mb-4 flex items-center gap-2 border-b pb-2">
                                                 <UserPlus className="w-5 h-5 text-primary" /> Personal Information
                                             </h3>
-                                            <div className="grid sm:grid-cols-2 gap-6">
+                                            <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
                                                 <div>
-                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Email Address</label>
-                                                    <p className="text-gray-900 font-medium break-all">{selectedMember.email}</p>
+                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Full Name</label>
+                                                    <p className="text-gray-900 font-medium text-lg">{selectedMember.full_name}</p>
+                                                    {selectedMember.father_name && <p className="text-gray-500 text-xs mt-0.5">S/O {selectedMember.father_name}</p>}
                                                 </div>
                                                 <div>
-                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">CNIC Number</label>
-                                                    <p className="text-gray-900 font-medium font-mono tracking-tight">{selectedMember.cnic}</p>
+                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">CNIC</label>
+                                                    <p className="text-gray-900 font-medium font-mono tracking-tight bg-gray-50 inline-block px-2 py-1 rounded border border-gray-100">{selectedMember.cnic}</p>
                                                 </div>
                                                 <div>
-                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Phone Number</label>
-                                                    <p className="text-gray-900 font-medium">{selectedMember.contact_number}</p>
+                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Date of Birth</label>
+                                                    <p className="text-gray-900 font-medium">{selectedMember.date_of_birth ? format(new Date(selectedMember.date_of_birth), 'MMM d, yyyy') : 'N/A'}</p>
                                                 </div>
                                                 <div>
-                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">City / Location</label>
-                                                    <p className="text-gray-900 font-medium">{selectedMember.city || 'Not Specified'}</p>
+                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Gender / Blood Group</label>
+                                                    <p className="text-gray-900 font-medium">{selectedMember.gender || '-'} / {selectedMember.blood_group || '-'}</p>
+                                                </div>
+                                                <div className="sm:col-span-2">
+                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Contact Details</label>
+                                                    <div className="grid sm:grid-cols-2 gap-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                                        <div>
+                                                            <span className="text-xs text-gray-500 block">Email</span>
+                                                            <span className="font-medium text-gray-900 break-all">{selectedMember.email}</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-xs text-gray-500 block">Phone</span>
+                                                            <span className="font-medium text-gray-900">{selectedMember.contact_number}</span>
+                                                        </div>
+                                                        <div className="sm:col-span-2">
+                                                            <span className="text-xs text-gray-500 block">Address</span>
+                                                            <span className="font-medium text-gray-900">{selectedMember.residential_address}, {selectedMember.city}, {selectedMember.province}</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
 
+                                        {/* Professional Info Card */}
                                         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                            <h3 className="text-gray-900 font-bold mb-4 flex items-center gap-2">
-                                                <FileText className="w-5 h-5 text-primary" /> Professional Details
+                                            <h3 className="text-gray-900 font-bold mb-4 flex items-center gap-2 border-b pb-2">
+                                                <FileText className="w-5 h-5 text-primary" /> Professional & Academic
                                             </h3>
-                                            <div className="grid sm:grid-cols-2 gap-6">
+                                            <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
                                                 <div>
-                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Institution</label>
-                                                    <p className="text-gray-900 font-medium">{selectedMember.institution || 'N/A'}</p>
+                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Education</label>
+                                                    <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                                                        <p className="font-bold text-gray-900">{selectedMember.qualification}</p>
+                                                        {selectedMember.other_qualification && <p className="text-xs text-gray-600">({selectedMember.other_qualification})</p>}
+                                                        <p className="text-xs text-gray-500 mt-1">{selectedMember.college_attended || selectedMember.institution}</p>
+                                                    </div>
                                                 </div>
                                                 <div>
-                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Qualification</label>
-                                                    <p className="text-gray-900 font-medium">{selectedMember.qualification || 'N/A'}</p>
+                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Post Graduate</label>
+                                                    {selectedMember.post_graduate_institution || selectedMember.has_relevant_pg || selectedMember.has_non_relevant_pg ? (
+                                                        <div className="bg-purple-50/50 p-3 rounded-lg border border-purple-100">
+                                                            <p className="font-bold text-gray-900">{selectedMember.post_graduate_institution || 'PG Degree Holder'}</p>
+                                                            <div className="flex gap-2 mt-1">
+                                                                {selectedMember.has_relevant_pg && <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Relevant</span>}
+                                                                {selectedMember.has_non_relevant_pg && <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">Other</span>}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-gray-400 text-sm italic">None</p>
+                                                    )}
+                                                </div>
+                                                <div className="sm:col-span-2 mt-2">
+                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Employment</label>
+                                                    <div className="flex items-center gap-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                                        <div>
+                                                            <span className="text-xs text-gray-500 block">Status</span>
+                                                            <span className="font-bold text-gray-900">{selectedMember.employment_status || 'N/A'}</span>
+                                                        </div>
+                                                        <div className="w-px h-8 bg-gray-200"></div>
+                                                        <div>
+                                                            <span className="text-xs text-gray-500 block">Current Role</span>
+                                                            <span className="font-medium text-gray-900">{selectedMember.designation ? `${selectedMember.designation} at ` : ''} {selectedMember.current_status || 'N/A'}</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
 
+                                        {/* Documents Card */}
                                         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                            <h3 className="text-gray-900 font-bold mb-4 flex items-center gap-2">
+                                            <h3 className="text-gray-900 font-bold mb-4 flex items-center gap-2 border-b pb-2">
                                                 <Shield className="w-5 h-5 text-primary" /> Verification Documents
                                             </h3>
                                             <AdminDocumentViewer userId={selectedMember.id} />
                                         </div>
-
                                     </div>
 
                                     {/* Right Meta Column */}

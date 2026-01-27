@@ -22,6 +22,8 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
     const [contactNumber, setContactNumber] = useState(profile?.contact_number || "");
     const [address, setAddress] = useState(profile?.residential_address || "");
     const [designation, setDesignation] = useState(profile?.designation || "");
+    const [institution, setInstitution] = useState(profile?.institution || "");
+    const [qualification, setQualification] = useState(profile?.qualification || "");
     const [email, setEmail] = useState(user?.email || "");
 
     // Password change states
@@ -44,6 +46,8 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
                     contact_number: contactNumber,
                     residential_address: address,
                     designation: designation,
+                    institution: institution,
+                    qualification: qualification,
                     updated_at: new Date().toISOString(),
                 })
                 .eq('id', user.id);
@@ -218,6 +222,30 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
                                 <p className="text-xs text-gray-400">Unique Identity Number (Locked).</p>
                             </div>
 
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                    Father / Husband Name <Lock className="w-3 h-3 text-gray-400" />
+                                </label>
+                                <input
+                                    type="text"
+                                    value={profile?.father_name || ''}
+                                    disabled
+                                    className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 cursor-not-allowed"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                    Date of Birth <Lock className="w-3 h-3 text-gray-400" />
+                                </label>
+                                <input
+                                    type="text"
+                                    value={profile?.date_of_birth || ''}
+                                    disabled
+                                    className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 cursor-not-allowed"
+                                />
+                            </div>
+
                             {/* EDITABLE FIELDS */}
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-gray-700">Phone / Contact</label>
@@ -253,6 +281,28 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
                                     onChange={(e) => setDesignation(e.target.value)}
                                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary-50 transition-all outline-none"
                                     placeholder="e.g. Senior Optometrist"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700">Institution / Clinic</label>
+                                <input
+                                    type="text"
+                                    value={institution}
+                                    onChange={(e) => setInstitution(e.target.value)}
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary-50 transition-all outline-none"
+                                    placeholder="e.g. Mayo Hospital"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700">Qualification</label>
+                                <input
+                                    type="text"
+                                    value={qualification}
+                                    onChange={(e) => setQualification(e.target.value)}
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary-50 transition-all outline-none"
+                                    placeholder="e.g. BS Optometry"
                                 />
                             </div>
 

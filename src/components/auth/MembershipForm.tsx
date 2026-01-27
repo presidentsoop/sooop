@@ -52,46 +52,55 @@ export default function MembershipForm() {
     const onSubmit = async (data: MembershipFormData) => {
         setIsSubmitting(true);
         try {
-            // Get user ID for file paths - we need to know who we are
-            // Since this component is client-side, we can just get getUser quickly or use a prop.
-            // But standard check:
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                toast.error("You must be logged in to submit.");
-                router.push('/login');
-                return;
-            }
-
-            // 1. Upload Files Client-Side
-            const timestamp = Date.now();
-            const uploads: Record<string, string> = {};
-
-            const fileFields = [
-                { key: 'cnicFront', bucket: 'documents', required: true },
-                { key: 'cnicBack', bucket: 'documents', required: true },
-                { key: 'transcriptFront', bucket: 'documents', required: false }, // Optional? Form says required generally but backend handles nulls
-                { key: 'transcriptBack', bucket: 'documents', required: false },
-                { key: 'studentId', bucket: 'documents', required: membershipType === 'Student' },
-                { key: 'oldCard', bucket: 'documents', required: isRenewal },
-                { key: 'receipt', bucket: 'payment-receipts', required: true },
-                { key: 'photo', bucket: 'profile-photos', required: true },
+            // Validate Required Files
+            const requiredFiles = [
+                { key: 'photo', label: 'Profile Photo' },
+                { key: 'cnicFront', label: 'CNIC Front' },
+                { key: 'cnicBack', label: 'CNIC Back' },
+                { key: 'receipt', label: 'Payment Receipt' }
             ];
 
-            for (const field of fileFields) {
-                const file = fileStates[field.key];
-                if (field.required && !file) {
-                    throw new Error(`Missing required file: ${field.key.replace(/([A-Z])/g, ' $1').trim()}`);
-                }
+            if (data.membershipType === 'Student') {
+                requiredFiles.push({ key: 'studentId', label: 'Student ID' });
+            }
+            if (data.isRenewal) {
+                requiredFiles.push({ key: 'oldCard', label: 'Old Membership Card' });
+            }
 
-                if (file) {
-                    const ext = file.name.split('.').pop();
-                    const path = `${user.id}/${field.key}_${timestamp}.${ext}`;
-                    uploads[field.key] = await uploadFile(file, field.bucket, path);
+            for (const req of requiredFiles) {
+                if (!fileStates[req.key]) {
+                    toast.error(`${req.label} is required`);
+                    setIsSubmitting(false);
+                    return;
                 }
             }
 
-            // 2. Call Server Action for DB Updates
-            const result = await submitApplication(data, uploads);
+            const formData = new FormData();
+
+            // Append Text Fields
+            formData.append('membershipType', data.membershipType);
+            formData.append('isRenewal', String(data.isRenewal));
+            formData.append('fullName', data.fullName);
+            formData.append('fatherName', data.fatherName);
+            formData.append('contactNumber', data.contactNumber);
+            formData.append('cnic', data.cnic);
+            formData.append('dob', data.dob);
+            formData.append('gender', data.gender);
+            formData.append('residentialAddress', data.residentialAddress);
+            formData.append('transactionId', data.transactionId);
+
+            // Append Files from fileStates
+            if (fileStates.photo) formData.append('photo', fileStates.photo);
+            if (fileStates.cnicFront) formData.append('cnicFront', fileStates.cnicFront);
+            if (fileStates.cnicBack) formData.append('cnicBack', fileStates.cnicBack);
+            if (fileStates.transcriptFront) formData.append('transcriptFront', fileStates.transcriptFront);
+            if (fileStates.transcriptBack) formData.append('transcriptBack', fileStates.transcriptBack);
+            if (fileStates.studentId) formData.append('studentId', fileStates.studentId);
+            if (fileStates.oldCard) formData.append('oldCard', fileStates.oldCard);
+            if (fileStates.receipt) formData.append('receipt', fileStates.receipt);
+
+            // 2. Call Server Action
+            const result = await submitApplication(formData);
 
             if (!result.success) {
                 throw new Error(result.error);

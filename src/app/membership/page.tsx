@@ -27,24 +27,31 @@ const staticContent = {
     ],
     types: [
         {
-            type: "Student",
-            fee: "Rs. 500",
+            type: "Student Member",
+            fee: "Rs. 1,000",
             description: "For enrolled optometry students",
             features: ["Conference discounts", "Study materials", "Mentorship access", "Student network"],
             popular: false
         },
         {
-            type: "Professional",
-            fee: "Rs. 2,000",
+            type: "Associate Member",
+            fee: "Rs. 500",
+            description: "For associate professionals",
+            features: ["Conference access", "Networking events", "Newsletters", "Basic resources"],
+            popular: false
+        },
+        {
+            type: "Full Member",
+            fee: "Rs. 1,500",
             description: "For practicing optometrists",
             features: ["Full conference access", "Voting rights", "All resources", "Career portal", "Research grants"],
             popular: true
         },
         {
-            type: "Lifetime",
-            fee: "Rs. 15,000",
-            description: "One-time payment forever",
-            features: ["All professional benefits", "Lifetime access", "Honorary recognition", "Priority registration"],
+            type: "Overseas Member",
+            fee: "Rs. 3,000",
+            description: "For international professionals",
+            features: ["Global networking", "International recognition", "Online resources", "Priority registration"],
             popular: false
         }
     ],
@@ -118,33 +125,33 @@ export default function MembershipPage() {
                             </p>
                         </div>
 
-                        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
                             {staticContent.types.map((membership, index) => (
                                 <div
                                     key={index}
-                                    className={`card relative ${membership.popular ? 'border-2 border-accent shadow-soft-xl' : ''}`}
+                                    className={`card relative flex flex-col ${membership.popular ? 'border-2 border-accent shadow-soft-xl' : ''}`}
                                 >
                                     {membership.popular && (
-                                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 badge badge-accent">
+                                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 badge badge-accent shadow-lg">
                                             Most Popular
                                         </div>
                                     )}
-                                    <div className="text-center mb-6">
-                                        <h3 className="text-2xl font-bold text-primary mb-2">{membership.type}</h3>
-                                        <div className="text-4xl font-bold text-accent mb-2">{membership.fee}</div>
-                                        <p className="text-gray-600 text-sm">{membership.description}</p>
+                                    <div className="text-center mb-6 pt-2">
+                                        <h3 className="text-xl font-bold text-primary mb-2">{membership.type}</h3>
+                                        <div className="text-3xl font-bold text-accent mb-2">{membership.fee}</div>
+                                        <p className="text-gray-600 text-xs px-2 min-h-[40px] flex items-center justify-center">{membership.description}</p>
                                     </div>
-                                    <ul className="space-y-3 mb-8">
+                                    <ul className="space-y-3 mb-8 flex-1">
                                         {membership.features.map((feature, i) => (
-                                            <li key={i} className="flex items-center gap-3 text-gray-600">
-                                                <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
-                                                {feature}
+                                            <li key={i} className="flex items-start gap-3 text-gray-600 text-sm">
+                                                <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                                                <span>{feature}</span>
                                             </li>
                                         ))}
                                     </ul>
                                     <Link
                                         href="/login"
-                                        className={`btn w-full ${membership.popular ? 'btn-accent' : 'btn-outline'}`}
+                                        className={`btn w-full mt-auto ${membership.popular ? 'btn-accent' : 'btn-outline'}`}
                                     >
                                         Register Now
                                     </Link>

@@ -19,11 +19,27 @@ export default async function PaymentsPage() {
         .single();
 
     // Fetch Payments History
-    const { data: payments } = await supabase
+    const { data: paymentsRaw } = await supabase
         .from('payments')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+
+    // Generate Signed URLs for receipts stored as paths
+    const payments = await Promise.all((paymentsRaw || []).map(async (p) => {
+        if (p.receipt_url && !p.receipt_url.startsWith('http')) {
+            try {
+                // Assume stored in 'documents' bucket (private)
+                const { data } = await supabase.storage.from('documents').createSignedUrl(p.receipt_url, 3600);
+                if (data?.signedUrl) {
+                    return { ...p, receipt_url: data.signedUrl };
+                }
+            } catch (e) {
+                console.error("Error signing url", e);
+            }
+        }
+        return p;
+    }));
 
     // Calculate Stats
     const totalSpent = payments?.reduce((sum, p) => p.status === 'verified' ? sum + Number(p.amount) : sum, 0) || 0;

@@ -60,7 +60,8 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
         { href: "/dashboard/leadership", label: "Leadership & Wings", icon: Users },
         { href: "/dashboard/fees", label: "Nomination Fees", icon: DollarSign },
         { href: "/dashboard/campaigns", label: "Email Campaigns", icon: Mail },
-        { href: "/dashboard/audit", label: "Audit Logs", icon: ShieldAlert },
+        { href: "/dashboard/security", label: "User & Security", icon: ShieldAlert },
+        { href: "/dashboard/audit", label: "Audit Logs", icon: FileText },
         { href: "/dashboard/settings", label: "Settings", icon: Settings },
     ];
 
