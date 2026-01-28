@@ -95,21 +95,10 @@ export async function registerMember(formData: FormData) {
     const userId = authData.user.id;
     const session = authData.session;
 
-    // DECISION: Use Admin Client if service key exists, otherwise use authenticated user client
-    // This approach ensures database operations work with RLS
-    let workingClient: any = supabaseAdmin;
-
-    if (session) {
-        // Create a client acting as the authenticated user
-        const { createClient: createSupabaseClient } = require('@supabase/supabase-js');
-        workingClient = createSupabaseClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                global: { headers: { Authorization: `Bearer ${session.access_token}` } }
-            }
-        );
-    }
+    // Always use admin client for database operations
+    // The RLS policies are configured to allow server-side inserts via anon role
+    // This ensures consistent behavior regardless of session state
+    const workingClient = supabaseAdmin;
 
     const fileUrls: Record<string, string> = {};
 

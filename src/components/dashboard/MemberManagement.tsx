@@ -3,11 +3,7 @@
 import Link from "next/link";
 
 import { useState, useEffect } from "react";
-import {
-    Search, Filter, ChevronDown, Check, X, Ban, MoreVertical,
-    Eye, UserPlus, XCircle, CheckCircle, FileText, Download,
-    Calendar, Clock, Shield, AlertTriangle, Upload, RefreshCw, Settings
-} from "lucide-react";
+import { Search, Filter, ChevronDown, Check, X, Ban, MoreVertical, Eye, UserPlus, XCircle, CheckCircle, FileText, Download, Calendar, Clock, Shield, AlertTriangle, Upload, RefreshCw, Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -65,6 +61,10 @@ export default function MemberManagement() {
     const [showModal, setShowModal] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
 
+    // Pagination for 500+ users
+    const ITEMS_PER_PAGE = 25;
+    const [currentPage, setCurrentPage] = useState(1);
+
     useEffect(() => {
         fetchMembers();
     }, [activeTab]);
@@ -110,6 +110,16 @@ export default function MemberManagement() {
         (m.cnic || '').includes(searchTerm) ||
         (m.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     );
+
+    // Pagination calculations
+    const totalPages = Math.ceil(filteredMembers.length / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const paginatedMembers = filteredMembers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+    // Reset to page 1 when search or tab changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, activeTab]);
 
     const handleAction = async (id: string, action: 'approve' | 'block' | 'reject' | 'revoke' | 'renew') => {
         const updateData: any = {};
@@ -312,7 +322,7 @@ export default function MemberManagement() {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredMembers.map((member) => (
+                                paginatedMembers.map((member) => (
                                     <tr key={member.id} className="group hover:bg-blue-50/30 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-4">
@@ -412,6 +422,57 @@ export default function MemberManagement() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-between px-6 py-4 bg-white border-t border-gray-100">
+                        <div className="text-sm text-gray-600">
+                            Showing <span className="font-semibold text-gray-900">{startIndex + 1}</span> to <span className="font-semibold text-gray-900">{Math.min(startIndex + ITEMS_PER_PAGE, filteredMembers.length)}</span> of <span className="font-semibold text-gray-900">{filteredMembers.length}</span> members
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronLeft className="w-5 h-5 text-gray-600" />
+                            </button>
+                            <div className="flex items-center gap-1">
+                                {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                                    let pageNum;
+                                    if (totalPages <= 5) {
+                                        pageNum = i + 1;
+                                    } else if (currentPage <= 3) {
+                                        pageNum = i + 1;
+                                    } else if (currentPage >= totalPages - 2) {
+                                        pageNum = totalPages - 4 + i;
+                                    } else {
+                                        pageNum = currentPage - 2 + i;
+                                    }
+                                    return (
+                                        <button
+                                            key={pageNum}
+                                            onClick={() => setCurrentPage(pageNum)}
+                                            className={`w-10 h-10 rounded-lg text-sm font-semibold transition-colors ${currentPage === pageNum
+                                                ? 'bg-primary-900 text-white shadow-md'
+                                                : 'text-gray-600 hover:bg-gray-100'
+                                                }`}
+                                        >
+                                            {pageNum}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronRight className="w-5 h-5 text-gray-600" />
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <AddMemberModal
@@ -420,59 +481,55 @@ export default function MemberManagement() {
                 onSuccess={() => { setShowAddModal(false); fetchMembers(); }}
             />
 
-            {/* HIGH END MEMBER DETAIL MODAL */}
+            {/* COMPACT MEMBER DETAIL MODAL */}
             {showModal && selectedMember && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-primary-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowModal(false)}></div>
-                    <div className="relative bg-[#F8FAFC] rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl animate-scale-in flex flex-col">
+                    <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm animate-fade-in" onClick={() => setShowModal(false)}></div>
+                    <div className="relative bg-white rounded-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden shadow-2xl animate-scale-in flex flex-col">
 
-                        {/* HERO HEADER */}
-                        <div className="relative bg-primary-900 h-48 flex-shrink-0">
-                            <div className="absolute inset-0 bg-gradient-to-br from-primary-800 to-black/50"></div>
-                            {/* Texture */}
-                            <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+                        {/* COMPACT HEADER */}
+                        <div className="relative bg-primary-900 h-20 flex-shrink-0">
+                            <div className="absolute inset-0 bg-gradient-to-r from-primary-800 to-primary-900"></div>
 
                             <button
                                 onClick={() => setShowModal(false)}
-                                className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-colors z-20"
+                                className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-20"
                             >
-                                <X className="w-5 h-5" />
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
                         {/* CONTENT WRAPPER */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar">
-                            <div className="px-8 pb-8 -mt-20 relative z-10">
-                                {/* Summary Card */}
-                                <div className="flex flex-col md:flex-row gap-6 mb-8">
-                                    <div className="w-40 h-40 rounded-3xl bg-white p-2 shadow-xl shrink-0 mx-auto md:mx-0">
-                                        <div className="w-full h-full rounded-2xl overflow-hidden relative bg-gray-100">
+                        <div className="flex-1 overflow-y-auto">
+                            <div className="px-6 pb-6 -mt-10 relative z-10">
+                                {/* Summary Card - More Compact */}
+                                <div className="flex items-end gap-4 mb-6">
+                                    <div className="w-20 h-20 rounded-xl bg-white p-1 shadow-lg shrink-0">
+                                        <div className="w-full h-full rounded-lg overflow-hidden relative bg-gray-100">
                                             {selectedMember.profile_photo_url ? (
                                                 <Image src={selectedMember.profile_photo_url} alt="Profile" fill className="object-cover" />
                                             ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-gray-300">
+                                                <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-gray-300">
                                                     {selectedMember.full_name[0]}
                                                 </div>
                                             )}
                                         </div>
                                     </div>
 
-                                    <div className="flex-1 pt-20 md:pt-24 text-center md:text-left">
-                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div className="flex-1">
+                                        <div className="flex items-center justify-between gap-4 bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
                                             <div>
-                                                <h2 className="text-3xl font-bold text-gray-900 leading-none mb-2">{selectedMember.full_name}</h2>
-                                                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 text-sm text-gray-500 font-medium">
-                                                    <span className="bg-white px-2 py-0.5 rounded border border-gray-200 shadow-sm">{selectedMember.role}</span>
+                                                <h2 className="text-xl font-bold text-gray-900">{selectedMember.full_name}</h2>
+                                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                    <span className="font-mono">{selectedMember.cnic}</span>
                                                     <span>•</span>
-                                                    <span>{selectedMember.institution || 'Unknown Institution'}</span>
+                                                    <span>{selectedMember.email}</span>
                                                 </div>
                                             </div>
-
-                                            {/* Status Badge */}
-                                            <div className={`px-4 py-2 rounded-xl text-sm font-bold shadow-sm border
-                                                ${(selectedMember.membership_status || 'pending') === 'active' ? 'bg-green-50 text-green-700 border-green-100' : ''}
-                                                ${(selectedMember.membership_status || 'pending') === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-100' : ''}
-                                                ${(selectedMember.membership_status || 'pending') === 'blocked' ? 'bg-red-50 text-red-700 border-red-100' : ''}
+                                            <div className={`px-3 py-1.5 rounded-lg text-xs font-bold
+                                                ${(selectedMember.membership_status || 'pending') === 'active' ? 'bg-green-100 text-green-700' : ''}
+                                                ${(selectedMember.membership_status || 'pending') === 'pending' ? 'bg-amber-100 text-amber-700' : ''}
+                                                ${(selectedMember.membership_status || 'pending') === 'blocked' ? 'bg-red-100 text-red-700' : ''}
                                             `}>
                                                 {(selectedMember.membership_status || 'PENDING').toUpperCase()}
                                             </div>
@@ -480,172 +537,165 @@ export default function MemberManagement() {
                                     </div>
                                 </div>
 
-                                {/* Action Bar */}
-                                <div className="flex items-center gap-3 mb-8 p-1 bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
-                                    <button className="flex-1 min-w-[120px] px-4 py-2 text-sm font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors flex items-center justify-center gap-2">
-                                        <AlertTriangle className="w-4 h-4" /> Reset Password
-                                    </button>
-                                    <div className="w-px h-6 bg-gray-200 my-auto"></div>
+                                {/* Quick Actions - More Compact */}
+                                <div className="flex items-center gap-2 mb-6 p-1 bg-gray-50 rounded-lg">
                                     {(selectedMember.membership_status === 'pending' || !selectedMember.membership_status) ? (
                                         <>
-                                            <button onClick={() => handleAction(selectedMember.id, 'approve')} className="flex-1 min-w-[120px] bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary-600 transition-colors shadow-lg shadow-primary/20">
-                                                Approve Application
+                                            <button onClick={() => handleAction(selectedMember.id, 'approve')} className="flex-1 bg-primary-900 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-primary-800 transition-colors flex items-center justify-center gap-2">
+                                                <Check className="w-4 h-4" /> Approve
                                             </button>
-                                            <button onClick={() => handleAction(selectedMember.id, 'reject')} className="flex-1 min-w-[120px] text-red-600 px-4 py-2 text-sm font-bold hover:bg-red-50 rounded-lg transition-colors">
-                                                Reject
+                                            <button onClick={() => handleAction(selectedMember.id, 'reject')} className="flex-1 text-red-600 bg-white border border-red-200 px-4 py-2.5 text-sm font-bold hover:bg-red-50 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                                <X className="w-4 h-4" /> Reject
                                             </button>
                                         </>
                                     ) : (
                                         <>
-                                            <button onClick={() => handleAction(selectedMember.id, 'renew')} className="flex-1 min-w-[120px] bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-4 py-2 text-sm font-bold rounded-lg transition-colors border border-emerald-100">
-                                                <RefreshCw className="w-4 h-4 inline mr-2" />
-                                                {(selectedMember.membership_status === 'expired' || selectedMember.membership_status === 'revoked') ? 'Reactivate Membership' : 'Extend Subscription'}
+                                            <button onClick={() => handleAction(selectedMember.id, 'renew')} className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 px-4 py-2.5 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
+                                                <RefreshCw className="w-4 h-4" />
+                                                {(selectedMember.membership_status === 'expired' || selectedMember.membership_status === 'revoked') ? 'Reactivate' : 'Extend'}
                                             </button>
-                                            <button onClick={() => handleAction(selectedMember.id, 'revoke')} className="flex-1 min-w-[120px] text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 text-sm font-bold rounded-lg transition-colors border border-red-100">
-                                                Revoke Access
+                                            <button onClick={() => handleAction(selectedMember.id, 'revoke')} className="flex-1 text-red-600 bg-white border border-red-200 hover:bg-red-50 px-4 py-2.5 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
+                                                <Ban className="w-4 h-4" /> Revoke
                                             </button>
                                         </>
                                     )}
                                 </div>
 
-                                {/* Two Column Grid */}
-                                <div className="grid md:grid-cols-3 gap-8">
-                                    {/* Left Data Column */}
-                                    <div className="md:col-span-2 space-y-6">
-                                        {/* Personal Info Card */}
-                                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                            <h3 className="text-gray-900 font-bold mb-4 flex items-center gap-2 border-b pb-2">
-                                                <UserPlus className="w-5 h-5 text-primary" /> Personal Information
-                                            </h3>
-                                            <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                                                <div>
-                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Full Name</label>
-                                                    <p className="text-gray-900 font-medium text-lg">{selectedMember.full_name}</p>
-                                                    {selectedMember.father_name && <p className="text-gray-500 text-xs mt-0.5">S/O {selectedMember.father_name}</p>}
-                                                </div>
-                                                <div>
-                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">CNIC</label>
-                                                    <p className="text-gray-900 font-medium font-mono tracking-tight bg-gray-50 inline-block px-2 py-1 rounded border border-gray-100">{selectedMember.cnic}</p>
-                                                </div>
-                                                <div>
-                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Date of Birth</label>
-                                                    <p className="text-gray-900 font-medium">{selectedMember.date_of_birth ? format(new Date(selectedMember.date_of_birth), 'MMM d, yyyy') : 'N/A'}</p>
-                                                </div>
-                                                <div>
-                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Gender / Blood Group</label>
-                                                    <p className="text-gray-900 font-medium">{selectedMember.gender || '-'} / {selectedMember.blood_group || '-'}</p>
-                                                </div>
-                                                <div className="sm:col-span-2">
-                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Contact Details</label>
-                                                    <div className="grid sm:grid-cols-2 gap-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                                        <div>
-                                                            <span className="text-xs text-gray-500 block">Email</span>
-                                                            <span className="font-medium text-gray-900 break-all">{selectedMember.email}</span>
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-xs text-gray-500 block">Phone</span>
-                                                            <span className="font-medium text-gray-900">{selectedMember.contact_number}</span>
-                                                        </div>
-                                                        <div className="sm:col-span-2">
-                                                            <span className="text-xs text-gray-500 block">Address</span>
-                                                            <span className="font-medium text-gray-900">{selectedMember.residential_address}, {selectedMember.city}, {selectedMember.province}</span>
-                                                        </div>
+                                {/* Two Column Grid - More Compact */}
+                                <div className="space-y-4">
+                                    {/* Personal Info Card */}
+                                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                        <h3 className="text-gray-900 font-bold mb-3 flex items-center gap-2 text-sm">
+                                            <UserPlus className="w-4 h-4 text-primary" /> Personal Information
+                                        </h3>
+                                        <div className="grid sm:grid-cols-3 gap-4 text-sm">
+                                            <div>
+                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Full Name</label>
+                                                <p className="text-gray-900 font-medium text-lg">{selectedMember.full_name}</p>
+                                                {selectedMember.father_name && <p className="text-gray-500 text-xs mt-0.5">S/O {selectedMember.father_name}</p>}
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">CNIC</label>
+                                                <p className="text-gray-900 font-medium font-mono tracking-tight bg-gray-50 inline-block px-2 py-1 rounded border border-gray-100">{selectedMember.cnic}</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Date of Birth</label>
+                                                <p className="text-gray-900 font-medium">{selectedMember.date_of_birth ? format(new Date(selectedMember.date_of_birth), 'MMM d, yyyy') : 'N/A'}</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Gender / Blood Group</label>
+                                                <p className="text-gray-900 font-medium">{selectedMember.gender || '-'} / {selectedMember.blood_group || '-'}</p>
+                                            </div>
+                                            <div className="sm:col-span-2">
+                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Contact Details</label>
+                                                <div className="grid sm:grid-cols-2 gap-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                                    <div>
+                                                        <span className="text-xs text-gray-500 block">Email</span>
+                                                        <span className="font-medium text-gray-900 break-all">{selectedMember.email}</span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-xs text-gray-500 block">Phone</span>
+                                                        <span className="font-medium text-gray-900">{selectedMember.contact_number}</span>
+                                                    </div>
+                                                    <div className="sm:col-span-2">
+                                                        <span className="text-xs text-gray-500 block">Address</span>
+                                                        <span className="font-medium text-gray-900">{selectedMember.residential_address}, {selectedMember.city}, {selectedMember.province}</span>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-
-                                        {/* Professional Info Card */}
-                                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                            <h3 className="text-gray-900 font-bold mb-4 flex items-center gap-2 border-b pb-2">
-                                                <FileText className="w-5 h-5 text-primary" /> Professional & Academic
-                                            </h3>
-                                            <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                                                <div>
-                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Education</label>
-                                                    <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100">
-                                                        <p className="font-bold text-gray-900">{selectedMember.qualification}</p>
-                                                        {selectedMember.other_qualification && <p className="text-xs text-gray-600">({selectedMember.other_qualification})</p>}
-                                                        <p className="text-xs text-gray-500 mt-1">{selectedMember.college_attended || selectedMember.institution}</p>
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Post Graduate</label>
-                                                    {selectedMember.post_graduate_institution || selectedMember.has_relevant_pg || selectedMember.has_non_relevant_pg ? (
-                                                        <div className="bg-purple-50/50 p-3 rounded-lg border border-purple-100">
-                                                            <p className="font-bold text-gray-900">{selectedMember.post_graduate_institution || 'PG Degree Holder'}</p>
-                                                            <div className="flex gap-2 mt-1">
-                                                                {selectedMember.has_relevant_pg && <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Relevant</span>}
-                                                                {selectedMember.has_non_relevant_pg && <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">Other</span>}
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <p className="text-gray-400 text-sm italic">None</p>
-                                                    )}
-                                                </div>
-                                                <div className="sm:col-span-2 mt-2">
-                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Employment</label>
-                                                    <div className="flex items-center gap-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                                        <div>
-                                                            <span className="text-xs text-gray-500 block">Status</span>
-                                                            <span className="font-bold text-gray-900">{selectedMember.employment_status || 'N/A'}</span>
-                                                        </div>
-                                                        <div className="w-px h-8 bg-gray-200"></div>
-                                                        <div>
-                                                            <span className="text-xs text-gray-500 block">Current Role</span>
-                                                            <span className="font-medium text-gray-900">{selectedMember.designation ? `${selectedMember.designation} at ` : ''} {selectedMember.current_status || 'N/A'}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Documents Card */}
-                                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                            <h3 className="text-gray-900 font-bold mb-4 flex items-center gap-2 border-b pb-2">
-                                                <Shield className="w-5 h-5 text-primary" /> Verification Documents
-                                            </h3>
-                                            <AdminDocumentViewer userId={selectedMember.id} />
                                         </div>
                                     </div>
 
-                                    {/* Right Meta Column */}
-                                    <div className="space-y-6">
-                                        {selectedMember.subscription_end_date && (
-                                            <div className="bg-gradient-to-br from-primary-900 to-primary-800 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
-                                                <div className="relative z-10">
-                                                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                                                        <Shield className="w-5 h-5 text-accent-400" /> Subscription
-                                                    </h3>
-                                                    <div className="space-y-4">
-                                                        <div>
-                                                            <p className="text-primary-200 text-xs font-bold uppercase">Expires On</p>
-                                                            <p className="text-2xl font-bold">{format(new Date(selectedMember.subscription_end_date), 'MMM d, yyyy')}</p>
-                                                        </div>
-                                                        <div className="pt-4 border-t border-white/10">
-                                                            <p className="text-primary-200 text-xs font-bold uppercase">Started</p>
-                                                            <p className="text-sm opacity-80">{format(new Date(selectedMember.subscription_start_date!), 'MMM d, yyyy')}</p>
+                                    {/* Professional Info Card */}
+                                    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                                        <h3 className="text-gray-900 font-bold mb-4 flex items-center gap-2 border-b pb-2">
+                                            <FileText className="w-5 h-5 text-primary" /> Professional & Academic
+                                        </h3>
+                                        <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+                                            <div>
+                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Education</label>
+                                                <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                                                    <p className="font-bold text-gray-900">{selectedMember.qualification}</p>
+                                                    {selectedMember.other_qualification && <p className="text-xs text-gray-600">({selectedMember.other_qualification})</p>}
+                                                    <p className="text-xs text-gray-500 mt-1">{selectedMember.college_attended || selectedMember.institution}</p>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Post Graduate</label>
+                                                {selectedMember.post_graduate_institution || selectedMember.has_relevant_pg || selectedMember.has_non_relevant_pg ? (
+                                                    <div className="bg-purple-50/50 p-3 rounded-lg border border-purple-100">
+                                                        <p className="font-bold text-gray-900">{selectedMember.post_graduate_institution || 'PG Degree Holder'}</p>
+                                                        <div className="flex gap-2 mt-1">
+                                                            {selectedMember.has_relevant_pg && <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Relevant</span>}
+                                                            {selectedMember.has_non_relevant_pg && <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">Other</span>}
                                                         </div>
                                                     </div>
-                                                </div>
-                                                {/* Circles */}
-                                                <div className="absolute right-0 bottom-0 w-32 h-32 bg-white/10 rounded-full blur-2xl translate-y-1/2 translate-x-1/2"></div>
+                                                ) : (
+                                                    <p className="text-gray-400 text-sm italic">None</p>
+                                                )}
                                             </div>
-                                        )}
-
-                                        <div className="bg-gray-100 rounded-2xl p-6 border border-gray-200/50">
-                                            <h4 className="font-bold text-gray-500 text-xs uppercase tracking-wider mb-3">System Metadata</h4>
-                                            <ul className="space-y-3 text-sm">
-                                                <li className="flex justify-between">
-                                                    <span className="text-gray-500">Joined</span>
-                                                    <span className="font-medium text-gray-900">{format(new Date(selectedMember.created_at), 'MMM d, yyyy')}</span>
-                                                </li>
-                                                <li className="flex justify-between">
-                                                    <span className="text-gray-500">ID</span>
-                                                    <span className="font-mono text-xs text-gray-400 truncate max-w-[100px]">{selectedMember.id}</span>
-                                                </li>
-                                            </ul>
+                                            <div className="sm:col-span-2 mt-2">
+                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Employment</label>
+                                                <div className="flex items-center gap-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                                    <div>
+                                                        <span className="text-xs text-gray-500 block">Status</span>
+                                                        <span className="font-bold text-gray-900">{selectedMember.employment_status || 'N/A'}</span>
+                                                    </div>
+                                                    <div className="w-px h-8 bg-gray-200"></div>
+                                                    <div>
+                                                        <span className="text-xs text-gray-500 block">Current Role</span>
+                                                        <span className="font-medium text-gray-900">{selectedMember.designation ? `${selectedMember.designation} at ` : ''} {selectedMember.current_status || 'N/A'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
+                                    </div>
+
+                                    {/* Documents Card */}
+                                    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                                        <h3 className="text-gray-900 font-bold mb-4 flex items-center gap-2 border-b pb-2">
+                                            <Shield className="w-5 h-5 text-primary" /> Verification Documents
+                                        </h3>
+                                        <AdminDocumentViewer userId={selectedMember.id} />
+                                    </div>
+                                </div>
+
+                                {/* Right Meta Column */}
+                                <div className="space-y-6">
+                                    {selectedMember.subscription_end_date && (
+                                        <div className="bg-gradient-to-br from-primary-900 to-primary-800 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                                            <div className="relative z-10">
+                                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                                                    <Shield className="w-5 h-5 text-accent-400" /> Subscription
+                                                </h3>
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <p className="text-primary-200 text-xs font-bold uppercase">Expires On</p>
+                                                        <p className="text-2xl font-bold">{format(new Date(selectedMember.subscription_end_date), 'MMM d, yyyy')}</p>
+                                                    </div>
+                                                    <div className="pt-4 border-t border-white/10">
+                                                        <p className="text-primary-200 text-xs font-bold uppercase">Started</p>
+                                                        <p className="text-sm opacity-80">{format(new Date(selectedMember.subscription_start_date!), 'MMM d, yyyy')}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {/* Circles */}
+                                            <div className="absolute right-0 bottom-0 w-32 h-32 bg-white/10 rounded-full blur-2xl translate-y-1/2 translate-x-1/2"></div>
+                                        </div>
+                                    )}
+
+                                    <div className="bg-gray-100 rounded-2xl p-6 border border-gray-200/50">
+                                        <h4 className="font-bold text-gray-500 text-xs uppercase tracking-wider mb-3">System Metadata</h4>
+                                        <ul className="space-y-3 text-sm">
+                                            <li className="flex justify-between">
+                                                <span className="text-gray-500">Joined</span>
+                                                <span className="font-medium text-gray-900">{format(new Date(selectedMember.created_at), 'MMM d, yyyy')}</span>
+                                            </li>
+                                            <li className="flex justify-between">
+                                                <span className="text-gray-500">ID</span>
+                                                <span className="font-mono text-xs text-gray-400 truncate max-w-[100px]">{selectedMember.id}</span>
+                                            </li>
+                                        </ul>
                                     </div>
                                 </div>
                             </div>
