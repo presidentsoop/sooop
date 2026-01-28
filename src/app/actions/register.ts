@@ -5,11 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function registerMember(formData: FormData) {
     const supabaseAdmin = createAdminClient();
-    const supabase = await createClient(); // For auth.signUp (using anon key usually behaves better for sending confirmation emails?)
-    // Actually, creating user with admin client auto-confirms by default unless configured.
-    // We WANT email confirmation flow properly.
-    // If we use admin.auth.admin.createUser, it auto-confirms usually.
-    // If we use supabase.auth.signUp (server side), it respects project settings.
+    const supabase = await createClient();
 
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
@@ -29,7 +25,8 @@ export async function registerMember(formData: FormData) {
     const province = formData.get('province') as string;
 
     // Professional
-    const role = formData.get('role') as string || 'member';
+    // Force role to member for public registration security
+    const role = 'member';
     const membershipType = formData.get('membership_type') as string;
     const isRenewal = formData.get('is_renewal') === 'true';
 
@@ -57,29 +54,8 @@ export async function registerMember(formData: FormData) {
                 full_name: fullName,
                 cnic: cnic,
                 father_name: s(fatherName),
-                date_of_birth: s(dob),
-                gender: s(gender),
-                blood_group: s(bloodGroup),
-
-                contact_number: s(phone),
-                residential_address: s(address),
-                city: s(city),
-                province: s(province),
-
-                institution: s(institution),
-                college_attended: s(collegeAttended),
-                qualification: s(qualification),
-                other_qualification: s(otherQualification),
-                post_graduate_institution: s(postGraduateInstitution),
-                has_relevant_pg: hasRelevantPg,
-                has_non_relevant_pg: hasNonRelevantPg,
-
-                current_status: s(currentStatus),
-                designation: s(designation),
-                employment_status: s(employmentStatus),
-
-                membership_type: s(membershipType),
-                role: 'member'
+                role: 'member', // Trigger fallback
+                membership_type: s(membershipType)
             }
         }
     });
@@ -93,17 +69,10 @@ export async function registerMember(formData: FormData) {
     }
 
     const userId = authData.user.id;
-    const session = authData.session;
-
-    // Always use admin client for database operations
-    // The RLS policies are configured to allow server-side inserts via anon role
-    // This ensures consistent behavior regardless of session state
     const workingClient = supabaseAdmin;
-
     const fileUrls: Record<string, string> = {};
 
-    // 4. Handle File Uploads
-    // Helper to upload
+    // 2. Handle File Uploads
     const uploadFile = async (file: File, docType: string) => {
         if (!file || file.size === 0) return null;
 
@@ -114,7 +83,7 @@ export async function registerMember(formData: FormData) {
         let targetBucket = 'documents';
         if (docType === 'profile_photo') targetBucket = 'profile-photos';
 
-        const { data: uploadData, error: uploadError } = await workingClient.storage
+        const { error: uploadError } = await workingClient.storage
             .from(targetBucket)
             .upload(fileName, buffer, {
                 contentType: file.type,
@@ -127,7 +96,7 @@ export async function registerMember(formData: FormData) {
         }
 
         // Get URL
-        let fileUrl = fileName; // Default to path for private bucket
+        let fileUrl = fileName;
         if (targetBucket === 'profile-photos') {
             const { data: publicData } = workingClient.storage.from(targetBucket).getPublicUrl(fileName);
             fileUrl = publicData.publicUrl;
@@ -135,7 +104,7 @@ export async function registerMember(formData: FormData) {
 
         fileUrls[docType] = fileUrl;
 
-        // 5. Insert into documents table
+        // Insert into documents table
         await workingClient.from('documents').insert({
             user_id: userId,
             document_type: docType,
@@ -163,28 +132,58 @@ export async function registerMember(formData: FormData) {
         }
     }
 
-    // 2. Update Profile Photo (Trigger handled the rest)
-    if (fileUrls['profile_photo']) {
-        const { error: profileError } = await workingClient
-            .from('profiles')
-            .update({
-                profile_photo_url: fileUrls['profile_photo']
-            })
-            .eq('id', userId);
+    // 3. Upsert Profile (CRITICAL: Ensures Profile Exists before FK checks)
+    // We explicitly write all profile data here instead of relying on slow triggers
+    const profileData = {
+        id: userId,
+        email: email,
+        full_name: fullName,
+        cnic: cnic,
+        father_name: s(fatherName),
+        date_of_birth: s(dob),
+        gender: s(gender),
+        blood_group: s(bloodGroup),
 
-        if (profileError) {
-            console.error("Profile Photo Update Error", profileError);
-            // Don't fail the whole request for this
-        }
+        contact_number: s(phone),
+        residential_address: s(address),
+        city: s(city),
+        province: s(province),
+
+        institution: s(institution),
+        college_attended: s(collegeAttended),
+        qualification: s(qualification),
+        other_qualification: s(otherQualification),
+        post_graduate_institution: s(postGraduateInstitution),
+        has_relevant_pg: hasRelevantPg,
+        has_non_relevant_pg: hasNonRelevantPg,
+
+        current_status: s(currentStatus),
+        designation: s(designation),
+        employment_status: s(employmentStatus),
+
+        membership_type: s(membershipType),
+        role: role,
+        membership_status: 'pending',
+
+        profile_photo_url: fileUrls['profile_photo'] || null,
+        updated_at: new Date().toISOString()
+    };
+
+    const { error: profileError } = await workingClient
+        .from('profiles')
+        .upsert(profileData, { onConflict: 'id' });
+
+    if (profileError) {
+        console.error("Profile Creation Failed:", profileError);
+        return { error: "Failed to initialize user profile: " + profileError.message };
     }
 
-    // 3. Create Application Record
+    // 4. Create Application Record
     const { error: appError } = await workingClient.from('membership_applications').insert({
         user_id: userId,
         status: 'pending',
         membership_type: membershipType,
         is_renewal: isRenewal,
-
         renewal_card_url: fileUrls['renewal_card'] || null,
         student_id_url: fileUrls['student_id'] || null,
         transcript_front_url: fileUrls['transcript_front'] || null,
@@ -196,11 +195,11 @@ export async function registerMember(formData: FormData) {
         return { error: "Failed to submit application record: " + appError.message };
     }
 
-    // 6. Create Pending Payment
+    // 5. Create Pending Payment
     if (fileUrls['payment_proof']) {
         await workingClient.from('payments').insert({
             user_id: userId,
-            amount: 0, // Should be set based on membership type technically
+            amount: 0,
             payment_mode: 'Bank Transfer (Upload)',
             status: 'pending',
             receipt_url: fileUrls['payment_proof']
