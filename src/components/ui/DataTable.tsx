@@ -33,6 +33,7 @@ interface DataTableProps<T> {
     bulkActions?: ReactNode;
     selectedIds?: Set<string>;
     onSelectionChange?: (ids: Set<string>) => void;
+    disablePagination?: boolean;
 }
 
 export default function DataTable<T extends Record<string, any>>({
@@ -51,6 +52,7 @@ export default function DataTable<T extends Record<string, any>>({
     bulkActions,
     selectedIds,
     onSelectionChange,
+    disablePagination = false,
 }: DataTableProps<T>) {
     const [currentPage, setCurrentPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState("");
@@ -78,9 +80,12 @@ export default function DataTable<T extends Record<string, any>>({
     });
 
     // Paginate
-    const totalPages = Math.ceil(sortedData.length / pageSize);
-    const startIndex = (currentPage - 1) * pageSize;
-    const paginatedData = sortedData.slice(startIndex, startIndex + pageSize);
+    const effectivePageSize = disablePagination ? sortedData.length : pageSize;
+    // Avoid division by zero if data is empty
+    const totalPages = effectivePageSize > 0 ? Math.ceil(sortedData.length / effectivePageSize) : 1;
+
+    const startIndex = (currentPage - 1) * effectivePageSize;
+    const paginatedData = disablePagination ? sortedData : sortedData.slice(startIndex, startIndex + pageSize);
 
     const handleSort = (key: string) => {
         if (sortKey === key) {
@@ -229,7 +234,7 @@ export default function DataTable<T extends Record<string, any>>({
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {totalPages > 1 && !disablePagination && (
                 <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50/50">
                     <div className="text-sm text-gray-600">
                         Showing <span className="font-medium">{startIndex + 1}</span> to <span className="font-medium">{Math.min(startIndex + pageSize, sortedData.length)}</span> of <span className="font-medium">{sortedData.length}</span>
