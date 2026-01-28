@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, UserPlus, Upload, Clock, Check, X, Ban, RefreshCw, Settings, Eye, FileText, CreditCard, MoreHorizontal, ChevronDown, Users } from "lucide-react";
+import { Search, UserPlus, Upload, Clock, Check, X, Ban, RefreshCw, Settings, Eye, FileText, CreditCard, MoreHorizontal, ChevronDown, Users, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { format, addYears, isPast, formatDistanceToNow } from "date-fns";
@@ -10,6 +10,7 @@ import DataTable from "@/components/ui/DataTable";
 import Modal, { Button, StatusBadge, Avatar, InfoRow } from "@/components/ui/Modal";
 import { DocumentGrid } from "@/components/ui/ImageViewer";
 import AddMemberModal from "./AddMemberModal";
+import { deleteMember } from "@/app/actions/member";
 
 // Status tabs configuration
 const TABS = [
@@ -552,7 +553,7 @@ export default function MemberManagement() {
                                     <DocumentGrid
                                         documents={memberDocuments}
                                         onVerify={handleVerifyDocument}
-                                        highlightType="transaction_slip"
+                                        highlightType="payment_proof"
                                     />
                                 )}
 

@@ -64,7 +64,7 @@ export default function VerifyList({ initialMembers }: VerifyListProps) {
             .from('documents')
             .select('*')
             .eq('user_id', member.id)
-            .eq('document_type', 'transaction_slip')
+            .eq('document_type', 'payment_proof')
             .single();
 
         if (data) {
@@ -462,7 +462,7 @@ export default function VerifyList({ initialMembers }: VerifyListProps) {
                                     <DocumentGrid
                                         documents={memberDocuments}
                                         onVerify={handleVerifyDocument}
-                                        highlightType="transaction_slip"
+                                        highlightType="payment_proof"
                                     />
                                 )}
 
