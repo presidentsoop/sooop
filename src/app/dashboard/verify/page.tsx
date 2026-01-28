@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import VerifyList from "@/components/dashboard/VerifyList";
 
 export default async function VerifyPage() {
@@ -28,13 +27,6 @@ export default async function VerifyPage() {
         .order('created_at', { ascending: false });
 
     return (
-        <>
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900">Verification Queue</h1>
-                <p className="text-gray-500 mt-2">Review and approve new membership applications.</p>
-            </div>
-
-            <VerifyList initialMembers={pendingMembers || []} />
-        </>
+        <VerifyList initialMembers={pendingMembers || []} />
     );
 }

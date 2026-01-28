@@ -1,15 +1,24 @@
 "use client";
 
-import Link from "next/link";
-
 import { useState, useEffect } from "react";
-import { Search, Filter, ChevronDown, Check, X, Ban, MoreVertical, Eye, UserPlus, XCircle, CheckCircle, FileText, Download, Calendar, Clock, Shield, AlertTriangle, Upload, RefreshCw, Settings, ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { Search, UserPlus, Upload, Clock, Check, X, Ban, RefreshCw, Settings, Eye, FileText, CreditCard, MoreHorizontal, ChevronDown, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import Image from "next/image";
-import AddMemberModal from "./AddMemberModal";
 import { format, addYears, isPast, formatDistanceToNow } from "date-fns";
-import AdminDocumentViewer from "./AdminDocumentViewer";
+import DataTable from "@/components/ui/DataTable";
+import Modal, { Button, StatusBadge, Avatar, InfoRow } from "@/components/ui/Modal";
+import { DocumentGrid } from "@/components/ui/ImageViewer";
+import AddMemberModal from "./AddMemberModal";
+
+// Status tabs configuration
+const TABS = [
+    { id: 'all', label: 'All Members' },
+    { id: 'active', label: 'Active' },
+    { id: 'pending', label: 'Pending' },
+    { id: 'expired', label: 'Expired' },
+    { id: 'blocked', label: 'Blocked' },
+];
 
 type Member = {
     id: string;
@@ -19,173 +28,143 @@ type Member = {
     contact_number: string;
     membership_status: string;
     role: string;
-    institution?: string;
-    qualification?: string;
-    city?: string;
-    created_at: string;
-    profile_photo_url?: string;
+    membership_type?: string;
     subscription_start_date?: string;
     subscription_end_date?: string;
-    // New Fields
+    created_at: string;
+    profile_photo_url?: string;
     father_name?: string;
     date_of_birth?: string;
     gender?: string;
     blood_group?: string;
-    residential_address?: string;
+    city?: string;
     province?: string;
-    college_attended?: string;
-    other_qualification?: string;
-    post_graduate_institution?: string;
-    has_relevant_pg?: boolean;
-    has_non_relevant_pg?: boolean;
+    residential_address?: string;
+    qualification?: string;
+    institution?: string;
     designation?: string;
     employment_status?: string;
-    current_status?: string;
+    college_attended?: string;
 };
 
-// UX: Tabs for better organization (Facebook Groups style)
-const TABS = [
-    { id: 'all', label: 'All Members' },
-    { id: 'pending', label: 'Membership Requests' },
-    { id: 'active', label: 'Active Members' },
-    { id: 'expired', label: 'Expired' },
-];
-
 export default function MemberManagement() {
-    const supabase = createClient();
     const [members, setMembers] = useState<Member[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('all');
-    const [searchTerm, setSearchTerm] = useState("");
     const [selectedMember, setSelectedMember] = useState<Member | null>(null);
-    const [showModal, setShowModal] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [memberDocuments, setMemberDocuments] = useState<any[]>([]);
+    const [loadingDocs, setLoadingDocs] = useState(false);
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-    // Pagination for 500+ users
-    const ITEMS_PER_PAGE = 25;
-    const [currentPage, setCurrentPage] = useState(1);
+    const supabase = createClient();
 
     useEffect(() => {
         fetchMembers();
     }, [activeTab]);
 
+    // Fetch documents when member is selected
+    useEffect(() => {
+        if (selectedMember) {
+            fetchMemberDocuments(selectedMember.id);
+        } else {
+            setMemberDocuments([]);
+        }
+    }, [selectedMember]);
+
     const fetchMembers = async () => {
         setLoading(true);
-        let query = supabase
-            .from('profiles')
-            .select('*')
-            .order('membership_status', { ascending: false }) // pending (p) > active (a) ? No, we want specific order.
-            .order('created_at', { ascending: false });
+        let query = supabase.from('profiles').select('*').order('created_at', { ascending: false });
 
-        // Filter based on Tab
-        if (activeTab === 'pending') {
-            query = query.eq('membership_status', 'pending');
-        } else if (activeTab === 'active') {
-            query = query.eq('membership_status', 'active');
-        } else if (activeTab === 'expired') {
-            // This relies on status being updated to 'expired' or just checking dates logic client side?
-            // Ideally status is source of truth.
-            // Let's assume we filter by status 'expired' OR dates logic if needed.
-            // For now, simple status check.
-            query = query.or('membership_status.eq.expired,membership_status.eq.revoked');
+        if (activeTab !== 'all') {
+            query = query.eq('membership_status', activeTab);
         }
 
         const { data, error } = await query;
         if (error) {
             toast.error("Failed to load members");
         } else {
-            console.log(data);
-            // Client-side date check for expiration visualization (optional enhancement)
-            const processed = (data || []).map((m: any) => ({
-                ...m,
-                is_expired_technically: m.subscription_end_date && isPast(new Date(m.subscription_end_date))
-            }));
-            setMembers(processed);
+            setMembers(data || []);
         }
         setLoading(false);
     };
 
-    const filteredMembers = members.filter(m =>
-        (m.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (m.cnic || '').includes(searchTerm) ||
-        (m.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-    );
+    const fetchMemberDocuments = async (userId: string) => {
+        setLoadingDocs(true);
+        const { data } = await supabase
+            .from('documents')
+            .select('*')
+            .eq('user_id', userId);
 
-    // Pagination calculations
-    const totalPages = Math.ceil(filteredMembers.length / ITEMS_PER_PAGE);
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const paginatedMembers = filteredMembers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-    // Reset to page 1 when search or tab changes
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchTerm, activeTab]);
+        if (data) {
+            const docsWithUrls = await Promise.all(data.map(async (doc) => {
+                if (doc.document_type === 'profile_photo') return doc;
+                const { data: signedData } = await supabase.storage
+                    .from('documents')
+                    .createSignedUrl(doc.file_url, 3600);
+                return {
+                    ...doc,
+                    signedUrl: signedData?.signedUrl || doc.file_url
+                };
+            }));
+            setMemberDocuments(docsWithUrls);
+        }
+        setLoadingDocs(false);
+    };
 
     const handleAction = async (id: string, action: 'approve' | 'block' | 'reject' | 'revoke' | 'renew') => {
-        const updateData: any = {};
-        let newStatus = 'pending';
+        setActionLoading(id);
+        const member = members.find(m => m.id === id);
+        if (!member) return;
+
+        const updateData: any = { updated_at: new Date().toISOString() };
         let successMessage = '';
 
         if (action === 'approve') {
-            newStatus = 'active';
             const startDate = new Date();
             const endDate = addYears(startDate, 1);
-            updateData.membership_status = newStatus;
+            updateData.membership_status = 'active';
             updateData.subscription_start_date = startDate.toISOString();
             updateData.subscription_end_date = endDate.toISOString();
-            successMessage = 'Member Approved & Subscription Activated for 1 Year';
+            successMessage = 'Member approved & activated for 1 year';
         } else if (action === 'renew') {
-            newStatus = 'active';
-            // Extend existing or start new?
-            // If expired, start from now. If active, add year to end date.
-            const currentMember = members.find(m => m.id === id);
-            const baseDate = (currentMember?.subscription_end_date && !isPast(new Date(currentMember.subscription_end_date)))
-                ? new Date(currentMember.subscription_end_date)
+            const baseDate = (member.subscription_end_date && !isPast(new Date(member.subscription_end_date)))
+                ? new Date(member.subscription_end_date)
                 : new Date();
-
             const endDate = addYears(baseDate, 1);
-            updateData.membership_status = 'active'; // Ensure active
+            updateData.membership_status = 'active';
             updateData.subscription_end_date = endDate.toISOString();
-            successMessage = 'Subscription Renewed for 1 Year';
+            successMessage = 'Subscription renewed for 1 year';
         } else if (action === 'block') {
-            newStatus = 'blocked';
-            updateData.membership_status = newStatus;
-            successMessage = 'Member access blocked';
+            updateData.membership_status = 'blocked';
+            successMessage = 'Member blocked';
         } else if (action === 'revoke') {
-            newStatus = 'revoked';
-            updateData.membership_status = newStatus;
-            // Optionally clear dates or keep record
-            successMessage = 'Subscription access revoked';
+            updateData.membership_status = 'revoked';
+            successMessage = 'Subscription revoked';
         } else if (action === 'reject') {
-            newStatus = 'rejected';
-            updateData.membership_status = newStatus;
+            updateData.membership_status = 'rejected';
             successMessage = 'Application rejected';
         }
 
-        const { error } = await supabase
-            .from('profiles')
-            .update(updateData)
-            .eq('id', id);
+        const { error } = await supabase.from('profiles').update(updateData).eq('id', id);
 
         if (error) {
             toast.error(`Failed to ${action} member`);
         } else {
             toast.success(successMessage);
             setMembers(members.map(m => m.id === id ? { ...m, ...updateData } : m));
-            if (selectedMember && selectedMember.id === id) {
-                // Update selected member local state too so modal updates
+            if (selectedMember?.id === id) {
                 setSelectedMember({ ...selectedMember, ...updateData });
-                // If action was simple update, keep modal open? Yes.
-                if (action === 'block' || action === 'revoke' || action === 'reject') setShowModal(false);
+                if (['block', 'revoke', 'reject'].includes(action)) setSelectedMember(null);
             }
         }
+        setActionLoading(null);
     };
 
     const runExpirationScan = async () => {
         setLoading(true);
         toast.info("Scanning for expired memberships...");
 
-        // Fetch all approved members whose endDate is in the past
         const now = new Date().toISOString();
         const { data: candidates } = await supabase
             .from('profiles')
@@ -205,504 +184,393 @@ export default function MemberManagement() {
             if (!error) updatedCount++;
         }
 
-        toast.success(`Processed expirations: ${updatedCount} users marked expired.`);
-        fetchMembers(); // Refetch
+        toast.success(`Marked ${updatedCount} memberships as expired.`);
+        fetchMembers();
     };
 
+    const handleVerifyDocument = async (doc: any) => {
+        const newStatus = !doc.verified;
+        const { error } = await supabase
+            .from('documents')
+            .update({ verified: newStatus, verified_at: newStatus ? new Date().toISOString() : null })
+            .eq('id', doc.id);
+
+        if (error) {
+            toast.error("Failed to update document status");
+        } else {
+            toast.success(newStatus ? "Document verified" : "Verification revoked");
+            setMemberDocuments(docs => docs.map(d => d.id === doc.id ? { ...d, verified: newStatus } : d));
+        }
+    };
+
+    // Get tab counts
+    const tabCounts = {
+        all: members.length,
+        active: members.filter(m => m.membership_status === 'active').length,
+        pending: members.filter(m => m.membership_status === 'pending').length,
+        expired: members.filter(m => m.membership_status === 'expired').length,
+        blocked: members.filter(m => m.membership_status === 'blocked').length,
+    };
+
+    // Table columns
+    const columns = [
+        {
+            key: 'full_name',
+            header: 'Member',
+            sortable: true,
+            render: (_: any, row: Member) => (
+                <div className="flex items-center gap-3">
+                    <Avatar src={row.profile_photo_url} name={row.full_name} size="sm" />
+                    <div>
+                        <p className="font-medium text-gray-900">{row.full_name}</p>
+                        <p className="text-xs text-gray-500 font-mono">{row.cnic}</p>
+                    </div>
+                </div>
+            )
+        },
+        {
+            key: 'email',
+            header: 'Contact',
+            render: (_: string, row: Member) => (
+                <div className="text-sm">
+                    <p className="text-gray-900">{row.email}</p>
+                    <p className="text-gray-500">{row.contact_number || '-'}</p>
+                </div>
+            )
+        },
+        {
+            key: 'membership_status',
+            header: 'Status',
+            render: (val: string) => <StatusBadge status={val || 'pending'} />
+        },
+        {
+            key: 'subscription_end_date',
+            header: 'Subscription',
+            sortable: true,
+            render: (val: string, row: Member) => {
+                if (!val) return <span className="text-gray-400 text-sm">-</span>;
+                const isExpired = isPast(new Date(val));
+                return (
+                    <div className="text-sm">
+                        <p className={`font-medium ${isExpired ? 'text-red-600' : 'text-gray-900'}`}>
+                            {format(new Date(val), 'MMM d, yyyy')}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                            {isExpired ? `Expired ${formatDistanceToNow(new Date(val))} ago` : `Expires in ${formatDistanceToNow(new Date(val))}`}
+                        </p>
+                    </div>
+                );
+            }
+        },
+        {
+            key: 'created_at',
+            header: 'Joined',
+            sortable: true,
+            render: (val: string) => (
+                <span className="text-sm text-gray-600">
+                    {format(new Date(val), 'MMM d, yyyy')}
+                </span>
+            )
+        }
+    ];
+
     return (
-        <div className="space-y-8 animate-fade-in pb-16">
-            {/* Header Control Area */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="space-y-6">
+            {/* Page Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-3xl font-heading font-bold text-gray-900 tracking-tight">Community Management</h2>
-                    <p className="text-gray-500 mt-1">Manage memberships, approvals, and subscriptions.</p>
+                    <h1 className="text-2xl font-bold text-gray-900">Member Management</h1>
+                    <p className="text-gray-500 mt-1">Manage memberships, approvals, and subscriptions</p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                    <button
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={runExpirationScan}
-                        className="flex items-center gap-2 px-4 py-3 bg-white text-orange-600 border border-orange-200 rounded-xl hover:bg-orange-50 transition-all font-semibold shadow-sm"
-                        title="Scan and block expired users"
+                        icon={<Clock className="w-4 h-4" />}
                     >
-                        <Clock className="w-5 h-5" />
-                        <span className="hidden md:inline">Scan Expired</span>
-                    </button>
-                    <Link
-                        href="/dashboard/members/import"
-                        className="flex items-center gap-2 px-6 py-3 bg-white text-gray-700 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all font-semibold"
-                    >
-                        <Upload className="w-5 h-5" />
-                        <span>Import CSV</span>
+                        Scan Expired
+                    </Button>
+                    <Link href="/dashboard/members/import">
+                        <Button variant="secondary" size="sm" icon={<Upload className="w-4 h-4" />}>
+                            Import CSV
+                        </Button>
                     </Link>
-                    <button
+                    <Button
+                        variant="primary"
+                        size="sm"
                         onClick={() => setShowAddModal(true)}
-                        className="flex items-center gap-2 px-6 py-3 bg-primary-900 text-white rounded-xl hover:bg-primary-800 transition-all shadow-lg shadow-primary-900/20 font-semibold hover:-translate-y-0.5"
+                        icon={<UserPlus className="w-4 h-4" />}
                     >
-                        <UserPlus className="w-5 h-5" />
-                        <span>Add Member</span>
-                    </button>
+                        Add Member
+                    </Button>
                 </div>
             </div>
 
-            {/* Controls Filter Bar */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-soft-xl p-1.5 flex flex-col md:flex-row gap-2">
-                {/* Segmented Tabs */}
-                <div className="flex bg-gray-50 p-1 rounded-xl overflow-x-auto no-scrollbar flex-1">
-                    {TABS.map(tab => {
-                        const isActive = activeTab === tab.id;
-                        return (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-2 px-6 py-2.5 text-sm font-semibold rounded-lg transition-all whitespace-nowrap ${isActive
-                                    ? 'bg-white text-gray-900 shadow-sm'
-                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                                    }`}
-                            >
-                                {tab.label}
-                                {tab.id === 'pending' && members.filter(m => m.membership_status === 'pending').length > 0 && (
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? 'bg-red-500 text-white' : 'bg-red-100 text-red-600'}`}>
-                                        {members.filter(m => m.membership_status === 'pending').length}
-                                    </span>
-                                )}
-                            </button>
-                        );
-                    })}
-                </div>
-
-                {/* Search */}
-                <div className="relative w-full md:w-80">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <input
-                        type="text"
-                        placeholder="Search by name, email, or CNIC..."
-                        className="w-full pl-11 pr-4 py-3.5 bg-gray-50/50 hover:bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-primary/10 transition-all text-sm outline-none font-medium text-gray-700 placeholder:text-gray-400"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-            </div>
-
-            {/* Data Grid */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-280px)] min-h-[500px]">
-                <div className="overflow-auto flex-1 custom-scrollbar relative">
-                    <table className="w-full text-left border-collapse">
-                        <thead className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10 shadow-sm">
-                            <tr>
-                                <th className="px-6 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50">Member Profile</th>
-                                <th className="px-6 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50">Status</th>
-                                <th className="px-6 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50">Subscription</th>
-                                <th className="px-6 py-5 text-right text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50">Actions</th>
-                            </tr>
-                        </thead>
-
-                        <tbody className="divide-y divide-gray-50">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-32 text-center">
-                                        <div className="flex flex-col items-center gap-3">
-                                            <div className="w-8 h-8 border-2 border-primary-100 border-t-primary-600 rounded-full animate-spin"></div>
-                                            <p className="text-gray-400 text-sm font-medium">Fetching community data...</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : filteredMembers.length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-32 text-center">
-                                        <div className="mx-auto w-20 h-20 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 border border-gray-100 transform rotate-3">
-                                            <Search className="w-8 h-8 text-gray-300" />
-                                        </div>
-                                        <h3 className="text-gray-900 font-bold text-lg">No Results Found</h3>
-                                        <p className="text-gray-500 text-sm mt-1 max-w-xs mx-auto">We couldn't find any members matching your search or filter criteria.</p>
-                                        <button
-                                            onClick={() => { setSearchTerm(''); setActiveTab('all'); }}
-                                            className="mt-4 text-primary font-semibold text-sm hover:underline"
-                                        >
-                                            Clear Filters
-                                        </button>
-                                    </td>
-                                </tr>
-                            ) : (
-                                paginatedMembers.map((member) => (
-                                    <tr key={member.id} className="group hover:bg-blue-50/30 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-gray-100 to-gray-200 p-[2px] flex-shrink-0 cursor-pointer hover:scale-105 transition-transform" onClick={() => { setSelectedMember(member); setShowModal(true); }}>
-                                                    <div className="w-full h-full rounded-full overflow-hidden bg-white relative">
-                                                        {member.profile_photo_url ? (
-                                                            <Image src={member.profile_photo_url} alt={member.full_name} fill className="object-cover" />
-                                                        ) : (
-                                                            <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-50 font-bold text-lg select-none">
-                                                                {member.full_name?.[0]?.toUpperCase()}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center gap-2">
-                                                        <p className="font-bold text-gray-900 text-sm hover:text-primary cursor-pointer transition-colors" onClick={() => { setSelectedMember(member); setShowModal(true); }}>
-                                                            {member.full_name}
-                                                        </p>
-                                                        {member.role === 'student' && <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded border border-blue-100 font-bold uppercase tracking-wider">Student</span>}
-                                                    </div>
-                                                    <p className="text-xs text-gray-500 font-mono">{member.cnic}</p>
-                                                    <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[180px]">{member.institution || member.city || 'No Location'}</p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {member.membership_status === 'active' && (
-                                                <span className="inline-flex items-center gap-1.5 text-emerald-700 text-xs font-bold bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div> Active
-                                                </span>
-                                            )}
-                                            {member.membership_status === 'pending' && (
-                                                <span className="inline-flex items-center gap-1.5 text-amber-700 text-xs font-bold bg-amber-50 px-2.5 py-1 rounded-md border border-amber-100">
-                                                    <Clock className="w-3 h-3" /> Reviewing
-                                                </span>
-                                            )}
-                                            {member.membership_status === 'blocked' && (
-                                                <span className="inline-flex items-center gap-1.5 text-red-700 text-xs font-bold bg-red-50 px-2.5 py-1 rounded-md border border-red-100">
-                                                    <Ban className="w-3 h-3" /> Blocked
-                                                </span>
-                                            )}
-                                            {(member.membership_status === 'expired' || member.membership_status === 'revoked') && (
-                                                <span className="inline-flex items-center gap-1.5 text-gray-600 text-xs font-bold bg-gray-100 px-2.5 py-1 rounded-md border border-gray-200">
-                                                    <AlertTriangle className="w-3 h-3" /> Inactive
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {member.subscription_end_date ? (
-                                                <div>
-                                                    <p className={`text-sm font-semibold flex flex-col ${isPast(new Date(member.subscription_end_date)) ? 'text-red-600' : 'text-gray-900'}`}>
-                                                        <span>{format(new Date(member.subscription_end_date), 'MMM d, yyyy')}</span>
-                                                        <span className="text-[10px] opacity-80 font-normal">
-                                                            {isPast(new Date(member.subscription_end_date))
-                                                                ? `Expired ${formatDistanceToNow(new Date(member.subscription_end_date))} ago`
-                                                                : `Expires in ${formatDistanceToNow(new Date(member.subscription_end_date))}`
-                                                            }
-                                                        </span>
-                                                    </p>
-                                                    <div className="w-full bg-gray-100 h-1 mt-2 rounded-full overflow-hidden">
-                                                        <div
-                                                            className={`h-full rounded-full ${isPast(new Date(member.subscription_end_date)) ? 'bg-red-500' : 'bg-green-500'}`}
-                                                            style={{
-                                                                width: `${Math.min(100, Math.max(0, ((new Date(member.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24 * 365)) * 100))}%`
-                                                            }}
-                                                        ></div>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <span className="text-xs text-gray-400 italic">No Subscription</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-2 group-hover:opacity-100 transition-all duration-200">
-                                                {/* Pending Actions */}
-                                                {member.membership_status === 'pending' ? (
-                                                    <button
-                                                        onClick={() => { setSelectedMember(member); setShowModal(true); }}
-                                                        className="px-4 py-1.5 bg-primary-900 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-primary-800 transition-colors flex items-center gap-2"
-                                                    >
-                                                        Review Application
-                                                    </button>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => { setSelectedMember(member); setShowModal(true); }}
-                                                        className="px-4 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors flex items-center gap-2 shadow-sm"
-                                                    >
-                                                        <Settings className="w-3 h-3" /> Manage Member
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
+            {/* Status Tabs */}
+            <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg w-fit">
+                {TABS.map(tab => {
+                    const isActive = activeTab === tab.id;
+                    const count = tabCounts[tab.id as keyof typeof tabCounts];
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2 ${isActive ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+                        >
+                            {tab.label}
+                            {count > 0 && (
+                                <span className={`px-1.5 py-0.5 text-xs rounded-full ${isActive ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'}`}>
+                                    {count}
+                                </span>
                             )}
-                        </tbody>
-                    </table>
-                </div>
+                        </button>
+                    );
+                })}
+            </div>
 
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                    <div className="flex items-center justify-between px-6 py-4 bg-white border-t border-gray-100">
-                        <div className="text-sm text-gray-600">
-                            Showing <span className="font-semibold text-gray-900">{startIndex + 1}</span> to <span className="font-semibold text-gray-900">{Math.min(startIndex + ITEMS_PER_PAGE, filteredMembers.length)}</span> of <span className="font-semibold text-gray-900">{filteredMembers.length}</span> members
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                disabled={currentPage === 1}
-                                className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                <ChevronLeft className="w-5 h-5 text-gray-600" />
-                            </button>
-                            <div className="flex items-center gap-1">
-                                {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                                    let pageNum;
-                                    if (totalPages <= 5) {
-                                        pageNum = i + 1;
-                                    } else if (currentPage <= 3) {
-                                        pageNum = i + 1;
-                                    } else if (currentPage >= totalPages - 2) {
-                                        pageNum = totalPages - 4 + i;
-                                    } else {
-                                        pageNum = currentPage - 2 + i;
-                                    }
-                                    return (
-                                        <button
-                                            key={pageNum}
-                                            onClick={() => setCurrentPage(pageNum)}
-                                            className={`w-10 h-10 rounded-lg text-sm font-semibold transition-colors ${currentPage === pageNum
-                                                ? 'bg-primary-900 text-white shadow-md'
-                                                : 'text-gray-600 hover:bg-gray-100'
-                                                }`}
-                                        >
-                                            {pageNum}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                            <button
-                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                disabled={currentPage === totalPages}
-                                className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                <ChevronRight className="w-5 h-5 text-gray-600" />
-                            </button>
-                        </div>
+            {/* Data Table */}
+            <DataTable
+                data={members}
+                columns={columns}
+                pageSize={20}
+                searchable={true}
+                searchPlaceholder="Search by name, CNIC, email..."
+                searchKeys={['full_name', 'cnic', 'email', 'contact_number', 'city']}
+                onRowClick={(row) => setSelectedMember(row)}
+                idKey="id"
+                loading={loading}
+                emptyMessage="No members found"
+                actions={(row) => (
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => setSelectedMember(row)}
+                            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="View Details"
+                        >
+                            <Eye className="w-4 h-4" />
+                        </button>
+                        {row.membership_status === 'pending' ? (
+                            <>
+                                <button
+                                    onClick={() => handleAction(row.id, 'approve')}
+                                    className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                    title="Approve"
+                                >
+                                    <Check className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={() => handleAction(row.id, 'reject')}
+                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    title="Reject"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={() => handleAction(row.id, 'renew')}
+                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                    title="Renew Subscription"
+                                >
+                                    <RefreshCw className="w-4 h-4" />
+                                </button>
+                                {row.membership_status !== 'blocked' && (
+                                    <button
+                                        onClick={() => handleAction(row.id, 'block')}
+                                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                        title="Block Member"
+                                    >
+                                        <Ban className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </>
+                        )}
                     </div>
                 )}
-            </div>
+            />
 
+            {/* Add Member Modal */}
             <AddMemberModal
                 isOpen={showAddModal}
                 onClose={() => setShowAddModal(false)}
                 onSuccess={() => { setShowAddModal(false); fetchMembers(); }}
             />
 
-            {/* COMPACT MEMBER DETAIL MODAL */}
-            {showModal && selectedMember && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm animate-fade-in" onClick={() => setShowModal(false)}></div>
-                    <div className="relative bg-white rounded-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden shadow-2xl animate-scale-in flex flex-col">
-
-                        {/* COMPACT HEADER */}
-                        <div className="relative bg-primary-900 h-20 flex-shrink-0">
-                            <div className="absolute inset-0 bg-gradient-to-r from-primary-800 to-primary-900"></div>
-
-                            <button
-                                onClick={() => setShowModal(false)}
-                                className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-20"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
-
-                        {/* CONTENT WRAPPER */}
-                        <div className="flex-1 overflow-y-auto">
-                            <div className="px-6 pb-6 -mt-10 relative z-10">
-                                {/* Summary Card - More Compact */}
-                                <div className="flex items-end gap-4 mb-6">
-                                    <div className="w-20 h-20 rounded-xl bg-white p-1 shadow-lg shrink-0">
-                                        <div className="w-full h-full rounded-lg overflow-hidden relative bg-gray-100">
-                                            {selectedMember.profile_photo_url ? (
-                                                <Image src={selectedMember.profile_photo_url} alt="Profile" fill className="object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-gray-300">
-                                                    {selectedMember.full_name[0]}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-
+            {/* Member Detail Modal */}
+            <Modal
+                isOpen={!!selectedMember}
+                onClose={() => setSelectedMember(null)}
+                title="Member Details"
+                subtitle={selectedMember?.email}
+                size="xl"
+                footer={
+                    selectedMember && (
+                        <>
+                            <Button variant="secondary" onClick={() => setSelectedMember(null)}>
+                                Close
+                            </Button>
+                            {selectedMember.membership_status === 'pending' ? (
+                                <>
+                                    <Button
+                                        variant="danger"
+                                        onClick={() => handleAction(selectedMember.id, 'reject')}
+                                        loading={actionLoading === selectedMember.id}
+                                        icon={<X className="w-4 h-4" />}
+                                    >
+                                        Reject
+                                    </Button>
+                                    <Button
+                                        variant="success"
+                                        onClick={() => handleAction(selectedMember.id, 'approve')}
+                                        loading={actionLoading === selectedMember.id}
+                                        icon={<Check className="w-4 h-4" />}
+                                    >
+                                        Approve & Activate
+                                    </Button>
+                                </>
+                            ) : (
+                                <>
+                                    <Button
+                                        variant="success"
+                                        onClick={() => handleAction(selectedMember.id, 'renew')}
+                                        loading={actionLoading === selectedMember.id}
+                                        icon={<RefreshCw className="w-4 h-4" />}
+                                    >
+                                        Renew 1 Year
+                                    </Button>
+                                    {selectedMember.membership_status !== 'blocked' && (
+                                        <Button
+                                            variant="danger"
+                                            onClick={() => handleAction(selectedMember.id, 'block')}
+                                            loading={actionLoading === selectedMember.id}
+                                            icon={<Ban className="w-4 h-4" />}
+                                        >
+                                            Block
+                                        </Button>
+                                    )}
+                                </>
+                            )}
+                        </>
+                    )
+                }
+            >
+                {selectedMember && (
+                    <div className="p-6">
+                        <div className="grid md:grid-cols-2 gap-6">
+                            {/* Left: Member Info */}
+                            <div className="space-y-6">
+                                {/* Profile Card */}
+                                <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                                    <Avatar src={selectedMember.profile_photo_url} name={selectedMember.full_name} size="lg" />
                                     <div className="flex-1">
-                                        <div className="flex items-center justify-between gap-4 bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
-                                            <div>
-                                                <h2 className="text-xl font-bold text-gray-900">{selectedMember.full_name}</h2>
-                                                <div className="flex items-center gap-2 text-xs text-gray-500">
-                                                    <span className="font-mono">{selectedMember.cnic}</span>
-                                                    <span>•</span>
-                                                    <span>{selectedMember.email}</span>
-                                                </div>
-                                            </div>
-                                            <div className={`px-3 py-1.5 rounded-lg text-xs font-bold
-                                                ${(selectedMember.membership_status || 'pending') === 'active' ? 'bg-green-100 text-green-700' : ''}
-                                                ${(selectedMember.membership_status || 'pending') === 'pending' ? 'bg-amber-100 text-amber-700' : ''}
-                                                ${(selectedMember.membership_status || 'pending') === 'blocked' ? 'bg-red-100 text-red-700' : ''}
-                                            `}>
-                                                {(selectedMember.membership_status || 'PENDING').toUpperCase()}
-                                            </div>
+                                        <h3 className="text-lg font-semibold text-gray-900">{selectedMember.full_name}</h3>
+                                        <p className="text-sm text-gray-600 font-mono">{selectedMember.cnic}</p>
+                                        <div className="flex gap-2 mt-2">
+                                            <StatusBadge status={selectedMember.membership_status || 'pending'} />
+                                            <span className="px-2 py-0.5 bg-white text-gray-600 text-xs font-medium rounded border">
+                                                {selectedMember.role || 'member'}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Quick Actions - More Compact */}
-                                <div className="flex items-center gap-2 mb-6 p-1 bg-gray-50 rounded-lg">
-                                    {(selectedMember.membership_status === 'pending' || !selectedMember.membership_status) ? (
-                                        <>
-                                            <button onClick={() => handleAction(selectedMember.id, 'approve')} className="flex-1 bg-primary-900 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-primary-800 transition-colors flex items-center justify-center gap-2">
-                                                <Check className="w-4 h-4" /> Approve
-                                            </button>
-                                            <button onClick={() => handleAction(selectedMember.id, 'reject')} className="flex-1 text-red-600 bg-white border border-red-200 px-4 py-2.5 text-sm font-bold hover:bg-red-50 rounded-lg transition-colors flex items-center justify-center gap-2">
-                                                <X className="w-4 h-4" /> Reject
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <button onClick={() => handleAction(selectedMember.id, 'renew')} className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 px-4 py-2.5 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
-                                                <RefreshCw className="w-4 h-4" />
-                                                {(selectedMember.membership_status === 'expired' || selectedMember.membership_status === 'revoked') ? 'Reactivate' : 'Extend'}
-                                            </button>
-                                            <button onClick={() => handleAction(selectedMember.id, 'revoke')} className="flex-1 text-red-600 bg-white border border-red-200 hover:bg-red-50 px-4 py-2.5 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
-                                                <Ban className="w-4 h-4" /> Revoke
-                                            </button>
-                                        </>
+                                {/* Subscription Card */}
+                                {selectedMember.subscription_end_date && (
+                                    <div className={`p-4 rounded-xl border ${isPast(new Date(selectedMember.subscription_end_date)) ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'}`}>
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Subscription</p>
+                                                <p className={`text-lg font-bold ${isPast(new Date(selectedMember.subscription_end_date)) ? 'text-red-700' : 'text-emerald-700'}`}>
+                                                    {isPast(new Date(selectedMember.subscription_end_date)) ? 'Expired' : 'Active'}
+                                                </p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-sm font-medium text-gray-900">
+                                                    {format(new Date(selectedMember.subscription_end_date), 'MMM d, yyyy')}
+                                                </p>
+                                                <p className="text-xs text-gray-500">
+                                                    {isPast(new Date(selectedMember.subscription_end_date))
+                                                        ? `Expired ${formatDistanceToNow(new Date(selectedMember.subscription_end_date))} ago`
+                                                        : `${formatDistanceToNow(new Date(selectedMember.subscription_end_date))} remaining`
+                                                    }
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Personal Details */}
+                                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Personal Information</h4>
+                                    <div className="space-y-0.5">
+                                        <InfoRow label="Father's Name" value={selectedMember.father_name} />
+                                        <InfoRow label="Date of Birth" value={selectedMember.date_of_birth ? format(new Date(selectedMember.date_of_birth), 'MMM d, yyyy') : undefined} />
+                                        <InfoRow label="Gender" value={selectedMember.gender} />
+                                        <InfoRow label="Blood Group" value={selectedMember.blood_group} />
+                                    </div>
+                                </div>
+
+                                {/* Contact Details */}
+                                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Contact Information</h4>
+                                    <div className="space-y-0.5">
+                                        <InfoRow label="Email" value={selectedMember.email} />
+                                        <InfoRow label="Phone" value={selectedMember.contact_number} />
+                                        <InfoRow label="City" value={selectedMember.city} />
+                                        <InfoRow label="Province" value={selectedMember.province} />
+                                        <InfoRow label="Address" value={selectedMember.residential_address} />
+                                    </div>
+                                </div>
+
+                                {/* Professional Details */}
+                                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Professional & Education</h4>
+                                    <div className="space-y-0.5">
+                                        <InfoRow label="Qualification" value={selectedMember.qualification} />
+                                        <InfoRow label="Institution" value={selectedMember.institution || selectedMember.college_attended} />
+                                        <InfoRow label="Designation" value={selectedMember.designation} />
+                                        <InfoRow label="Employment Status" value={selectedMember.employment_status} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right: Documents */}
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                                        <FileText className="w-4 h-4 text-gray-400" />
+                                        Uploaded Documents
+                                    </h4>
+                                    {loadingDocs && (
+                                        <div className="w-4 h-4 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
                                     )}
                                 </div>
 
-                                {/* Two Column Grid - More Compact */}
-                                <div className="space-y-4">
-                                    {/* Personal Info Card */}
-                                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                        <h3 className="text-gray-900 font-bold mb-3 flex items-center gap-2 text-sm">
-                                            <UserPlus className="w-4 h-4 text-primary" /> Personal Information
-                                        </h3>
-                                        <div className="grid sm:grid-cols-3 gap-4 text-sm">
-                                            <div>
-                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Full Name</label>
-                                                <p className="text-gray-900 font-medium text-lg">{selectedMember.full_name}</p>
-                                                {selectedMember.father_name && <p className="text-gray-500 text-xs mt-0.5">S/O {selectedMember.father_name}</p>}
-                                            </div>
-                                            <div>
-                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">CNIC</label>
-                                                <p className="text-gray-900 font-medium font-mono tracking-tight bg-gray-50 inline-block px-2 py-1 rounded border border-gray-100">{selectedMember.cnic}</p>
-                                            </div>
-                                            <div>
-                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Date of Birth</label>
-                                                <p className="text-gray-900 font-medium">{selectedMember.date_of_birth ? format(new Date(selectedMember.date_of_birth), 'MMM d, yyyy') : 'N/A'}</p>
-                                            </div>
-                                            <div>
-                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Gender / Blood Group</label>
-                                                <p className="text-gray-900 font-medium">{selectedMember.gender || '-'} / {selectedMember.blood_group || '-'}</p>
-                                            </div>
-                                            <div className="sm:col-span-2">
-                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Contact Details</label>
-                                                <div className="grid sm:grid-cols-2 gap-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                                    <div>
-                                                        <span className="text-xs text-gray-500 block">Email</span>
-                                                        <span className="font-medium text-gray-900 break-all">{selectedMember.email}</span>
-                                                    </div>
-                                                    <div>
-                                                        <span className="text-xs text-gray-500 block">Phone</span>
-                                                        <span className="font-medium text-gray-900">{selectedMember.contact_number}</span>
-                                                    </div>
-                                                    <div className="sm:col-span-2">
-                                                        <span className="text-xs text-gray-500 block">Address</span>
-                                                        <span className="font-medium text-gray-900">{selectedMember.residential_address}, {selectedMember.city}, {selectedMember.province}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                {!loadingDocs && (
+                                    <DocumentGrid
+                                        documents={memberDocuments}
+                                        onVerify={handleVerifyDocument}
+                                        highlightType="transaction_slip"
+                                    />
+                                )}
 
-                                    {/* Professional Info Card */}
-                                    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                        <h3 className="text-gray-900 font-bold mb-4 flex items-center gap-2 border-b pb-2">
-                                            <FileText className="w-5 h-5 text-primary" /> Professional & Academic
-                                        </h3>
-                                        <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                                            <div>
-                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Education</label>
-                                                <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100">
-                                                    <p className="font-bold text-gray-900">{selectedMember.qualification}</p>
-                                                    {selectedMember.other_qualification && <p className="text-xs text-gray-600">({selectedMember.other_qualification})</p>}
-                                                    <p className="text-xs text-gray-500 mt-1">{selectedMember.college_attended || selectedMember.institution}</p>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Post Graduate</label>
-                                                {selectedMember.post_graduate_institution || selectedMember.has_relevant_pg || selectedMember.has_non_relevant_pg ? (
-                                                    <div className="bg-purple-50/50 p-3 rounded-lg border border-purple-100">
-                                                        <p className="font-bold text-gray-900">{selectedMember.post_graduate_institution || 'PG Degree Holder'}</p>
-                                                        <div className="flex gap-2 mt-1">
-                                                            {selectedMember.has_relevant_pg && <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Relevant</span>}
-                                                            {selectedMember.has_non_relevant_pg && <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">Other</span>}
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <p className="text-gray-400 text-sm italic">None</p>
-                                                )}
-                                            </div>
-                                            <div className="sm:col-span-2 mt-2">
-                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Employment</label>
-                                                <div className="flex items-center gap-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                                    <div>
-                                                        <span className="text-xs text-gray-500 block">Status</span>
-                                                        <span className="font-bold text-gray-900">{selectedMember.employment_status || 'N/A'}</span>
-                                                    </div>
-                                                    <div className="w-px h-8 bg-gray-200"></div>
-                                                    <div>
-                                                        <span className="text-xs text-gray-500 block">Current Role</span>
-                                                        <span className="font-medium text-gray-900">{selectedMember.designation ? `${selectedMember.designation} at ` : ''} {selectedMember.current_status || 'N/A'}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Documents Card */}
-                                    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                        <h3 className="text-gray-900 font-bold mb-4 flex items-center gap-2 border-b pb-2">
-                                            <Shield className="w-5 h-5 text-primary" /> Verification Documents
-                                        </h3>
-                                        <AdminDocumentViewer userId={selectedMember.id} />
-                                    </div>
-                                </div>
-
-                                {/* Right Meta Column */}
-                                <div className="space-y-6">
-                                    {selectedMember.subscription_end_date && (
-                                        <div className="bg-gradient-to-br from-primary-900 to-primary-800 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
-                                            <div className="relative z-10">
-                                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                                                    <Shield className="w-5 h-5 text-accent-400" /> Subscription
-                                                </h3>
-                                                <div className="space-y-4">
-                                                    <div>
-                                                        <p className="text-primary-200 text-xs font-bold uppercase">Expires On</p>
-                                                        <p className="text-2xl font-bold">{format(new Date(selectedMember.subscription_end_date), 'MMM d, yyyy')}</p>
-                                                    </div>
-                                                    <div className="pt-4 border-t border-white/10">
-                                                        <p className="text-primary-200 text-xs font-bold uppercase">Started</p>
-                                                        <p className="text-sm opacity-80">{format(new Date(selectedMember.subscription_start_date!), 'MMM d, yyyy')}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {/* Circles */}
-                                            <div className="absolute right-0 bottom-0 w-32 h-32 bg-white/10 rounded-full blur-2xl translate-y-1/2 translate-x-1/2"></div>
-                                        </div>
-                                    )}
-
-                                    <div className="bg-gray-100 rounded-2xl p-6 border border-gray-200/50">
-                                        <h4 className="font-bold text-gray-500 text-xs uppercase tracking-wider mb-3">System Metadata</h4>
-                                        <ul className="space-y-3 text-sm">
-                                            <li className="flex justify-between">
-                                                <span className="text-gray-500">Joined</span>
-                                                <span className="font-medium text-gray-900">{format(new Date(selectedMember.created_at), 'MMM d, yyyy')}</span>
-                                            </li>
-                                            <li className="flex justify-between">
-                                                <span className="text-gray-500">ID</span>
-                                                <span className="font-mono text-xs text-gray-400 truncate max-w-[100px]">{selectedMember.id}</span>
-                                            </li>
-                                        </ul>
+                                {/* System Meta */}
+                                <div className="bg-gray-50 rounded-xl p-4 mt-4">
+                                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                                        System Information
+                                    </h4>
+                                    <div className="space-y-0.5 text-sm">
+                                        <InfoRow label="Member Since" value={format(new Date(selectedMember.created_at), 'MMMM d, yyyy')} />
+                                        <InfoRow label="Member ID" value={selectedMember.id.slice(0, 8) + '...'} mono />
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </Modal>
         </div>
     );
 }
