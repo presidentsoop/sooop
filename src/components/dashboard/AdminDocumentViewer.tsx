@@ -2,21 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { FileText, Check, Eye, Download, ExternalLink } from "lucide-react";
+import { FileText } from "lucide-react";
 import { toast } from "sonner";
-import { DocumentGrid } from "@/components/ui/ImageViewer";
-
-interface DocumentRecord {
-    id: string;
-    document_type: string;
-    file_url: string;
-    verified: boolean;
-    created_at: string;
-    signedUrl?: string;
-}
+import { DocumentGrid, DocumentItem } from "@/components/ui/ImageViewer";
 
 export default function AdminDocumentViewer({ userId }: { userId: string }) {
-    const [documents, setDocuments] = useState<DocumentRecord[]>([]);
+    const [documents, setDocuments] = useState<DocumentItem[]>([]);
     const [loading, setLoading] = useState(true);
     const supabase = createClient();
 
@@ -33,20 +24,24 @@ export default function AdminDocumentViewer({ userId }: { userId: string }) {
             .order('document_type');
 
         if (data) {
-            const signedDocs = await Promise.all(data.map(async (doc) => {
+            const signedDocs: DocumentItem[] = await Promise.all(data.map(async (doc) => {
                 let url = doc.file_url;
                 if (doc.document_type !== 'profile_photo' && !url.startsWith('http')) {
                     const { data: signed } = await supabase.storage.from('documents').createSignedUrl(doc.file_url, 3600);
                     if (signed?.signedUrl) url = signed.signedUrl;
                 }
-                return { ...doc, signedUrl: url };
+                return {
+                    ...doc,
+                    signedUrl: url,
+                    verified: doc.verified
+                };
             }));
             setDocuments(signedDocs);
         }
         setLoading(false);
     };
 
-    const toggleVerify = async (doc: DocumentRecord) => {
+    const toggleVerify = async (doc: DocumentItem) => {
         const newStatus = !doc.verified;
         const { error } = await supabase
             .from('documents')

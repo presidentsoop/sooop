@@ -129,7 +129,7 @@ export function ImageViewer({
 // DOCUMENT THUMBNAIL GRID
 // =====================================================
 
-interface DocumentItem {
+export interface DocumentItem {
     id: string;
     document_type: string;
     file_url: string;
