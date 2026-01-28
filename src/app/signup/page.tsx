@@ -679,24 +679,24 @@ export default function SignupPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex justify-between pt-6">
-                                        <button type="button" onClick={prevStep} className="btn-secondary-action">Back</button>
+                                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-8 border-t border-gray-100">
+                                        <button type="button" onClick={prevStep} className="w-full sm:w-auto order-2 sm:order-1 bg-white hover:bg-gray-50 text-gray-700 font-bold py-4 px-10 rounded-2xl border border-gray-200 transition-all hover:border-gray-300 hover:shadow-sm active:scale-[0.98]">
+                                            Back
+                                        </button>
                                         <button
                                             type="submit"
                                             disabled={isLoading}
-                                            className="group relative overflow-hidden btn-primary-action flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed w-full md:w-auto bg-gradient-to-r from-primary to-blue-600 hover:from-primary-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50"
+                                            className="w-full sm:w-auto order-1 sm:order-2 bg-primary-900 hover:bg-primary-800 text-white font-bold py-4 px-12 rounded-2xl transition-all shadow-xl shadow-primary-900/25 hover:shadow-primary-900/40 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-3"
                                         >
-                                            <span className="absolute inset-0 w-full h-full bg-white/20 -translate-x-full group-hover:translate-x-0 transition-transform duration-500 ease-out skew-x-12"></span>
-
                                             {isLoading ? (
                                                 <>
                                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                    <span className="font-medium">Processing Application...</span>
+                                                    <span>Processing Application...</span>
                                                 </>
                                             ) : (
                                                 <>
-                                                    <CheckCircle className="w-5 h-5 relative z-10" />
-                                                    <span className="relative z-10 font-bold tracking-wide">Complete Registration</span>
+                                                    <CheckCircle className="w-5 h-5" />
+                                                    <span>Complete Registration</span>
                                                 </>
                                             )}
                                         </button>
@@ -711,10 +711,10 @@ export default function SignupPage() {
             {/* Custom Styles for Inputs */}
             <style jsx global>{`
                 .btn-primary-action {
-                    @apply bg-primary hover:bg-primary-600 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg shadow-primary/25 hover:shadow-primary/40 active:scale-95;
+                    @apply bg-primary-900 hover:bg-primary-800 text-white font-bold py-4 px-10 rounded-2xl transition-all shadow-xl shadow-primary-900/20 hover:shadow-primary-900/35 hover:-translate-y-0.5 active:translate-y-0;
                 }
                 .btn-secondary-action {
-                    @apply bg-white hover:bg-gray-50 text-gray-700 font-bold py-3 px-8 rounded-xl border border-gray-200 transition-all hover:border-gray-300 active:scale-95;
+                    @apply bg-white hover:bg-gray-50 text-gray-700 font-bold py-4 px-10 rounded-2xl border border-gray-200 transition-all hover:border-gray-300 hover:shadow-sm active:scale-[0.98];
                 }
             `}</style>
         </>
