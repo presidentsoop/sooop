@@ -40,9 +40,6 @@ type Member = {
     blood_group?: string;
     city?: string;
     province?: string;
-    blood_group?: string;
-    city?: string;
-    province?: string;
     residential_address?: string;
     qualification?: string;
     registration_number?: string;
