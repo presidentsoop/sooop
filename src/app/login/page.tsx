@@ -7,12 +7,15 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Mail, ArrowRight, CheckCircle } from 'lucide-react';
+import { Loader2, Mail, ArrowRight, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 
 function LoginForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [emailNotConfirmed, setEmailNotConfirmed] = useState(false);
+    const [resendingEmail, setResendingEmail] = useState(false);
+    const [emailSent, setEmailSent] = useState(false);
 
     // We can use searchParams to show success message
     const searchParams = useSearchParams();
@@ -24,6 +27,7 @@ function LoginForm() {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
+        setEmailNotConfirmed(false);
 
         try {
             const { error } = await supabase.auth.signInWithPassword({
@@ -32,7 +36,14 @@ function LoginForm() {
             });
 
             if (error) {
-                toast.error(error.message);
+                // Check if the error is about email not being confirmed
+                if (error.message.toLowerCase().includes('email not confirmed') ||
+                    error.message.toLowerCase().includes('email_not_confirmed')) {
+                    setEmailNotConfirmed(true);
+                    toast.error('Please verify your email before logging in');
+                } else {
+                    toast.error(error.message);
+                }
             } else {
                 toast.success('Signed in successfully!');
                 router.refresh();
@@ -46,6 +57,36 @@ function LoginForm() {
         }
     };
 
+    const handleResendVerification = async () => {
+        if (!email) {
+            toast.error('Please enter your email address');
+            return;
+        }
+
+        setResendingEmail(true);
+        try {
+            const { error } = await supabase.auth.resend({
+                type: 'signup',
+                email: email,
+                options: {
+                    emailRedirectTo: `${window.location.origin}/auth/callback`
+                }
+            });
+
+            if (error) {
+                toast.error(error.message);
+            } else {
+                setEmailSent(true);
+                toast.success('Verification email sent! Please check your inbox.');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to resend verification email');
+        } finally {
+            setResendingEmail(false);
+        }
+    };
+
     return (
         <div className="w-full max-w-md animate-fade-in">
 
@@ -55,6 +96,55 @@ function LoginForm() {
                     <div>
                         <p className="font-bold">Registration Successful!</p>
                         <p className="text-sm">Please check your email to confirm your account before logging in.</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Email Not Confirmed Warning */}
+            {emailNotConfirmed && !emailSent && (
+                <div className="bg-amber-50 text-amber-800 border border-amber-200 mb-6 p-4 rounded-xl">
+                    <div className="flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 mt-0.5 text-amber-600 flex-shrink-0" />
+                        <div className="flex-1">
+                            <p className="font-bold">Email Not Verified</p>
+                            <p className="text-sm mt-1">
+                                Your email address has not been verified yet. Please check your inbox for the verification link,
+                                or click below to resend it.
+                            </p>
+                            <button
+                                onClick={handleResendVerification}
+                                disabled={resendingEmail}
+                                className="mt-3 flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+                            >
+                                {resendingEmail ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Sending...
+                                    </>
+                                ) : (
+                                    <>
+                                        <RefreshCw className="w-4 h-4" />
+                                        Resend Verification Email
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Email Sent Success */}
+            {emailSent && (
+                <div className="bg-emerald-50 text-emerald-800 border border-emerald-200 mb-6 p-4 rounded-xl">
+                    <div className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 mt-0.5 text-emerald-600 flex-shrink-0" />
+                        <div>
+                            <p className="font-bold">Verification Email Sent!</p>
+                            <p className="text-sm mt-1">
+                                We've sent a new verification link to <strong>{email}</strong>.
+                                Please check your inbox (and spam folder) and click the link to verify your account.
+                            </p>
+                        </div>
                     </div>
                 </div>
             )}
@@ -73,7 +163,7 @@ function LoginForm() {
                             <input
                                 type="email"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                onChange={(e) => { setEmail(e.target.value); setEmailNotConfirmed(false); setEmailSent(false); }}
                                 className="input pl-10"
                                 placeholder="your@email.com"
                                 required
@@ -146,3 +236,4 @@ export default function LoginPage() {
         </>
     );
 }
+
