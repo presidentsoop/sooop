@@ -92,32 +92,47 @@ export default function UserImporter() {
                 </div>
 
                 {result && (
-                    <div className="mt-6 border-t pt-6 animate-fade-in">
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                            <div className="bg-green-50 p-4 rounded-lg border border-green-100 text-center">
-                                <p className="text-3xl font-bold text-green-600">{result.success}</p>
-                                <p className="text-xs font-bold text-green-800 uppercase">Success</p>
+                    <div className="mt-8 pt-6 border-t border-gray-100 animate-fade-in-up">
+                        <h3 className="text-sm font-bold text-gray-900 mb-4">Import Summary</h3>
+
+                        <div className="grid grid-cols-3 gap-4 mb-6">
+                            <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 text-center">
+                                <p className="text-2xl font-black text-emerald-600 mb-1">{result.success}</p>
+                                <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Imported</p>
                             </div>
-                            <div className="bg-red-50 p-4 rounded-lg border border-red-100 text-center">
-                                <p className="text-3xl font-bold text-red-600">{result.failed}</p>
-                                <p className="text-xs font-bold text-red-800 uppercase">Failed</p>
+                            <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 text-center">
+                                <p className="text-2xl font-black text-amber-600 mb-1">{result.skipped}</p>
+                                <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Skipped</p>
+                            </div>
+                            <div className={`p-4 rounded-xl border text-center ${result.failed > 0 ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
+                                <p className={`text-2xl font-black mb-1 ${result.failed > 0 ? 'text-red-600' : 'text-gray-400'}`}>{result.failed}</p>
+                                <p className={`text-[10px] font-bold uppercase tracking-wider ${result.failed > 0 ? 'text-red-800' : 'text-gray-400'}`}>Failed</p>
                             </div>
                         </div>
 
                         {result.errors.length > 0 && (
-                            <div className="bg-gray-50 rounded-lg p-4 max-h-48 overflow-y-auto custom-scrollbar border border-gray-200">
-                                <h4 className="font-bold text-gray-700 mb-2 flex items-center gap-2">
-                                    <AlertCircle className="w-4 h-4 text-red-500" /> Error Log
-                                </h4>
-                                <ul className="space-y-1">
+                            <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+                                <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 flex items-center justify-between">
+                                    <h4 className="font-bold text-gray-700 text-xs uppercase tracking-wider flex items-center gap-2">
+                                        <AlertCircle className="w-4 h-4 text-red-500" />
+                                        Error Log ({result.errors.length})
+                                    </h4>
+                                </div>
+                                <div className="max-h-48 overflow-y-auto custom-scrollbar p-0">
                                     {result.errors.map((err: string, i: number) => (
-                                        <li key={i} className="text-xs text-red-600 font-mono border-b last:border-0 border-gray-100 py-1">
+                                        <div key={i} className="px-4 py-2 text-xs font-mono text-red-600 border-b border-gray-100 last:border-0 hover:bg-red-50/50">
                                             {err}
-                                        </li>
+                                        </div>
                                     ))}
-                                </ul>
+                                </div>
                             </div>
                         )}
+
+                        <div className="mt-4 text-center">
+                            <p className="text-xs text-gray-400">
+                                Total Rows Processed: <span className="font-medium text-gray-600">{result.total}</span>
+                            </p>
+                        </div>
                     </div>
                 )}
             </div>

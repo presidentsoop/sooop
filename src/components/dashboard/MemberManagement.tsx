@@ -40,8 +40,12 @@ type Member = {
     blood_group?: string;
     city?: string;
     province?: string;
+    blood_group?: string;
+    city?: string;
+    province?: string;
     residential_address?: string;
     qualification?: string;
+    registration_number?: string;
     institution?: string;
     designation?: string;
     employment_status?: string;
@@ -57,6 +61,9 @@ export default function MemberManagement() {
     const [memberDocuments, setMemberDocuments] = useState<any[]>([]);
     const [loadingDocs, setLoadingDocs] = useState(false);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [approveModalOpen, setApproveModalOpen] = useState(false);
+    const [registrationInput, setRegistrationInput] = useState("");
+    const [memberToApprove, setMemberToApprove] = useState<Member | null>(null);
 
     const supabase = createClient();
 
@@ -113,7 +120,7 @@ export default function MemberManagement() {
         setLoadingDocs(false);
     };
 
-    const handleAction = async (id: string, action: 'approve' | 'block' | 'reject' | 'revoke' | 'renew') => {
+    const handleAction = async (id: string, action: 'approve' | 'block' | 'reject' | 'revoke' | 'renew', registrationNumber?: string) => {
         setActionLoading(id);
         const member = members.find(m => m.id === id);
         if (!member) return;
@@ -127,6 +134,7 @@ export default function MemberManagement() {
             updateData.membership_status = 'active';
             updateData.subscription_start_date = startDate.toISOString();
             updateData.subscription_end_date = endDate.toISOString();
+            if (registrationNumber) updateData.registration_number = registrationNumber;
             successMessage = 'Member approved & activated for 1 year';
         } else if (action === 'renew') {
             const baseDate = (member.subscription_end_date && !isPast(new Date(member.subscription_end_date)))
@@ -220,6 +228,23 @@ export default function MemberManagement() {
         }
     };
 
+    const openApproveModal = (member: Member) => {
+        setMemberToApprove(member);
+        setRegistrationInput("");
+        setApproveModalOpen(true);
+    };
+
+    const confirmApproval = async () => {
+        if (!memberToApprove) return;
+        if (!registrationInput.trim()) {
+            toast.error("Please enter a registration number");
+            return;
+        }
+        await handleAction(memberToApprove.id, 'approve', registrationInput);
+        setApproveModalOpen(false);
+        setMemberToApprove(null);
+    };
+
     // Get tab counts
     const tabCounts = {
         all: members.length,
@@ -241,6 +266,11 @@ export default function MemberManagement() {
                     <div>
                         <p className="font-medium text-gray-900">{row.full_name}</p>
                         <p className="text-xs text-gray-500 font-mono">{row.cnic}</p>
+                        {row.registration_number && (
+                            <p className="text-[10px] text-blue-600 font-bold bg-blue-50 px-1 rounded w-fit mt-0.5">
+                                #{row.registration_number}
+                            </p>
+                        )}
                     </div>
                 </div>
             )
@@ -370,7 +400,7 @@ export default function MemberManagement() {
                         {row.membership_status === 'pending' ? (
                             <>
                                 <button
-                                    onClick={() => handleAction(row.id, 'approve')}
+                                    onClick={() => openApproveModal(row)}
                                     className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                                     title="Approve"
                                 >
@@ -415,6 +445,57 @@ export default function MemberManagement() {
                 onSuccess={() => { setShowAddModal(false); fetchMembers(); }}
             />
 
+            {/* Approve Member Modal */}
+            <Modal
+                isOpen={approveModalOpen}
+                onClose={() => setApproveModalOpen(false)}
+                title="Approve Membership"
+                subtitle="Assign a permanent registration number to this member"
+                size="md"
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={() => setApproveModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="success"
+                            onClick={confirmApproval}
+                            loading={!!(memberToApprove && actionLoading === memberToApprove.id)}
+                            icon={<Check className="w-4 h-4" />}
+                        >
+                            Confirm Approval
+                        </Button>
+                    </>
+                }
+            >
+                <div className="p-6 space-y-4">
+                    <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-lg">
+                        <p className="text-sm text-emerald-800 font-medium">
+                            You are about to approve <strong>{memberToApprove?.full_name}</strong>.
+                        </p>
+                        <p className="text-xs text-emerald-600 mt-1">
+                            This will activate their membership for 1 year.
+                        </p>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            Registration Number <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            value={registrationInput}
+                            onChange={(e) => setRegistrationInput(e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-mono placeholder:text-gray-400"
+                            placeholder="e.g. SOOOP-MEM-2024-001"
+                            autoFocus
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            A unique identifier for this member.
+                        </p>
+                    </div>
+                </div>
+            </Modal>
+
             {/* Member Detail Modal */}
             <Modal
                 isOpen={!!selectedMember}
@@ -440,7 +521,7 @@ export default function MemberManagement() {
                                     </Button>
                                     <Button
                                         variant="success"
-                                        onClick={() => handleAction(selectedMember.id, 'approve')}
+                                        onClick={() => selectedMember && openApproveModal(selectedMember)}
                                         loading={actionLoading === selectedMember.id}
                                         icon={<Check className="w-4 h-4" />}
                                     >

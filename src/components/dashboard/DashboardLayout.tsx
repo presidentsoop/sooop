@@ -44,13 +44,18 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
     }, [userRole]);
 
     const handleSignOut = async () => {
+        toast.info("Signing out...", { duration: 1000 });
         try {
-            await signOutAction();
-            toast.success("Signed out successfully");
-            window.location.href = "/login";
+            // Race condition: Server action OR 1s timeout
+            await Promise.race([
+                signOutAction(),
+                new Promise(resolve => setTimeout(resolve, 1000))
+            ]);
         } catch (error) {
-            console.error(error);
-            toast.error("Error signing out");
+            console.error("Logout error:", error);
+        } finally {
+            // Force hard reload to clear all client state
+            window.location.href = "/login";
         }
     };
 
@@ -174,7 +179,7 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
                         {/* Logout Button Absolute */}
                         <button
                             onClick={handleSignOut}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-lg transition-all duration-200 z-50"
                             title="Sign Out"
                         >
                             <LogOut className="w-4 h-4" />

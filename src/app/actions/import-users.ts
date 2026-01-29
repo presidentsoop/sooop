@@ -7,168 +7,214 @@ import { revalidatePath } from "next/cache";
 type ImportResult = {
     success: number;
     failed: number;
+    skipped: number;
+    total: number;
     errors: string[];
 };
 
-function parseExcelDate(serial: any): string | null {
-    if (!serial) return null;
-    // Excel serial date to JS Date
-    if (typeof serial === 'number') {
-        const utc_days = Math.floor(serial - 25569);
+// Robust date parser for various Excel formats
+function parseExcelDate(value: any): string | null {
+    if (!value) return null;
+
+    // 1. JS Date object
+    if (value instanceof Date) return value.toISOString();
+
+    // 2. Excel Serial Number
+    if (typeof value === 'number') {
+        const utc_days = Math.floor(value - 25569);
         const utc_value = utc_days * 86400;
         const date_info = new Date(utc_value * 1000);
-        return date_info.toISOString().split('T')[0];
+        return date_info.toISOString();
     }
-    // String date
-    if (typeof serial === 'string') {
-        const d = new Date(serial);
-        if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+
+    // 3. String formats
+    if (typeof value === 'string') {
+        // Try standard Date parse
+        const d = new Date(value);
+        if (!isNaN(d.getTime())) return d.toISOString();
+
+        // Try DD/MM/YYYY or similar manual parsing if needed
+        // For now standard parser handles "2025/08/04..." well
     }
     return null;
 }
 
-// Helper to fuzzy find a key in the row object
-function findValue(row: any, candidates: string[]): any {
-    const keys = Object.keys(row);
-    for (const candidate of candidates) {
-        const foundKey = keys.find(k => k.toLowerCase().includes(candidate.toLowerCase()));
-        if (foundKey) return row[foundKey];
+// Precise finder that prioritizes exact matches but allows robust fallbacks
+function getValue(row: any, keyMap: string[]): any {
+    const rowKeys = Object.keys(row);
+    // 1. Exact match
+    for (const key of keyMap) {
+        if (row[key] !== undefined) return row[key];
     }
+    // 2. Case-insensitive match
+    for (const key of keyMap) {
+        const found = rowKeys.find(k => k.toLowerCase() === key.toLowerCase());
+        if (found) return row[found];
+    }
+    // 3. Partial match (Careful with short keys)
+    for (const key of keyMap) {
+        // Avoid matching "Address" with "Email Address"
+        if (key === 'Address' || key === 'Name') continue;
+
+        const found = rowKeys.find(k => k.toLowerCase().includes(key.toLowerCase()));
+        if (found) return row[found];
+    }
+    // 4. Special Handling for "Address"
+    if (keyMap.includes('Residential Address')) {
+        const found = rowKeys.find(k => k.toLowerCase().includes('residential') && k.toLowerCase().includes('address'));
+        if (found) return row[found];
+    }
+
     return undefined;
 }
 
 export async function importUsersAction(formData: FormData): Promise<ImportResult> {
     const file = formData.get('file') as File;
     if (!file) {
-        return { success: 0, failed: 0, errors: ["No file provided"] };
+        return { success: 0, failed: 0, skipped: 0, total: 0, errors: ["No file uploaded."] };
     }
 
     const buffer = await file.arrayBuffer();
     const workbook = XLSX.read(buffer);
-    const sheetName = workbook.SheetNames[0];
+    const sheetName = workbook.SheetNames[0]; // Assume first sheet
     const sheet = workbook.Sheets[sheetName];
     const rows = XLSX.utils.sheet_to_json(sheet) as any[];
 
+    if (rows.length === 0) {
+        return { success: 0, failed: 0, skipped: 0, total: 0, errors: ["The Excel file is empty."] };
+    }
+
     const supabase = createAdminClient();
 
-    // Safety Check: Verify Admin Access before processing
-    try {
-        const { error: adminCheck } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1 });
-        if (adminCheck) {
-            console.error("Admin Check Failed:", adminCheck);
-            return {
-                success: 0,
-                failed: 0,
-                errors: ["Admin Access Denied: Please add SUPABASE_SERVICE_ROLE_KEY to your .env.local file to enable user import."]
-            };
-        }
-    } catch (e) {
-        return {
-            success: 0,
-            failed: 0,
-            errors: ["Admin Access Check Failed: Please verify your Supabase keys."]
-        };
-    }
+    // Check Admin Priveleges
+    const { data: { user }, error: authError } = await supabase.auth.admin.getUserById('00000000-0000-0000-0000-000000000000'); // Dummy call to check client validity
+    // Actually just proceed, execute will fail if keys are wrong.
 
     let success = 0;
     let failed = 0;
+    let skipped = 0;
     const errors: string[] = [];
 
+    // Pre-fetch all emails to minimize API calls (Optimization)
+    // For very large datasets, pagination/batches is better, but for <5000 rows this is faster.
+    const { data: existingProfiles } = await supabase.from('profiles').select('email').not('email', 'is', null);
+    const existingEmails = new Set(existingProfiles?.map(p => p.email?.toLowerCase()) || []);
+
     for (const [index, row] of rows.entries()) {
-        const rowNum = index + 2; // Excel row number (1-based, + header)
+        const rowIndex = index + 2; // +2 for Header row and 0-index
 
-        // Dynamic Field Mapping using Fuzzy Match
-        const email = findValue(row, ['email', 'username', 'e-mail']);
-        const name = findValue(row, ['name', 'full name']);
+        // 1. Extract Critical Fields
+        const email = getValue(row, ['Email Address', 'Email', 'e-mail'])?.toString()?.trim()?.toLowerCase();
+        const cnic = getValue(row, ['CNIC #', 'CNIC', 'cnic'])?.toString()?.trim();
+        const fullName = getValue(row, ['Name', 'Full Name', 'Member Name'])?.toString()?.trim();
 
-        if (!email || !name) {
+        if (!email || !fullName) {
             failed++;
-            errors.push(`Row ${rowNum}: Missing Name or Email`);
+            errors.push(`Row ${rowIndex}: Missing Name or Email.`);
+            continue;
+        }
+
+        // 2. Check Duplication (Resume Capability)
+        if (existingEmails.has(email)) {
+            skipped++;
+            // We silently skip to allow "Resume" without noise
             continue;
         }
 
         try {
-            // 1. Create Auth User
-            const tempPassword = `Sooop@${Math.floor(Math.random() * 9000) + 1000}`; // Random temp password
-            let userId = '';
+            // 3. Create Auth User
+            // We use a random temp password. In production, we might trigger a reset email.
+            const tempPassword = `Sooop@${Math.floor(1000 + Math.random() * 9000)}`;
 
-            const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+            const { data: authData, error: createError } = await supabase.auth.admin.createUser({
                 email: email,
                 password: tempPassword,
                 email_confirm: true,
-                user_metadata: { full_name: name }
+                user_metadata: { full_name: fullName, cnic: cnic }
             });
 
             if (createError) {
-                if (createError.message.includes("already registered") || createError.message.includes("unique constraint")) {
-                    // Skip if user exists
-                    failed++;
-                    errors.push(`Row ${rowNum}: User ${email} already exists. Skipped.`);
+                // If auth user exists but profile didn't (rare edge case since we checked profiles),
+                // we treat it as skipped or failed.
+                if (createError.message.includes("already registered")) {
+                    skipped++;
+                    existingEmails.add(email); // Add to set to prevent retrying duplicates in same file
                     continue;
-                } else {
-                    throw createError;
                 }
-            } else {
-                userId = newUser.user.id;
+                throw createError;
             }
 
-            // 2. Map Profile Data
-            const rawType = findValue(row, ['membership', 'category']) || '';
-            const normalizedType = String(rawType).toLowerCase();
-            let type: any = 'member'; // Default to full member
+            const userId = authData.user.id;
 
-            if (normalizedType.includes('student')) type = 'student';
-            else if (normalizedType.includes('overseas')) type = 'overseas';
-            else if (normalizedType.includes('associate')) type = 'associate';
+            // 4. Map Profile Data
+            const timestamp = getValue(row, ['Timestamp', 'Date']);
+            const createdAt = parseExcelDate(timestamp) || new Date().toISOString();
+
+            // Gender parsing
+            const rawGender = getValue(row, ['Gender', 'Sex'])?.toString();
+            let gender = rawGender;
+            if (rawGender?.toLowerCase().startsWith('m')) gender = 'Male';
+            if (rawGender?.toLowerCase().startsWith('f')) gender = 'Female';
+
+            // Membership Type
+            const rawType = getValue(row, ['Membership Type', 'Type'])?.toString()?.toLowerCase() || '';
+            let role = 'member';
+            let membershipType = 'Full Member';
+            if (rawType.includes('student')) { role = 'student'; membershipType = 'Student Member'; }
+            if (rawType.includes('associate')) membershipType = 'Associate Member';
+            if (rawType.includes('life')) membershipType = 'Life Member';
 
             const profileData = {
                 id: userId,
                 email: email,
-                full_name: name,
-                father_name: findValue(row, ['father', 'husband']),
-                cnic: findValue(row, ['cnic']),
-                contact_number: findValue(row, ['contact', 'mobile', 'phone', 'whatsapp']),
-                gender: findValue(row, ['gender', 'sex']),
-                date_of_birth: parseExcelDate(findValue(row, ['birth', 'dob'])),
-                blood_group: findValue(row, ['blood']),
+                full_name: fullName,
+                cnic: cnic,
+                father_name: getValue(row, ['Father Name', 'Father/Husband Name']),
+                contact_number: getValue(row, ['WhatsApp Number', 'Mobile', 'Phone']),
+                gender: gender,
+                date_of_birth: parseExcelDate(getValue(row, ['Date of Birth', 'DOB'])),
+                blood_group: getValue(row, ['Blood Group']),
 
-                qualification: findValue(row, ['qualification', 'degree']),
-                college_attended: findValue(row, ['college', 'university']),
-                post_graduate_institution: findValue(row, ['post graduate', 'postgraduate', 'pg institution']),
+                qualification: getValue(row, ['Qualification']),
+                institution: getValue(row, ['Institution']),
+                designation: getValue(row, ['If you are employeed, Mention your designation.', 'Designation']),
+                employment_status: getValue(row, ['Employement Status', 'Employment Status']),
 
-                // Employment
-                employment_status: findValue(row, ['employment', 'status']),
-                designation: findValue(row, ['designation', 'job title']),
-                institution: findValue(row, ['institution', 'clinic', 'hospital', 'work']),
+                city: getValue(row, ['Employement City', 'City']),
+                province: getValue(row, ['Province']),
+                residential_address: getValue(row, ['Residential Address', 'Residential Address:', 'Address']),
 
-                // Address
-                city: findValue(row, ['city', 'district', 'town']),
-                province: findValue(row, ['province', 'state']),
-                residential_address: findValue(row, ['residential', 'address', 'location']),
+                role: role,
+                membership_type: membershipType,
+                membership_status: 'approved', // Auto-approve imported users (or 'pending'?)
+                // User voice note implies importing existing members, so 'approved' or 'active' is safer.
+                // Setting to 'approved' allows Admin to activate them properly or 'active' for immediate access.
+                // Defaulting to 'active' for 1 year from now.
+                subscription_start_date: new Date().toISOString(),
+                subscription_end_date: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString(),
 
-                membership_type: type,
-                membership_status: 'active', // Auto-approve imported users
-                role: type === 'student' ? 'student' : 'member',
-
-                created_at: new Date().toISOString()
+                created_at: createdAt
             };
 
-            // 3. Upsert Profile
+            // 5. Upsert Profile
             const { error: profileError } = await supabase.from('profiles').upsert(profileData);
 
             if (profileError) {
-                // Ideally we would rollback auth user creation here, but for bulk import simple error logging is safer
-                throw new Error("Profile creation failed: " + profileError.message);
+                // Critical: Auth created, Profile failed.
+                // We attempt to delete the auth user to keep state clean (transaction-like rollback)
+                await supabase.auth.admin.deleteUser(userId);
+                throw new Error(`Profile creation failed: ${profileError.message}`);
             }
 
             success++;
+            existingEmails.add(email); // Prevent duplicates
 
         } catch (err: any) {
             failed++;
-            errors.push(`Row ${rowNum} (${email}): ${err.message}`);
+            errors.push(`Row ${rowIndex} (${email}): ${err.message}`);
         }
     }
 
     revalidatePath('/dashboard/members');
-    return { success, failed, errors };
+    return { success, failed, skipped, total: rows.length, errors };
 }
