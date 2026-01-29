@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, X, Eye, FileText, CreditCard, Clock, ChevronRight, User, Phone, Mail, Building2 } from "lucide-react";
+import { Check, X, Eye, FileText, CreditCard, Clock, ChevronRight, User, Phone, Mail, Building2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { logAuditAction } from "@/app/actions/audit";
+import { deleteMember } from "@/app/actions/member";
 import DataTable from "@/components/ui/DataTable";
 import Modal, { Button, StatusBadge, Avatar, InfoRow } from "@/components/ui/Modal";
 import { DocumentGrid } from "@/components/ui/ImageViewer";
@@ -151,6 +152,22 @@ export default function VerifyList({ initialMembers }: VerifyListProps) {
         } finally {
             setProcessing(null);
         }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to PERMANENTLY delete this member? This action cannot be undone.")) return;
+
+        setProcessing(id);
+        const { error } = await deleteMember(id);
+
+        if (error) {
+            toast.error(error);
+        } else {
+            toast.success("Application deleted");
+            setMembers(members.filter(m => m.id !== id));
+            setSelectedMember(null);
+        }
+        setProcessing(null);
     };
 
     const handleVerifyDocument = async (doc: any) => {
@@ -375,6 +392,14 @@ export default function VerifyList({ initialMembers }: VerifyListProps) {
                             icon={<Check className="w-4 h-4" />}
                         >
                             Approve & Activate
+                        </Button>
+                        <Button
+                            variant="danger"
+                            onClick={() => handleDelete(selectedMember.id)}
+                            loading={processing === selectedMember?.id}
+                            icon={<Trash2 className="w-4 h-4" />}
+                        >
+                            Delete
                         </Button>
                     </>
                 }

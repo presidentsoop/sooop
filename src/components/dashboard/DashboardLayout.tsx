@@ -5,9 +5,10 @@ import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, FileText, Settings, LogOut, Menu, X, User, ChevronRight, ChevronLeft, Mail, ShieldAlert, CreditCard, DollarSign, Calendar } from "lucide-react";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+
 import { toast } from "sonner";
 import Image from "next/image";
+import { signOutAction } from "@/app/actions/auth";
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
@@ -23,7 +24,7 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
     const [pages, setPages] = useState<any[]>([]);
 
     const pathname = usePathname();
-    const router = useRouter();
+
     const supabase = createClient();
     const [currentDate, setCurrentDate] = useState("");
 
@@ -43,12 +44,13 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
     }, [userRole]);
 
     const handleSignOut = async () => {
-        const { error } = await supabase.auth.signOut();
-        if (error) {
-            toast.error("Error signing out");
-        } else {
+        try {
+            await signOutAction();
             toast.success("Signed out successfully");
-            router.push("/login");
+            window.location.href = "/login";
+        } catch (error) {
+            console.error(error);
+            toast.error("Error signing out");
         }
     };
 

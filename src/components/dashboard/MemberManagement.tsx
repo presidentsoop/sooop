@@ -162,6 +162,22 @@ export default function MemberManagement() {
         setActionLoading(null);
     };
 
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to PERMANENTLY delete this member? This action cannot be undone.")) return;
+
+        setActionLoading(id);
+        const { error } = await deleteMember(id);
+
+        if (error) {
+            toast.error(error);
+        } else {
+            toast.success("Member processed for deletion");
+            setMembers(members.filter(m => m.id !== id));
+            setSelectedMember(null);
+        }
+        setActionLoading(null);
+    };
+
     const runExpirationScan = async () => {
         setLoading(true);
         toast.info("Scanning for expired memberships...");
@@ -451,6 +467,14 @@ export default function MemberManagement() {
                                             Block
                                         </Button>
                                     )}
+                                    <Button
+                                        variant="danger"
+                                        onClick={() => handleDelete(selectedMember.id)}
+                                        loading={actionLoading === selectedMember.id}
+                                        icon={<Trash2 className="w-4 h-4" />}
+                                    >
+                                        Delete
+                                    </Button>
                                 </>
                             )}
                         </>

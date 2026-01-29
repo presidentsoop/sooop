@@ -14,7 +14,7 @@ interface IdentityCardProps {
         id: string;
         full_name: string;
         profile_photo_url?: string;
-        membership_number?: string;
+        registration_number?: string;
         membership_type?: string;
         designation?: string;
         city?: string;
@@ -52,7 +52,7 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
             const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
             pdf.addImage(imgData, 'PNG', 0, 10, imgWidth, imgHeight);
-            pdf.save(`SOOOP-Membership-Card-${profile.membership_number || 'Pending'}.pdf`);
+            pdf.save(`SOOOP-Membership-Card-${profile.registration_number || 'Pending'}.pdf`);
             toast.success("Card downloaded successfully!");
 
         } catch (error) {
@@ -64,7 +64,7 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
     };
 
     // Verification URL for QR Code
-    const verificationUrl = `https://sooop.org.pk/verify/${profile.membership_number || profile.id}`;
+    const verificationUrl = `https://sooop.org.pk/verify/${profile.registration_number || profile.id}`;
 
     return (
         <div className="flex flex-col items-center gap-8 animate-fade-in">
@@ -77,8 +77,14 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                     {/* Header */}
                     <div className="h-36 bg-gradient-to-br from-primary-700 to-primary-900 relative p-6 text-center">
                         <div className="absolute inset-0 pattern-dots opacity-10"></div>
-                        <h1 className="text-3xl font-black text-white tracking-widest mb-1">SOOOP</h1>
-                        <p className="text-[9px] text-white/80 uppercase tracking-widest">Society of Optometrists Orthoptists <br />& Ophthalmic Technologists Pakistan</p>
+                        <div className="absolute inset-0 pattern-dots opacity-10"></div>
+                        <div className="flex items-center justify-center gap-3 mb-1">
+                            <div className="relative w-10 h-10">
+                                <Image src="/logo.png" alt="SOOOP Logo" fill className="object-contain" />
+                            </div>
+                            <h1 className="text-3xl font-black text-white tracking-widest">SOOOP</h1>
+                        </div>
+                        <p className="text-[9px] text-white/80 uppercase tracking-widest leading-tight">Society of Optometrists Orthoptists <br />& Ophthalmic Technologists Pakistan</p>
                     </div>
 
                     {/* Photo */}
@@ -111,7 +117,7 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                             <div className="flex justify-between items-center border-b border-gray-100 pb-2">
                                 <span className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Membership ID</span>
                                 <span className="text-sm font-mono font-bold text-gray-800">
-                                    {profile.membership_number || "PENDING"}
+                                    {profile.registration_number || "PENDING"}
                                 </span>
                             </div>
                             <div className="flex justify-between items-center border-b border-gray-100 pb-2">
@@ -173,7 +179,7 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
             {/* DOWNLOAD BUTTON */}
             <button
                 onClick={handleDownloadPDF}
-                disabled={isDownloading || !profile.membership_number}
+                disabled={isDownloading || !profile.registration_number}
                 className="btn btn-primary px-8 py-4 rounded-full shadow-lg shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
             >
                 {isDownloading ? (
@@ -186,7 +192,7 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                     </>
                 )}
             </button>
-            {!profile.membership_number && (
+            {!profile.registration_number && (
                 <p className="text-sm text-red-500 font-medium bg-red-50 px-4 py-2 rounded-lg">
                     Membership Pending Approval
                 </p>

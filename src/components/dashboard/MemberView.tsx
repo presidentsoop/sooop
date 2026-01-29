@@ -146,7 +146,7 @@ export default function MemberView({ status, profile }: MemberViewProps) {
                                 Good Morning, <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-accent-600">{firstName}</span>
                             </h1>
                             <p className="text-gray-500 font-medium">
-                                Membership ID: <span className="font-mono text-gray-900 bg-gray-100 px-2 py-0.5 rounded ml-1">{profile?.membership_number}</span>
+                                Membership ID: <span className="font-mono text-gray-900 bg-gray-100 px-2 py-0.5 rounded ml-1">{profile?.registration_number}</span>
                             </p>
                         </div>
 
