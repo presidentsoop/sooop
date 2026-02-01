@@ -47,11 +47,13 @@ export default async function Layout({ children }: { children: React.ReactNode }
         }
     }
 
-    const role = profile?.role || 'member';
+    // Only 'admin' gets admin dashboard. All other roles (member, student, etc.) get member dashboard.
+    const role = profile?.role;
+    const dashboardRole: 'admin' | 'member' = (role === 'admin' || role === 'super_admin') ? 'admin' : 'member';
 
     return (
         <DashboardLayout
-            userRole={role}
+            userRole={dashboardRole}
             userName={profile?.full_name || user.user_metadata?.full_name || 'User'}
             userEmail={user.email}
         >

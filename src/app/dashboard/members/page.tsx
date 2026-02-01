@@ -22,7 +22,7 @@ export default async function MembersPage() {
     // Fallback: If no profile or no full_name, use metadata or default
     const displayName = profile?.full_name || user.user_metadata?.full_name || 'Admin User';
 
-    if (profile?.role !== 'admin') {
+    if (profile?.role !== 'admin' && profile?.role !== 'super_admin') {
         redirect("/dashboard");
     }
 

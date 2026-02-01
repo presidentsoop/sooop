@@ -1,11 +1,31 @@
 'use server';
 
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createServiceClient } from '@supabase/supabase-js';
+
+// Create a safe admin client that won't crash if service key is missing
+function getAdminClient() {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !serviceRoleKey) {
+        console.error("Missing SUPABASE_SERVICE_ROLE_KEY - operations will fail");
+        return null;
+    }
+
+    return createServiceClient(supabaseUrl, serviceRoleKey, {
+        auth: { autoRefreshToken: false, persistSession: false }
+    });
+}
 
 export async function registerMember(formData: FormData) {
-    const supabaseAdmin = createAdminClient();
     const supabase = await createClient();
+    const supabaseAdmin = getAdminClient();
+
+    // Check if admin client is available
+    if (!supabaseAdmin) {
+        return { error: "Server configuration error. Please contact administrator. (Missing service key)" };
+    }
 
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
@@ -45,7 +65,7 @@ export async function registerMember(formData: FormData) {
     // Helper to sanitize input (empty string -> null)
     const s = (val: string | null) => (!val || val.trim() === '') ? null : val.trim();
 
-    // 1. Create Auth User
+    // 1. Create Auth User using regular client (this works without service key)
     const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -54,7 +74,7 @@ export async function registerMember(formData: FormData) {
                 full_name: fullName,
                 cnic: cnic,
                 father_name: s(fatherName),
-                role: 'member', // Trigger fallback
+                role: 'member',
                 membership_type: s(membershipType)
             }
         }
@@ -69,10 +89,9 @@ export async function registerMember(formData: FormData) {
     }
 
     const userId = authData.user.id;
-    const workingClient = supabaseAdmin;
     const fileUrls: Record<string, string> = {};
 
-    // 2. Handle File Uploads
+    // 2. Handle File Uploads (using admin client to bypass RLS on storage)
     const uploadFile = async (file: File, docType: string) => {
         if (!file || file.size === 0) return null;
 
@@ -83,7 +102,7 @@ export async function registerMember(formData: FormData) {
         let targetBucket = 'documents';
         if (docType === 'profile_photo') targetBucket = 'profile-photos';
 
-        const { error: uploadError } = await workingClient.storage
+        const { error: uploadError } = await supabaseAdmin.storage
             .from(targetBucket)
             .upload(fileName, buffer, {
                 contentType: file.type,
@@ -98,14 +117,14 @@ export async function registerMember(formData: FormData) {
         // Get URL
         let fileUrl = fileName;
         if (targetBucket === 'profile-photos') {
-            const { data: publicData } = workingClient.storage.from(targetBucket).getPublicUrl(fileName);
+            const { data: publicData } = supabaseAdmin.storage.from(targetBucket).getPublicUrl(fileName);
             fileUrl = publicData.publicUrl;
         }
 
         fileUrls[docType] = fileUrl;
 
         // Insert into documents table
-        await workingClient.from('documents').insert({
+        await supabaseAdmin.from('documents').insert({
             user_id: userId,
             document_type: docType,
             file_url: fileUrl,
@@ -132,8 +151,7 @@ export async function registerMember(formData: FormData) {
         }
     }
 
-    // 3. Upsert Profile (CRITICAL: Ensures Profile Exists before FK checks)
-    // We explicitly write all profile data here instead of relying on slow triggers
+    // 3. Upsert Profile using ADMIN client (bypasses RLS)
     const profileData = {
         id: userId,
         email: email,
@@ -169,7 +187,7 @@ export async function registerMember(formData: FormData) {
         updated_at: new Date().toISOString()
     };
 
-    const { error: profileError } = await workingClient
+    const { error: profileError } = await supabaseAdmin
         .from('profiles')
         .upsert(profileData, { onConflict: 'id' });
 
@@ -179,7 +197,7 @@ export async function registerMember(formData: FormData) {
     }
 
     // 4. Create Application Record
-    const { error: appError } = await workingClient.from('membership_applications').insert({
+    const { error: appError } = await supabaseAdmin.from('membership_applications').insert({
         user_id: userId,
         status: 'pending',
         membership_type: membershipType,
@@ -197,7 +215,7 @@ export async function registerMember(formData: FormData) {
 
     // 5. Create Pending Payment
     if (fileUrls['payment_proof']) {
-        await workingClient.from('payments').insert({
+        await supabaseAdmin.from('payments').insert({
             user_id: userId,
             amount: 0,
             payment_mode: 'Bank Transfer (Upload)',

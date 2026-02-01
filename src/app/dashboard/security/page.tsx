@@ -1,22 +1,32 @@
-
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { redirect } from "next/navigation";
 import SecurityView from "@/components/dashboard/SecurityView";
-import DashboardLayout from "@/components/dashboard/DashboardLayout";
-
-// Since we are in app router, we can fetch data server side.
-// But DashboardLayout wraps the children.
-// Wait, the page renders INSIDE the layout?
-// No, Next.js Layout wraps page.
-// `src/app/dashboard/layout.tsx` likely uses `DashboardLayout`.
-// So this Page component just needs to return the content.
-// `DashboardLayout` is Client Component. `security/page.tsx` is Server Component.
-// This works fine.
 
 export default async function SecurityPage() {
+    // First check user authentication and role
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        redirect("/login");
+    }
+
+    // Admin-only page
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+    if (profile?.role !== 'admin' && profile?.role !== 'super_admin') {
+        redirect("/dashboard");
+    }
+
+    // Now fetch data using admin client
     const supabaseAdmin = createAdminClient();
 
     // Fetch Auth Users (Limit 100)
-    // We assume the user has permisson (checked by Middleware/Layout)
     const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 100 });
 
     if (error || !users) {
@@ -29,10 +39,10 @@ export default async function SecurityPage() {
 
     // Merge
     const mergedUsers = users.map(u => {
-        const profile = profiles?.find(p => p.id === u.id);
+        const userProfile = profiles?.find(p => p.id === u.id);
         return {
             ...u,
-            profile: profile || null
+            profile: userProfile || null
         };
     });
 
