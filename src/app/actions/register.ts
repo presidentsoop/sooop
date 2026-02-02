@@ -1,6 +1,5 @@
 'use server';
 
-import { createClient } from "@/lib/supabase/server";
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 
 // Create a safe admin client that won't crash if service key is missing
@@ -19,7 +18,6 @@ function getAdminClient() {
 }
 
 export async function registerMember(formData: FormData) {
-    const supabase = await createClient();
     const supabaseAdmin = getAdminClient();
 
     // Check if admin client is available
@@ -65,27 +63,32 @@ export async function registerMember(formData: FormData) {
     // Helper to sanitize input (empty string -> null)
     const s = (val: string | null) => (!val || val.trim() === '') ? null : val.trim();
 
-    // 1. Create Auth User using regular client (this works without service key)
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    // 1. Create Auth User using ADMIN client (bypasses email confirmation SMTP)
+    // This avoids the "unexpected response" error when SMTP is not configured
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
-        options: {
-            data: {
-                full_name: fullName,
-                cnic: cnic,
-                father_name: s(fatherName),
-                role: 'member',
-                membership_type: s(membershipType)
-            }
+        email_confirm: true, // Auto-confirm email to skip SMTP
+        user_metadata: {
+            full_name: fullName,
+            cnic: cnic,
+            father_name: s(fatherName),
+            role: 'member',
+            membership_type: s(membershipType)
         }
     });
 
     if (authError) {
+        console.error("Auth Error:", authError);
+        // Provide user-friendly error messages
+        if (authError.message.includes('already registered') || authError.message.includes('already exists')) {
+            return { error: "This email is already registered. Please login or use a different email." };
+        }
         return { error: authError.message };
     }
 
     if (!authData.user) {
-        return { error: "Failed to create user. Please check your email inbox if confirmation is required." };
+        return { error: "Failed to create account. Please try again." };
     }
 
     const userId = authData.user.id;

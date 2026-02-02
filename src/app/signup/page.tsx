@@ -42,38 +42,106 @@ const InputGroup = ({ label, icon: Icon, error, className = "", ...props }: any)
     </div>
 );
 
-// Reusable File Upload Component
-const FileUploadField = ({ label, icon: Icon, file, onChange, onRemove, required, error }: any) => (
-    <div className="form-group">
-        <label className="text-sm font-semibold text-gray-700 mb-1.5 block flex justify-between">
-            {label} {required && <span className="text-primary">*</span>}
-            {error && <span className="text-red-500 text-xs font-normal">{error}</span>}
-        </label>
-        <div className={`border-2 border-dashed rounded-xl p-4 transition-all ${file ? 'border-green-300 bg-green-50/30' : error ? 'border-red-300 bg-red-50/30' : 'border-gray-200 hover:border-primary/50 hover:bg-gray-50'}`}>
-            {file ? (
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center text-green-600">
-                        {file.type.startsWith('image') ? <ImageIcon className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+// Mobile-Optimized File Upload Component
+const FileUploadField = ({ label, icon: Icon, file, onChange, onRemove, required, error, isPhoto = false }: any) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [preview, setPreview] = useState<string | null>(null);
+
+    // Generate preview for images
+    useEffect(() => {
+        if (file && file.type?.startsWith('image')) {
+            const reader = new FileReader();
+            reader.onloadend = () => setPreview(reader.result as string);
+            reader.readAsDataURL(file);
+        } else {
+            setPreview(null);
+        }
+    }, [file]);
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            onChange(e);
+        }
+        // Reset input value to allow re-selecting same file
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const handleRemove = () => {
+        setPreview(null);
+        onRemove();
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    // Accept types: images for photos, images+pdf for documents
+    const acceptTypes = isPhoto
+        ? "image/jpeg,image/png,image/webp,image/heic,image/heif"
+        : "image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf";
+
+    return (
+        <div className="form-group">
+            <label className="text-sm font-semibold text-gray-700 mb-1.5 block flex justify-between">
+                {label} {required && <span className="text-primary">*</span>}
+                {error && <span className="text-red-500 text-xs font-normal">{error}</span>}
+            </label>
+            <div className={`border-2 border-dashed rounded-xl p-4 transition-all ${file ? 'border-green-300 bg-green-50/30' : error ? 'border-red-300 bg-red-50/30' : 'border-gray-200 active:border-primary/50 active:bg-gray-50'}`}>
+                {file ? (
+                    <div className="flex items-center gap-3">
+                        {/* Show image preview if available */}
+                        {preview ? (
+                            <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                                <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                            </div>
+                        ) : (
+                            <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center text-green-600 flex-shrink-0">
+                                {file.type?.startsWith('image') ? <ImageIcon className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                            </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-gray-900 truncate">{file.name || 'Selected file'}</p>
+                            <p className="text-xs text-green-600">
+                                {file.size ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : 'Ready to upload'}
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleRemove}
+                            className="p-3 bg-red-50 hover:bg-red-100 rounded-full text-red-500 transition-colors touch-manipulation"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-gray-900 truncate">{file.name}</p>
-                        <p className="text-xs text-green-600">Ready to upload</p>
-                    </div>
-                    <button type="button" onClick={onRemove} className="p-2 hover:bg-red-100 rounded-full text-gray-400 hover:text-red-500 transition-colors">
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
-            ) : (
-                <label className="cursor-pointer block text-center py-2">
-                    <input type="file" className="hidden" accept="image/*,.pdf" onChange={onChange} />
-                    <Upload className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500 font-medium">Click to Upload</p>
-                    <p className="text-xs text-gray-400">JPG, PNG, PDF (Max 5MB)</p>
-                </label>
-            )}
+                ) : (
+                    <label className="cursor-pointer block text-center py-4 touch-manipulation">
+                        {/* Hidden file input with mobile-friendly attributes */}
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            className="hidden"
+                            accept={acceptTypes}
+                            onChange={handleFileSelect}
+                        // Allow both camera and gallery on mobile
+                        />
+                        <div className="flex flex-col items-center gap-2">
+                            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Upload className="w-6 h-6 text-primary" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-700 font-semibold">Tap to {isPhoto ? 'take photo or select' : 'upload'}</p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                    {isPhoto ? 'Camera or Gallery' : 'JPG, PNG, PDF'} (Max 5MB)
+                                </p>
+                            </div>
+                        </div>
+                    </label>
+                )}
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 export default function SignupPage() {
     const router = useRouter();
@@ -169,16 +237,99 @@ export default function SignupPage() {
         }
     };
 
-    // File Handler
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
+    // Compress image for mobile upload
+    const compressImage = async (file: File, maxWidth: number = 1920, quality: number = 0.8): Promise<File> => {
+        // Only compress images
+        if (!file.type.startsWith('image/') || file.type === 'application/pdf') {
+            return file;
+        }
+
+        return new Promise((resolve) => {
+            const img = document.createElement('img');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            img.onload = () => {
+                // Calculate new dimensions
+                let { width, height } = img;
+                if (width > maxWidth) {
+                    height = (height * maxWidth) / width;
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+
+                // Draw and compress
+                ctx?.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob(
+                    (blob) => {
+                        if (blob) {
+                            // Create new file with original name but compressed data
+                            const compressedFile = new File([blob], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
+                                type: 'image/jpeg',
+                                lastModified: Date.now(),
+                            });
+                            resolve(compressedFile);
+                        } else {
+                            resolve(file); // Fallback to original
+                        }
+                    },
+                    'image/jpeg',
+                    quality
+                );
+            };
+
+            img.onerror = () => resolve(file); // Fallback to original on error
+
+            // Handle the file
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                img.src = e.target?.result as string;
+            };
+            reader.onerror = () => resolve(file);
+            reader.readAsDataURL(file);
+        });
+    };
+
+    // File Handler with compression for mobile
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
         if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            // Validate Size (Max 5MB)
-            if (file.size > 5 * 1024 * 1024) {
-                toast.error("File size must be less than 5MB");
-                return;
+            let file = e.target.files[0];
+
+            // Show loading toast for large files
+            const isLargeFile = file.size > 2 * 1024 * 1024;
+            if (isLargeFile && file.type.startsWith('image/')) {
+                toast.loading('Optimizing image...', { id: 'compress' });
             }
-            setFiles(prev => ({ ...prev, [field]: file }));
+
+            try {
+                // Compress images (especially important for mobile camera photos)
+                if (file.type.startsWith('image/')) {
+                    file = await compressImage(file, 1920, 0.85);
+                }
+
+                // Validate Size (Max 5MB after compression)
+                if (file.size > 5 * 1024 * 1024) {
+                    toast.error("File size must be less than 5MB", { id: 'compress' });
+                    return;
+                }
+
+                setFiles(prev => ({ ...prev, [field]: file }));
+
+                if (isLargeFile) {
+                    toast.success('Image optimized!', { id: 'compress' });
+                }
+            } catch (error) {
+                console.error('File processing error:', error);
+                // Still try to use the original file
+                if (file.size <= 5 * 1024 * 1024) {
+                    setFiles(prev => ({ ...prev, [field]: file }));
+                } else {
+                    toast.error("Could not process file. Please try a smaller image.", { id: 'compress' });
+                }
+            }
         }
     };
 
@@ -248,6 +399,7 @@ export default function SignupPage() {
         if (!validateStep(3)) return;
 
         setIsLoading(true);
+        toast.loading('Submitting your application...', { id: 'submit' });
 
         try {
             const data = new FormData();
@@ -270,15 +422,27 @@ export default function SignupPage() {
             const result = await registerMember(data);
 
             if (result?.error) {
-                toast.error(result.error);
+                toast.error(result.error, { id: 'submit' });
             } else {
-                toast.success("Application submitted successfully! Please check your email.");
+                toast.success("Application submitted successfully! Please check your email.", { id: 'submit' });
                 router.push("/login?registered=true");
             }
 
         } catch (error: any) {
-            console.error(error);
-            toast.error(error.message || "Registration failed");
+            console.error('Registration error:', error);
+
+            // Handle different types of errors
+            let errorMessage = "Registration failed. Please try again.";
+
+            if (error.message?.includes('fetch') || error.message?.includes('network')) {
+                errorMessage = "Network error. Please check your internet connection and try again.";
+            } else if (error.message?.includes('timeout')) {
+                errorMessage = "Request timed out. Please try again with a stable connection.";
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+
+            toast.error(errorMessage, { id: 'submit' });
         } finally {
             setIsLoading(false);
         }
@@ -614,6 +778,7 @@ export default function SignupPage() {
                                             onRemove={() => removeFile('profilePhoto')}
                                             required
                                             error={errors.profilePhoto}
+                                            isPhoto={true}
                                         />
                                         <FileUploadField
                                             label="Payment Proof / Receipt"
