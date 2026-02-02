@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { User, Mail, Lock, Phone, MapPin, Briefcase, GraduationCap, Calendar, CreditCard, Upload, X, CheckCircle, AlertCircle, FileText, Image as ImageIcon } from "lucide-react";
+import { User, Mail, Lock, Phone, MapPin, Briefcase, GraduationCap, Calendar, CreditCard, Upload, X, CheckCircle, AlertCircle, FileText, Image as ImageIcon, ChevronRight, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -566,7 +566,14 @@ export default function SignupPage() {
                                     </div>
 
                                     <div className="flex justify-end pt-6">
-                                        <button type="button" onClick={nextStep} className="btn-primary-action">Next Step</button>
+                                        <button
+                                            type="button"
+                                            onClick={nextStep}
+                                            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-primary-700 to-primary-800 hover:from-primary-600 hover:to-primary-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] touch-manipulation"
+                                        >
+                                            <span>Continue to Step 2</span>
+                                            <ChevronRight className="w-5 h-5" />
+                                        </button>
                                     </div>
                                 </div>
                             )}
@@ -688,9 +695,23 @@ export default function SignupPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex justify-between pt-6">
-                                        <button type="button" onClick={prevStep} className="btn-secondary-action">Back</button>
-                                        <button type="button" onClick={nextStep} className="btn-primary-action">Next Step</button>
+                                    <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-6 border-t border-gray-100">
+                                        <button
+                                            type="button"
+                                            onClick={prevStep}
+                                            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 font-bold py-3.5 px-6 rounded-xl border border-gray-200 transition-all hover:border-gray-300 active:scale-[0.98] touch-manipulation"
+                                        >
+                                            <ChevronLeft className="w-5 h-5" />
+                                            <span>Back</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={nextStep}
+                                            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-primary-700 to-primary-800 hover:from-primary-600 hover:to-primary-700 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] touch-manipulation"
+                                        >
+                                            <span>Continue to Final Step</span>
+                                            <ChevronRight className="w-5 h-5" />
+                                        </button>
                                     </div>
                                 </div>
                             )}
@@ -705,59 +726,69 @@ export default function SignupPage() {
                                         <p>Please upload clear images or scans. Max size 5MB per file.</p>
                                     </div>
 
-                                    {/* Bank Details Card - Premium Design */}
-                                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-8 text-white shadow-2xl relative overflow-hidden group">
+                                    {/* Bank Details Card - Premium Mobile-Friendly Design */}
+                                    <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 rounded-2xl p-5 sm:p-8 text-white shadow-2xl relative overflow-hidden">
                                         {/* Abstract Decoration */}
-                                        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-white/10 transition-colors duration-700"></div>
+                                        <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                                        <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
 
                                         <div className="relative z-10">
-                                            <div className="flex items-center gap-3 mb-8">
-                                                <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
-                                                    <CreditCard className="w-6 h-6 text-blue-300" />
+                                            {/* Header */}
+                                            <div className="flex items-center gap-3 mb-6 sm:mb-8">
+                                                <div className="p-2.5 bg-white/15 rounded-xl backdrop-blur-sm">
+                                                    <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                                                 </div>
-                                                <h4 className="font-bold text-xl tracking-tight">Fee Submission Details</h4>
+                                                <div>
+                                                    <h4 className="font-bold text-base sm:text-xl text-white">Fee Submission Details</h4>
+                                                    <p className="text-xs text-indigo-200">Transfer your fee to complete registration</p>
+                                                </div>
                                             </div>
 
-                                            <div className="space-y-6">
-                                                <div className="grid sm:grid-cols-2 gap-6">
+                                            <div className="space-y-5">
+                                                {/* Bank Info Grid */}
+                                                <div className="grid grid-cols-2 gap-4">
                                                     <div className="space-y-1">
-                                                        <p className="text-xs font-semibold text-blue-300 uppercase tracking-widest">Bank Name</p>
-                                                        <p className="font-bold text-lg text-white">Meezan Bank</p>
+                                                        <p className="text-[10px] sm:text-xs font-semibold text-indigo-200 uppercase tracking-wider">Bank Name</p>
+                                                        <p className="font-bold text-sm sm:text-lg text-white">Meezan Bank</p>
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <p className="text-xs font-semibold text-blue-300 uppercase tracking-widest">Account Title</p>
-                                                        <p className="font-bold text-lg text-white">RUHULLAH</p>
+                                                        <p className="text-[10px] sm:text-xs font-semibold text-indigo-200 uppercase tracking-wider">Account Title</p>
+                                                        <p className="font-bold text-sm sm:text-lg text-white">RUHULLAH</p>
                                                     </div>
                                                 </div>
 
-                                                <div className="bg-white/5 rounded-xl p-4 border border-white/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 group-hover:border-white/20 transition-colors">
-                                                    <div className="space-y-1">
-                                                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Account Number</p>
-                                                        <p className="font-mono text-xl md:text-2xl font-bold text-white tracking-widest select-all">
-                                                            02750112976719
-                                                        </p>
+                                                {/* Account Number Box */}
+                                                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                                                        <div className="space-y-1 w-full sm:w-auto">
+                                                            <p className="text-[10px] sm:text-xs font-semibold text-indigo-200 uppercase tracking-wider">Account Number</p>
+                                                            <p className="font-mono text-lg sm:text-2xl font-bold text-white tracking-wider select-all break-all">
+                                                                02750112976719
+                                                            </p>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText('02750112976719')
+                                                                    .then(() => toast.success('Account Number Copied!'))
+                                                                    .catch(() => toast.error('Failed to copy'));
+                                                            }}
+                                                            className="w-full sm:w-auto px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-sm font-bold transition-all active:scale-95 flex items-center justify-center gap-2 touch-manipulation"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
+                                                            <span>Copy</span>
+                                                        </button>
                                                     </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            navigator.clipboard.writeText('02750112976719')
-                                                                .then(() => toast.success('Account Number Copied!'))
-                                                                .catch(() => toast.error('Failed to copy'));
-                                                        }}
-                                                        className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-semibold transition-all active:scale-95 flex items-center gap-2"
-                                                    >
-                                                        Copy <span className="sr-only">Account Number</span>
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
-                                                    </button>
                                                 </div>
 
-                                                <div className="pt-6 border-t border-white/10 flex items-end justify-between">
+                                                {/* Amount Section */}
+                                                <div className="pt-4 border-t border-white/15 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3">
                                                     <div>
-                                                        <p className="text-sm text-gray-400 mb-1">Total Payable Amount</p>
-                                                        <p className="text-xs text-blue-300">Non-refundable</p>
+                                                        <p className="text-sm text-indigo-200">Total Payable Amount</p>
+                                                        <p className="text-[10px] text-indigo-300">Non-refundable</p>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <span className="text-3xl md:text-4xl font-bold text-emerald-400">
+                                                    <div className="bg-emerald-500/20 px-4 py-2 rounded-xl border border-emerald-400/30">
+                                                        <span className="text-2xl sm:text-3xl font-bold text-emerald-300">
                                                             {formData.membershipType === 'Student' ? 'Rs. 1,000' :
                                                                 formData.membershipType === 'Associate' ? 'Rs. 500' :
                                                                     formData.membershipType === 'Overseas' ? 'Rs. 3,000' : 'Rs. 1,500'}
@@ -845,19 +876,24 @@ export default function SignupPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-8 border-t border-gray-100">
-                                        <button type="button" onClick={prevStep} className="w-full sm:w-auto order-2 sm:order-1 bg-white hover:bg-gray-50 text-gray-700 font-bold py-4 px-10 rounded-2xl border border-gray-200 transition-all hover:border-gray-300 hover:shadow-sm active:scale-[0.98]">
-                                            Back
+                                    <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-8 border-t border-gray-100">
+                                        <button
+                                            type="button"
+                                            onClick={prevStep}
+                                            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 font-bold py-3.5 px-6 rounded-xl border border-gray-200 transition-all hover:border-gray-300 active:scale-[0.98] touch-manipulation"
+                                        >
+                                            <ChevronLeft className="w-5 h-5" />
+                                            <span>Back</span>
                                         </button>
                                         <button
                                             type="submit"
                                             disabled={isLoading}
-                                            className="w-full sm:w-auto order-1 sm:order-2 bg-primary-900 hover:bg-primary-800 text-white font-bold py-4 px-12 rounded-2xl transition-all shadow-xl shadow-primary-900/25 hover:shadow-primary-900/40 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-3"
+                                            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold py-4 px-10 rounded-xl shadow-lg shadow-emerald-600/25 hover:shadow-emerald-600/40 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 touch-manipulation"
                                         >
                                             {isLoading ? (
                                                 <>
                                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                    <span>Processing Application...</span>
+                                                    <span>Processing...</span>
                                                 </>
                                             ) : (
                                                 <>
