@@ -468,6 +468,7 @@ export default function SignupPage() {
                                                 <option value="">Select Qualification</option>
                                                 <option value="BSc (HONS) Vision Sciences (Optometry)">BSc (HONS) Vision Sciences (Optometry)</option>
                                                 <option value="BSc (HONS) Vision Sciences (Orthoptics)">BSc (HONS) Vision Sciences (Orthoptics)</option>
+                                                <option value="BSc (HONS) Investigative Ophthalmology">BSc (HONS) Investigative Ophthalmology</option>
                                                 <option value="BSc (HONS) Optometry & Orthoptics">BSc (HONS) Optometry & Orthoptics</option>
                                                 <option value="OD">OD</option>
                                                 <option value="BS Optometry">BS Optometry</option>
