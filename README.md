@@ -116,7 +116,7 @@ src/
 └── proxy.ts               # Auth middleware
 
 public/
-├── logo.png
+├── logo.jpg
 ├── favicon.ico
 ├── slider/                # Image slider assets
 ├── *.jpg                  # Leadership photos

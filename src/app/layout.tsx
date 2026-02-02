@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     siteName: "SOOOP",
     images: [
       {
-        url: "/logo.png",
+        url: "/logo.jpg",
         width: 1200,
         height: 630,
         alt: "SOOOP Logo",
@@ -41,11 +41,11 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "SOOOP - Society of Optometrists Pakistan",
     description: "Advancing eye care and supporting vision professionals",
-    images: ["/logo.png"],
+    images: ["/logo.jpg"],
   },
   icons: {
     icon: "/favicon.ico",
-    apple: "/logo.png",
+    apple: "/logo.jpg",
   },
 };
 

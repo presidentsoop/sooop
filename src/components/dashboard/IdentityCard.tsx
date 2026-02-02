@@ -80,7 +80,7 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                         <div className="absolute inset-0 pattern-dots opacity-10"></div>
                         <div className="flex items-center justify-center gap-3 mb-1">
                             <div className="relative w-10 h-10">
-                                <Image src="/logo.png" alt="SOOOP Logo" fill className="object-contain" />
+                                <Image src="/logo.jpg" alt="SOOOP Logo" fill className="object-contain" />
                             </div>
                             <h1 className="text-3xl font-black text-white tracking-widest">SOOOP</h1>
                         </div>
