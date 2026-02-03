@@ -307,12 +307,13 @@ export default function SignupPage() {
             try {
                 // Compress images (especially important for mobile camera photos)
                 if (file.type.startsWith('image/')) {
-                    file = await compressImage(file, 1920, 0.85);
+                    // Reduce to 1280px max width and 0.7 quality for better compression
+                    file = await compressImage(file, 1280, 0.7);
                 }
 
-                // Validate Size (Max 5MB after compression)
-                if (file.size > 5 * 1024 * 1024) {
-                    toast.error("File size must be less than 5MB", { id: 'compress' });
+                // Validate Size (Max 3MB after compression to prevent server payload limits)
+                if (file.size > 3 * 1024 * 1024) {
+                    toast.error("File size must be less than 3MB", { id: 'compress' });
                     return;
                 }
 

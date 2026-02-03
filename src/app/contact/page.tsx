@@ -5,6 +5,9 @@ import Footer from '@/components/layout/Footer';
 export const metadata: Metadata = {
     title: 'Contact Us - SOOOP',
     description: 'Get in touch with the Society of Optometrists, Orthoptists and Ophthalmic Technologists Pakistan.',
+    alternates: {
+        canonical: '/contact',
+    },
 };
 
 export const revalidate = 3600;

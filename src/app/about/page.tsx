@@ -7,6 +7,9 @@ import HistorySection from '@/components/home/HistorySection';
 export const metadata: Metadata = {
     title: 'About Us - SOOOP',
     description: 'Learn about the Society of Optometrists, Orthoptists and Ophthalmic Technologists Pakistan.',
+    alternates: {
+        canonical: '/about',
+    },
 };
 
 // ISR: Revalidate every hour - page is statically generated

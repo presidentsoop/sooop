@@ -95,7 +95,8 @@ export async function registerMember(formData: FormData) {
     const fileUrls: Record<string, string> = {};
 
     // 2. Handle File Uploads (using admin client to bypass RLS on storage)
-    const uploadFile = async (file: File, docType: string) => {
+    // Helper function that returns data instead of side-effect
+    const uploadFile = async (file: File, docType: string): Promise<{ type: string, url: string } | null> => {
         if (!file || file.size === 0) return null;
 
         const fileExt = file.name.split('.').pop();
@@ -124,16 +125,7 @@ export async function registerMember(formData: FormData) {
             fileUrl = publicData.publicUrl;
         }
 
-        fileUrls[docType] = fileUrl;
-
-        // Insert into documents table
-        await supabaseAdmin.from('documents').insert({
-            user_id: userId,
-            document_type: docType,
-            file_url: fileUrl,
-            status: 'pending',
-            verified: false
-        });
+        return { type: docType, url: fileUrl };
     };
 
     const filesToUpload = [
@@ -147,12 +139,39 @@ export async function registerMember(formData: FormData) {
         { key: 'payment_proof', type: 'payment_proof' }
     ];
 
-    for (const item of filesToUpload) {
+    // Execute uploads in parallel to avoid timeouts
+    const uploadPromises = filesToUpload.map(item => {
         const file = formData.get(item.key) as File;
-        if (file) {
-            await uploadFile(file, item.type);
+        return uploadFile(file, item.type);
+    });
+
+    const uploadResults = await Promise.all(uploadPromises);
+
+    // Collect URLs
+    // fileUrls is declared above
+    uploadResults.forEach(result => {
+        if (result) {
+            fileUrls[result.type] = result.url;
         }
-    }
+    });
+
+    // Insert document records in parallel as well
+    const docInserts = Object.entries(fileUrls).map(([type, url]) => {
+        // Profile photo is not in 'documents' table usually? 
+        // Original code inserted ALL uploads into 'documents' table? 
+        // Let's check original code. Yes: "Insert into documents table" was inside uploadFile.
+        // We should maintain that behavior.
+
+        return supabaseAdmin.from('documents').insert({
+            user_id: userId,
+            document_type: type,
+            file_url: url,
+            status: 'pending',
+            verified: false
+        });
+    });
+
+    await Promise.all(docInserts);
 
     // 3. Upsert Profile using ADMIN client (bypasses RLS)
     const profileData = {

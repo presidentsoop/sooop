@@ -8,6 +8,9 @@ export const revalidate = 3600;
 export const metadata = {
     title: 'Professional Wings - SOOOP',
     description: 'Specialized professional wings of the organization.',
+    alternates: {
+        canonical: '/wings',
+    },
 };
 
 // Static wings data - hardcoded for fast loading

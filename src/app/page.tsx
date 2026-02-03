@@ -11,6 +11,16 @@ import ResourcesSection from '@/components/home/ResourcesSection';
 import LeadershipSection from '@/components/home/LeadershipSection';
 
 import { createClient } from '@/lib/supabase/server';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'SOOOP - Society of Optometrists Pakistan',
+  description: 'Official website of the Society of Optometrists, Orthoptists and Ophthalmic Technologists Pakistan. Advancing eye care and supporting vision professionals.',
+  alternates: {
+    canonical: '/',
+  },
+};
+
 
 // ISR: Revalidate every hour (3600 seconds).
 // Page is statically generated at build time and regenerated in the background.

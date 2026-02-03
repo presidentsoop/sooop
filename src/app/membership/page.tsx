@@ -9,6 +9,9 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
     title: 'Membership - SOOOP',
     description: 'Join the Society of Optometrists, Orthoptists and Ophthalmic Technologists Pakistan. Access professional development, networking, and exclusive member benefits.',
+    alternates: {
+        canonical: '/membership',
+    },
 };
 
 // Static content - no database calls

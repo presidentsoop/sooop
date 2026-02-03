@@ -6,6 +6,9 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
     title: 'Founder Members - SOOOP',
     description: 'Honoring the founder members of the Society of Optometrists, Orthoptists and Ophthalmic Technologists Pakistan.',
+    alternates: {
+        canonical: '/founder-members',
+    },
 };
 
 const founderMembers = [

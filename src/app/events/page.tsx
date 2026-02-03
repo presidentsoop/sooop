@@ -8,6 +8,9 @@ export const dynamic = 'force-dynamic';
 export const metadata = {
     title: 'Events - SOOOP',
     description: 'Discover upcoming and past events organized by the Society of Optometrists, Orthoptists and Ophthalmic Technologists Pakistan.',
+    alternates: {
+        canonical: '/events',
+    },
 };
 
 export default async function EventsPage() {
