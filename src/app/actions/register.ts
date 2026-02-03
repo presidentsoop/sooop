@@ -97,7 +97,8 @@ export async function registerMember(formData: FormData) {
     // 2. Handle File Uploads (using admin client to bypass RLS on storage)
     // Helper function that returns data instead of side-effect
     const uploadFile = async (file: File, docType: string): Promise<{ type: string, url: string } | null> => {
-        if (!file || file.size === 0) return null;
+        // Defensive check for file validity
+        if (!file || typeof file !== 'object' || !file.size || file.size === 0) return null;
 
         const fileExt = file.name.split('.').pop();
         const fileName = `${userId}/${docType}_${Date.now()}.${fileExt}`;
@@ -139,111 +140,111 @@ export async function registerMember(formData: FormData) {
         { key: 'payment_proof', type: 'payment_proof' }
     ];
 
-    // Execute uploads in parallel to avoid timeouts
-    const uploadPromises = filesToUpload.map(item => {
-        const file = formData.get(item.key) as File;
-        return uploadFile(file, item.type);
-    });
+    try {
+        // Execute uploads in parallel to avoid timeouts
+        const uploadPromises = filesToUpload.map(item => {
+            const file = formData.get(item.key) as File;
+            return uploadFile(file, item.type);
+        });
 
-    const uploadResults = await Promise.all(uploadPromises);
+        const uploadResults = await Promise.all(uploadPromises);
 
-    // Collect URLs
-    // fileUrls is declared above
-    uploadResults.forEach(result => {
-        if (result) {
-            fileUrls[result.type] = result.url;
+        // Collect URLs
+        // fileUrls is declared above
+        uploadResults.forEach(result => {
+            if (result) {
+                fileUrls[result.type] = result.url;
+            }
+        });
+
+        // Insert document records in parallel as well
+        const docInserts = Object.entries(fileUrls).map(([type, url]) => {
+            return supabaseAdmin.from('documents').insert({
+                user_id: userId,
+                document_type: type,
+                file_url: url,
+                status: 'pending',
+                verified: false
+            });
+        });
+
+        await Promise.all(docInserts);
+
+        // 3. Upsert Profile using ADMIN client (bypasses RLS)
+        const profileData = {
+            id: userId,
+            email: email,
+            full_name: fullName,
+            cnic: cnic,
+            father_name: s(fatherName),
+            date_of_birth: s(dob),
+            gender: s(gender),
+            blood_group: s(bloodGroup),
+
+            contact_number: s(phone),
+            residential_address: s(address),
+            city: s(city),
+            province: s(province),
+
+            institution: s(institution),
+            college_attended: s(collegeAttended),
+            qualification: s(qualification),
+            other_qualification: s(otherQualification),
+            post_graduate_institution: s(postGraduateInstitution),
+            has_relevant_pg: hasRelevantPg,
+            has_non_relevant_pg: hasNonRelevantPg,
+
+            current_status: s(currentStatus),
+            designation: s(designation),
+            employment_status: s(employmentStatus),
+
+            membership_type: s(membershipType),
+            role: role,
+            membership_status: 'pending',
+
+            profile_photo_url: fileUrls['profile_photo'] || null,
+            updated_at: new Date().toISOString()
+        };
+
+        const { error: profileError } = await supabaseAdmin
+            .from('profiles')
+            .upsert(profileData, { onConflict: 'id' });
+
+        if (profileError) {
+            console.error("Profile Creation Failed:", profileError);
+            return { error: "Failed to initialize user profile: " + profileError.message };
         }
-    });
 
-    // Insert document records in parallel as well
-    const docInserts = Object.entries(fileUrls).map(([type, url]) => {
-        // Profile photo is not in 'documents' table usually? 
-        // Original code inserted ALL uploads into 'documents' table? 
-        // Let's check original code. Yes: "Insert into documents table" was inside uploadFile.
-        // We should maintain that behavior.
-
-        return supabaseAdmin.from('documents').insert({
+        // 4. Create Application Record
+        const { error: appError } = await supabaseAdmin.from('membership_applications').insert({
             user_id: userId,
-            document_type: type,
-            file_url: url,
             status: 'pending',
-            verified: false
+            membership_type: membershipType,
+            is_renewal: isRenewal,
+            renewal_card_url: fileUrls['renewal_card'] || null,
+            student_id_url: fileUrls['student_id'] || null,
+            transcript_front_url: fileUrls['transcript_front'] || null,
+            transcript_back_url: fileUrls['transcript_back'] || null
         });
-    });
 
-    await Promise.all(docInserts);
+        if (appError) {
+            console.error("Application Insert Error", appError);
+            return { error: "Failed to submit application record: " + appError.message };
+        }
 
-    // 3. Upsert Profile using ADMIN client (bypasses RLS)
-    const profileData = {
-        id: userId,
-        email: email,
-        full_name: fullName,
-        cnic: cnic,
-        father_name: s(fatherName),
-        date_of_birth: s(dob),
-        gender: s(gender),
-        blood_group: s(bloodGroup),
-
-        contact_number: s(phone),
-        residential_address: s(address),
-        city: s(city),
-        province: s(province),
-
-        institution: s(institution),
-        college_attended: s(collegeAttended),
-        qualification: s(qualification),
-        other_qualification: s(otherQualification),
-        post_graduate_institution: s(postGraduateInstitution),
-        has_relevant_pg: hasRelevantPg,
-        has_non_relevant_pg: hasNonRelevantPg,
-
-        current_status: s(currentStatus),
-        designation: s(designation),
-        employment_status: s(employmentStatus),
-
-        membership_type: s(membershipType),
-        role: role,
-        membership_status: 'pending',
-
-        profile_photo_url: fileUrls['profile_photo'] || null,
-        updated_at: new Date().toISOString()
-    };
-
-    const { error: profileError } = await supabaseAdmin
-        .from('profiles')
-        .upsert(profileData, { onConflict: 'id' });
-
-    if (profileError) {
-        console.error("Profile Creation Failed:", profileError);
-        return { error: "Failed to initialize user profile: " + profileError.message };
-    }
-
-    // 4. Create Application Record
-    const { error: appError } = await supabaseAdmin.from('membership_applications').insert({
-        user_id: userId,
-        status: 'pending',
-        membership_type: membershipType,
-        is_renewal: isRenewal,
-        renewal_card_url: fileUrls['renewal_card'] || null,
-        student_id_url: fileUrls['student_id'] || null,
-        transcript_front_url: fileUrls['transcript_front'] || null,
-        transcript_back_url: fileUrls['transcript_back'] || null
-    });
-
-    if (appError) {
-        console.error("Application Insert Error", appError);
-        return { error: "Failed to submit application record: " + appError.message };
-    }
-
-    // 5. Create Pending Payment
-    if (fileUrls['payment_proof']) {
-        await supabaseAdmin.from('payments').insert({
-            user_id: userId,
-            amount: 0,
-            payment_mode: 'Bank Transfer (Upload)',
-            status: 'pending',
-            receipt_url: fileUrls['payment_proof']
-        });
+        // 5. Create Pending Payment
+        if (fileUrls['payment_proof']) {
+            await supabaseAdmin.from('payments').insert({
+                user_id: userId,
+                amount: 0,
+                payment_mode: 'Bank Transfer (Upload)',
+                status: 'pending',
+                receipt_url: fileUrls['payment_proof']
+            });
+        }
+    } catch (err: any) {
+        console.error("System Error during registration:", err);
+        return { error: `System Error: ${err.message || "An unexpected error occurred processing your request."}` };
     }
 
     return { success: true };

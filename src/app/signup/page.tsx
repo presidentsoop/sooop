@@ -132,7 +132,7 @@ const FileUploadField = ({ label, icon: Icon, file, onChange, onRemove, required
                             <div>
                                 <p className="text-sm text-gray-700 font-semibold">Tap to {isPhoto ? 'take photo or select' : 'upload'}</p>
                                 <p className="text-xs text-gray-400 mt-1">
-                                    {isPhoto ? 'Camera or Gallery' : 'JPG, PNG, PDF'} (Max 5MB)
+                                    {isPhoto ? 'Camera or Gallery' : 'JPG, PNG, PDF'} (Max 3MB)
                                 </p>
                             </div>
                         </div>
@@ -325,7 +325,7 @@ export default function SignupPage() {
             } catch (error) {
                 console.error('File processing error:', error);
                 // Still try to use the original file
-                if (file.size <= 5 * 1024 * 1024) {
+                if (file.size <= 3 * 1024 * 1024) {
                     setFiles(prev => ({ ...prev, [field]: file }));
                 } else {
                     toast.error("Could not process file. Please try a smaller image.", { id: 'compress' });
@@ -724,7 +724,7 @@ export default function SignupPage() {
 
                                     <div className="bg-blue-50/50 text-blue-900 p-4 rounded-xl border border-blue-100 flex gap-3 text-sm">
                                         <AlertCircle className="w-5 h-5 flex-shrink-0 text-blue-600" />
-                                        <p>Please upload clear images or scans. Max size 5MB per file.</p>
+                                        <p>Please upload clear images or scans. Max size 3MB per file.</p>
                                     </div>
 
                                     {/* Bank Details Card - Premium Mobile-Friendly Design */}
