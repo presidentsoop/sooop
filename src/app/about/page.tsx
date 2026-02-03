@@ -1,19 +1,13 @@
-import { Metadata } from 'next';
+"use client";
+
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import AboutSection from '@/components/home/AboutSection';
 import HistorySection from '@/components/home/HistorySection';
 
-export const metadata: Metadata = {
-    title: 'About Us - SOOOP',
-    description: 'Learn about the Society of Optometrists, Orthoptists and Ophthalmic Technologists Pakistan.',
-    alternates: {
-        canonical: '/about',
-    },
-};
 
-// ISR: Revalidate every hour - page is statically generated
-export const revalidate = 3600;
+
+
 
 // Static hero content
 const heroContent = {
