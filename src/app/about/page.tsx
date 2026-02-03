@@ -5,11 +5,6 @@ import Footer from '@/components/layout/Footer';
 import AboutSection from '@/components/home/AboutSection';
 import HistorySection from '@/components/home/HistorySection';
 
-
-
-
-
-// Static hero content
 const heroContent = {
     title: "About **SOOOP**",
     subtitle: "The comprehensive representative body of vision care professionals in Pakistan"

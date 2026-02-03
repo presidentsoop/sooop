@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import ProfileForm from "@/components/profile/ProfileForm";
 
 export default async function ProfilePage() {
@@ -17,8 +16,9 @@ export default async function ProfilePage() {
         .eq('id', user.id)
         .single();
 
-    // Determine Role for Layout
-    const role = profile?.role || user.user_metadata?.role || 'member';
+    // Serialize data to avoid "Event handlers cannot be passed" error
+    const serializedUser = JSON.parse(JSON.stringify(user));
+    const serializedProfile = profile ? JSON.parse(JSON.stringify(profile)) : null;
 
     return (
         <>
@@ -27,7 +27,7 @@ export default async function ProfilePage() {
                 <p className="text-gray-500 mt-2">Manage your account information and preferences.</p>
             </div>
 
-            <ProfileForm user={user} profile={profile} />
+            <ProfileForm user={serializedUser} profile={serializedProfile} />
         </>
     );
 }
