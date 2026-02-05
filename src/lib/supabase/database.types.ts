@@ -221,6 +221,105 @@ export type Database = {
                     },
                 ]
             }
+            imported_members: {
+                Row: {
+                    id: string
+                    email: string
+                    full_name: string
+                    father_name: string | null
+                    cnic: string | null
+                    contact_number: string | null
+                    membership_type: string | null
+                    gender: string | null
+                    date_of_birth: string | null
+                    blood_group: string | null
+                    qualification: string | null
+                    has_relevant_pg: boolean | null
+                    has_non_relevant_pg: boolean | null
+                    college_attended: string | null
+                    post_graduate_institution: string | null
+                    employment_status: string | null
+                    designation: string | null
+                    city: string | null
+                    province: string | null
+                    residential_address: string | null
+                    subscription_start_date: string | null
+                    subscription_end_date: string | null
+                    transaction_id: string | null
+                    imported_at: string | null
+                    claimed: boolean | null
+                    claimed_by: string | null
+                    claimed_at: string | null
+                    invite_sent: boolean | null
+                    invite_sent_at: string | null
+                    raw_data: Json | null
+                }
+                Insert: {
+                    id?: string
+                    email: string
+                    full_name: string
+                    father_name?: string | null
+                    cnic?: string | null
+                    contact_number?: string | null
+                    membership_type?: string | null
+                    gender?: string | null
+                    date_of_birth?: string | null
+                    blood_group?: string | null
+                    qualification?: string | null
+                    has_relevant_pg?: boolean | null
+                    has_non_relevant_pg?: boolean | null
+                    college_attended?: string | null
+                    post_graduate_institution?: string | null
+                    employment_status?: string | null
+                    designation?: string | null
+                    city?: string | null
+                    province?: string | null
+                    residential_address?: string | null
+                    subscription_start_date?: string | null
+                    subscription_end_date?: string | null
+                    transaction_id?: string | null
+                    imported_at?: string | null
+                    claimed?: boolean | null
+                    claimed_by?: string | null
+                    claimed_at?: string | null
+                    invite_sent?: boolean | null
+                    invite_sent_at?: string | null
+                    raw_data?: Json | null
+                }
+                Update: {
+                    id?: string
+                    email?: string
+                    full_name?: string
+                    father_name?: string | null
+                    cnic?: string | null
+                    contact_number?: string | null
+                    membership_type?: string | null
+                    gender?: string | null
+                    date_of_birth?: string | null
+                    blood_group?: string | null
+                    qualification?: string | null
+                    has_relevant_pg?: boolean | null
+                    has_non_relevant_pg?: boolean | null
+                    college_attended?: string | null
+                    post_graduate_institution?: string | null
+                    employment_status?: string | null
+                    designation?: string | null
+                    city?: string | null
+                    province?: string | null
+                    residential_address?: string | null
+                    subscription_start_date?: string | null
+                    subscription_end_date?: string | null
+                    transaction_id?: string | null
+                    imported_at?: string | null
+                    claimed?: boolean | null
+                    claimed_by?: string | null
+                    claimed_at?: string | null
+                    invite_sent?: boolean | null
+                    invite_sent_at?: string | null
+                    raw_data?: Json | null
+                }
+                Relationships: []
+            }
             membership_applications: {
                 Row: {
                     id: string

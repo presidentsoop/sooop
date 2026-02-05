@@ -226,9 +226,14 @@ export default function MemberManagement() {
     };
 
     const openApproveModal = (member: Member) => {
-        setMemberToApprove(member);
-        setRegistrationInput("");
-        setApproveModalOpen(true);
+        // Close detail modal first for better UX
+        setSelectedMember(null);
+        // Small delay to let the detail modal close smoothly
+        setTimeout(() => {
+            setMemberToApprove(member);
+            setRegistrationInput("");
+            setApproveModalOpen(true);
+        }, 150);
     };
 
     const confirmApproval = async () => {
@@ -237,9 +242,13 @@ export default function MemberManagement() {
             toast.error("Please enter a registration number");
             return;
         }
+        setActionLoading(memberToApprove.id);
         await handleAction(memberToApprove.id, 'approve', registrationInput);
         setApproveModalOpen(false);
         setMemberToApprove(null);
+        setActionLoading(null);
+        // Refresh the list
+        fetchMembers();
     };
 
     // Get tab counts

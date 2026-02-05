@@ -1,14 +1,13 @@
 "use client";
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Loader2, RotateCcw, Shield, AlertCircle, Eye, CreditCard } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
 
-// Strict Type Definition based on our Schema
 interface IdentityCardProps {
     profile: {
         id: string;
@@ -20,40 +19,81 @@ interface IdentityCardProps {
         city?: string;
         cnic: string;
         subscription_end_date?: string;
+        subscription_start_date?: string;
         blood_group?: string;
+        father_name?: string;
+        contact_number?: string;
+        email?: string;
     };
 }
 
 export default function IdentityCard({ profile }: IdentityCardProps) {
-    const cardRef = useRef<HTMLDivElement>(null);
+    const frontRef = useRef<HTMLDivElement>(null);
+    const backRef = useRef<HTMLDivElement>(null);
     const [isDownloading, setIsDownloading] = useState(false);
+    const [showBack, setShowBack] = useState(false);
+    const [imageLoaded, setImageLoaded] = useState(false);
+
+    // Preload profile photo
+    useEffect(() => {
+        if (profile.profile_photo_url) {
+            const img = new window.Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => setImageLoaded(true);
+            img.onerror = () => setImageLoaded(true);
+            img.src = profile.profile_photo_url;
+        } else {
+            setImageLoaded(true);
+        }
+    }, [profile.profile_photo_url]);
 
     const handleDownloadPDF = async () => {
-        if (!cardRef.current) return;
+        if (!frontRef.current || !backRef.current) return;
         setIsDownloading(true);
 
         try {
-            // High Scale for better quality
-            const canvas = await html2canvas(cardRef.current, {
-                scale: 2,
-                useCORS: true, // Important for external images
-                backgroundColor: null,
-            });
+            // Wait for images to be ready
+            await new Promise(resolve => setTimeout(resolve, 500));
 
-            const imgData = canvas.toDataURL('image/png');
+            // Card dimensions in mm (CR80 standard)
+            const cardWidth = 85.6;
+            const cardHeight = 54;
+
             const pdf = new jsPDF({
-                orientation: 'portrait',
+                orientation: 'landscape',
                 unit: 'mm',
-                format: 'a4',
+                format: [cardWidth, cardHeight],
             });
 
-            // Calculate dimensions to fit neatly on A4
-            const imgWidth = 210; // A4 width
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            // Capture Front Side
+            const frontCanvas = await html2canvas(frontRef.current, {
+                scale: 4,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: null,
+                logging: false,
+                imageTimeout: 15000,
+            });
+            const frontImg = frontCanvas.toDataURL('image/png', 1.0);
+            pdf.addImage(frontImg, 'PNG', 0, 0, cardWidth, cardHeight);
 
-            pdf.addImage(imgData, 'PNG', 0, 10, imgWidth, imgHeight);
-            pdf.save(`SOOOP-Membership-Card-${profile.registration_number || 'Pending'}.pdf`);
-            toast.success("Card downloaded successfully!");
+            // Add new page for back
+            pdf.addPage([cardWidth, cardHeight], 'landscape');
+
+            // Capture Back Side
+            const backCanvas = await html2canvas(backRef.current, {
+                scale: 4,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: null,
+                logging: false,
+                imageTimeout: 15000,
+            });
+            const backImg = backCanvas.toDataURL('image/png', 1.0);
+            pdf.addImage(backImg, 'PNG', 0, 0, cardWidth, cardHeight);
+
+            pdf.save(`SOOOP-Card-${profile.registration_number || 'Member'}.pdf`);
+            toast.success("Membership card downloaded successfully!");
 
         } catch (error) {
             console.error("PDF Generation Error:", error);
@@ -64,139 +104,359 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
     };
 
     // Verification URL for QR Code
-    const verificationUrl = `https://sooop.org.pk/verify/${profile.registration_number || profile.id}`;
+    const verificationUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://sooop.org.pk'}/verify/${profile.registration_number || profile.id}`;
+
+    // Format CNIC with dashes: 00000-0000000-0
+    const formatCNIC = (cnic: string) => {
+        if (!cnic) return 'N/A';
+        const cleaned = cnic.replace(/\D/g, '');
+        if (cleaned.length === 13) {
+            return `${cleaned.slice(0, 5)}-${cleaned.slice(5, 12)}-${cleaned.slice(12)}`;
+        }
+        return cnic;
+    };
+
+    // Get validity year range
+    const getValidityPeriod = () => {
+        if (!profile.subscription_start_date || !profile.subscription_end_date) return null;
+        const start = new Date(profile.subscription_start_date);
+        const end = new Date(profile.subscription_end_date);
+        return `${start.getFullYear()} - ${end.getFullYear()}`;
+    };
+
+    // Check if membership is valid
+    const isValid = profile.subscription_end_date && new Date(profile.subscription_end_date) > new Date();
+
+    // Can download card only if approved
+    const canDownload = !!profile.registration_number;
 
     return (
         <div className="flex flex-col items-center gap-8 animate-fade-in">
-            {/* CARD CONTAINER (This part gets printed) */}
-            <div ref={cardRef} className="flex flex-col gap-8 items-center bg-gray-50 p-8 rounded-xl">
 
-                {/* === FRONT SIDE === */}
-                <div className="w-[350px] h-[550px] bg-white rounded-2xl shadow-xl relative overflow-hidden flex flex-col border border-gray-200">
-
-                    {/* Header */}
-                    <div className="h-36 bg-gradient-to-br from-primary-700 to-primary-900 relative p-6 text-center">
-                        <div className="absolute inset-0 pattern-dots opacity-10"></div>
-                        <div className="absolute inset-0 pattern-dots opacity-10"></div>
-                        <div className="flex items-center justify-center gap-3 mb-1">
-                            <div className="relative w-10 h-10">
-                                <Image src="/logo.jpg" alt="SOOOP Logo" fill className="object-contain" />
-                            </div>
-                            <h1 className="text-3xl font-black text-white tracking-widest">SOOOP</h1>
-                        </div>
-                        <p className="text-[9px] text-white/80 uppercase tracking-widest leading-tight">Society of Optometrists Orthoptists <br />& Ophthalmic Technologists Pakistan</p>
-                    </div>
-
-                    {/* Photo */}
-                    <div className="relative -mt-16 mx-auto w-32 h-32">
-                        <div className="w-full h-full rounded-full border-[6px] border-white shadow-lg bg-gray-200 overflow-hidden relative">
-                            {profile.profile_photo_url ? (
-                                <Image
-                                    src={profile.profile_photo_url}
-                                    alt={profile.full_name}
-                                    fill
-                                    className="object-cover"
-                                    referrerPolicy="no-referrer" // Helps with CORS sometimes
-                                />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-primary-50 text-primary-200 text-4xl font-bold">
-                                    {profile.full_name[0]}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Details */}
-                    <div className="flex-1 flex flex-col items-center pt-4 pb-8 px-6 text-center">
-                        <h2 className="text-xl font-bold text-gray-900 leading-tight mb-1">{profile.full_name}</h2>
-                        <p className="text-xs font-semibold text-primary-600 uppercase tracking-wide mb-6">
-                            {profile.designation || profile.membership_type || "Member"}
+            {/* Status Banner */}
+            {!canDownload && (
+                <div className="w-full max-w-lg bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-sm font-semibold text-amber-800">Membership Pending Approval</p>
+                        <p className="text-xs text-amber-600 mt-1">
+                            Your membership card will be available for download once your application is approved and a registration number is assigned.
                         </p>
-
-                        <div className="w-full space-y-3">
-                            <div className="flex justify-between items-center border-b border-gray-100 pb-2">
-                                <span className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Membership ID</span>
-                                <span className="text-sm font-mono font-bold text-gray-800">
-                                    {profile.registration_number || "PENDING"}
-                                </span>
-                            </div>
-                            <div className="flex justify-between items-center border-b border-gray-100 pb-2">
-                                <span className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">CNIC</span>
-                                <span className="text-sm font-mono font-bold text-gray-800">{profile.cnic}</span>
-                            </div>
-                            <div className="flex justify-between items-center border-b border-gray-100 pb-2">
-                                <span className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Valid Until</span>
-                                <span className="text-sm font-bold text-red-600">
-                                    {profile.subscription_end_date
-                                        ? new Date(profile.subscription_end_date).toLocaleDateString()
-                                        : "Not Active"}
-                                </span>
-                            </div>
-                            <div className="flex justify-between items-center pb-2">
-                                <span className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">City</span>
-                                <span className="text-sm font-bold text-gray-800">{profile.city || "Pakistan"}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Footer Strip */}
-                    <div className="h-2 bg-primary w-full mt-auto"></div>
-                </div>
-
-
-                {/* === BACK SIDE === */}
-                <div className="w-[350px] h-[550px] bg-white rounded-2xl shadow-xl relative overflow-hidden flex flex-col border border-gray-200 print:break-before-page">
-                    <div className="flex-1 p-8 flex flex-col items-center justify-center text-center space-y-6">
-
-                        {/* QR Code */}
-                        <div className="p-3 bg-white border-2 border-primary-100 rounded-xl shadow-sm">
-                            <QRCodeSVG value={verificationUrl} size={120} level="H" fgColor="#0f172a" />
-                        </div>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Scan to Verify</p>
-
-                        <div className="w-full border-t border-gray-100 my-4"></div>
-
-                        {/* Emergency Info */}
-                        <div className="space-y-1">
-                            <p className="text-[10px] uppercase text-gray-400 font-bold">Blood Group</p>
-                            <p className="text-xl font-bold text-red-600">{profile.blood_group || "N/A"}</p>
-                        </div>
-
-                        <div className="mt-8 text-[9px] text-gray-400 leading-relaxed max-w-[200px]">
-                            <p className="mb-2">This card is the property of SOOOP. If found, please return to:</p>
-                            <p className="font-semibold text-gray-600">123 Optometry House, Gulberg, Lahore, Pakistan.</p>
-                            <p className="mt-2">Tel: +92 300 1234567</p>
-                            <p>Email: contact@sooop.org.pk</p>
-                        </div>
-                    </div>
-                    <div className="h-6 bg-gray-900 w-full mt-auto flex items-center justify-center">
-                        <span className="text-[8px] text-white/50 tracking-[0.3em] uppercase">www.sooop.org.pk</span>
                     </div>
                 </div>
+            )}
 
+            {/* Card Preview Controls */}
+            <div className="flex items-center gap-4">
+                <button
+                    onClick={() => setShowBack(false)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${!showBack ? 'bg-primary text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                    <CreditCard className="w-4 h-4" />
+                    Front
+                </button>
+                <button
+                    onClick={() => setShowBack(true)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${showBack ? 'bg-primary text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                    <RotateCcw className="w-4 h-4" />
+                    Back
+                </button>
             </div>
 
-            {/* DOWNLOAD BUTTON */}
-            <button
-                onClick={handleDownloadPDF}
-                disabled={isDownloading || !profile.registration_number}
-                className="btn btn-primary px-8 py-4 rounded-full shadow-lg shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
-            >
-                {isDownloading ? (
-                    <>
-                        <Loader2 className="w-5 h-5 animate-spin" /> Generating PDF...
-                    </>
-                ) : (
-                    <>
-                        <Download className="w-5 h-5" /> Download Official ID Card
-                    </>
-                )}
-            </button>
-            {!profile.registration_number && (
-                <p className="text-sm text-red-500 font-medium bg-red-50 px-4 py-2 rounded-lg">
-                    Membership Pending Approval
+            {/* ============================ */}
+            {/*        CARD CONTAINER        */}
+            {/* ============================ */}
+            <div className="relative perspective-1000">
+
+                {/* Card Wrapper */}
+                <div className={`relative transition-transform duration-500 ${showBack ? 'rotate-y-180' : ''}`}>
+
+                    {/* === FRONT SIDE === */}
+                    <div
+                        ref={frontRef}
+                        className={`w-[428px] h-[270px] rounded-2xl shadow-2xl relative overflow-hidden ${showBack ? 'hidden' : 'block'}`}
+                        style={{
+                            aspectRatio: '85.6/54',
+                            background: 'linear-gradient(135deg, #001F54 0%, #00142e 50%, #001020 100%)',
+                        }}
+                    >
+                        {/* Decorative Elements */}
+                        <div className="absolute inset-0 overflow-hidden">
+                            {/* Top-right accent circle */}
+                            <div
+                                className="absolute -top-20 -right-20 w-56 h-56 rounded-full opacity-10"
+                                style={{ background: 'radial-gradient(circle, #00A8CC 0%, transparent 70%)' }}
+                            />
+                            {/* Bottom-left accent */}
+                            <div
+                                className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full opacity-8"
+                                style={{ background: 'radial-gradient(circle, #00A8CC 0%, transparent 70%)' }}
+                            />
+                            {/* Subtle grid pattern */}
+                            <div className="absolute inset-0 opacity-[0.03]" style={{
+                                backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
+                                backgroundSize: '20px 20px'
+                            }} />
+                        </div>
+
+                        {/* Main Content */}
+                        <div className="relative z-10 flex w-full h-full p-5">
+
+                            {/* Left Section - Photo */}
+                            <div className="flex flex-col items-center justify-center pr-5 border-r border-white/15">
+                                {/* Photo Frame */}
+                                <div className="relative w-28 h-28 rounded-xl overflow-hidden shadow-xl" style={{
+                                    border: '3px solid rgba(0, 168, 204, 0.6)',
+                                    background: 'linear-gradient(135deg, rgba(0, 168, 204, 0.2) 0%, rgba(0, 31, 84, 0.3) 100%)'
+                                }}>
+                                    {profile.profile_photo_url ? (
+                                        <img
+                                            src={profile.profile_photo_url}
+                                            alt={profile.full_name}
+                                            className="w-full h-full object-cover"
+                                            crossOrigin="anonymous"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #00A8CC 0%, #0086A3 100%)' }}>
+                                            <span className="text-white text-4xl font-bold">
+                                                {profile.full_name.charAt(0).toUpperCase()}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                                {/* Membership Type Badge */}
+                                <span
+                                    className="mt-2.5 px-3 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest"
+                                    style={{
+                                        background: 'linear-gradient(135deg, #00A8CC 0%, #0086A3 100%)',
+                                        color: 'white',
+                                        boxShadow: '0 2px 8px rgba(0, 168, 204, 0.4)'
+                                    }}
+                                >
+                                    {profile.membership_type || "Member"}
+                                </span>
+                            </div>
+
+                            {/* Right Section - Details */}
+                            <div className="flex-1 flex flex-col justify-between pl-5">
+
+                                {/* Header with Name & Logo */}
+                                <div className="flex items-start justify-between">
+                                    <div className="flex-1 pr-3">
+                                        <h2 className="text-xl font-bold text-white leading-tight tracking-wide">
+                                            {profile.full_name}
+                                        </h2>
+                                        <p className="text-xs font-semibold uppercase tracking-wider mt-1" style={{ color: '#00A8CC' }}>
+                                            {profile.designation || "Vision Care Professional"}
+                                        </p>
+                                    </div>
+                                    {/* Logo */}
+                                    <div className="flex-shrink-0 w-12 h-12 bg-white rounded-lg p-1 shadow-lg">
+                                        <img
+                                            src="/logo.jpg"
+                                            alt="SOOOP"
+                                            className="w-full h-full object-contain rounded"
+                                            crossOrigin="anonymous"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Details Grid */}
+                                <div className="grid grid-cols-2 gap-x-5 gap-y-2.5 mt-4">
+                                    <div>
+                                        <span className="text-[9px] uppercase font-bold tracking-wider block" style={{ color: 'rgba(255,255,255,0.4)' }}>Registration No.</span>
+                                        <span className="text-sm font-mono font-bold text-white">
+                                            {profile.registration_number || "PENDING"}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="text-[9px] uppercase font-bold tracking-wider block" style={{ color: 'rgba(255,255,255,0.4)' }}>CNIC</span>
+                                        <span className="text-sm font-mono font-bold text-white">
+                                            {formatCNIC(profile.cnic)}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="text-[9px] uppercase font-bold tracking-wider block" style={{ color: 'rgba(255,255,255,0.4)' }}>City</span>
+                                        <span className="text-sm font-semibold text-white">
+                                            {profile.city || "Pakistan"}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="text-[9px] uppercase font-bold tracking-wider block" style={{ color: 'rgba(255,255,255,0.4)' }}>Valid Until</span>
+                                        <span className={`text-sm font-bold ${isValid ? 'text-emerald-400' : 'text-red-400'}`}>
+                                            {profile.subscription_end_date
+                                                ? new Date(profile.subscription_end_date).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
+                                                : "Inactive"}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Bottom Organization Name */}
+                                <div className="flex items-center justify-between mt-auto pt-3 border-t border-white/10">
+                                    <span className="text-[7px] uppercase tracking-[0.15em] font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                                        Society of Optometrists, Orthoptists & Ophthalmic Technologists Pakistan
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Bottom Accent Strip */}
+                        <div className="absolute bottom-0 left-0 w-full h-1.5" style={{
+                            background: 'linear-gradient(90deg, #00A8CC 0%, #33BFDF 50%, #00A8CC 100%)'
+                        }} />
+                    </div>
+
+
+                    {/* === BACK SIDE === */}
+                    <div
+                        ref={backRef}
+                        className={`w-[428px] h-[270px] bg-white rounded-2xl shadow-2xl relative overflow-hidden ${showBack ? 'block' : 'hidden'}`}
+                        style={{ aspectRatio: '85.6/54' }}
+                    >
+                        {/* Background Pattern */}
+                        <div className="absolute inset-0 overflow-hidden">
+                            <div
+                                className="absolute -top-12 -right-12 w-36 h-36 rounded-full opacity-60"
+                                style={{ background: 'radial-gradient(circle, rgba(0, 168, 204, 0.15) 0%, transparent 70%)' }}
+                            />
+                            <div
+                                className="absolute -bottom-10 -left-10 w-28 h-28 rounded-full opacity-40"
+                                style={{ background: 'radial-gradient(circle, rgba(0, 31, 84, 0.1) 0%, transparent 70%)' }}
+                            />
+                            {/* Subtle pattern */}
+                            <div className="absolute inset-0 opacity-[0.02]" style={{
+                                backgroundImage: 'linear-gradient(#001F54 1px, transparent 1px), linear-gradient(90deg, #001F54 1px, transparent 1px)',
+                                backgroundSize: '15px 15px'
+                            }} />
+                        </div>
+
+                        {/* Content */}
+                        <div className="relative z-10 flex w-full h-full p-5">
+
+                            {/* Left - QR Code */}
+                            <div className="flex flex-col items-center justify-center pr-5 border-r border-gray-200">
+                                <div className="p-2.5 bg-white rounded-xl shadow-md" style={{ border: '2px solid rgba(0, 168, 204, 0.3)' }}>
+                                    <QRCodeSVG
+                                        value={verificationUrl}
+                                        size={95}
+                                        level="H"
+                                        fgColor="#001F54"
+                                        bgColor="transparent"
+                                        includeMargin={false}
+                                    />
+                                </div>
+                                <p className="mt-2 text-[8px] uppercase tracking-widest font-bold text-center" style={{ color: '#00A8CC' }}>
+                                    Scan to Verify
+                                </p>
+                            </div>
+
+                            {/* Right - Info */}
+                            <div className="flex-1 flex flex-col justify-between pl-5">
+
+                                {/* Header */}
+                                <div className="flex items-center gap-2.5">
+                                    <div className="w-9 h-9">
+                                        <img src="/logo.jpg" alt="SOOOP" className="w-full h-full object-contain" crossOrigin="anonymous" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold tracking-wide" style={{ color: '#001F54' }}>SOOOP Pakistan</h3>
+                                        <p className="text-[8px] uppercase tracking-wider font-semibold" style={{ color: '#00A8CC' }}>Official Member Card</p>
+                                    </div>
+                                </div>
+
+                                {/* Member Info Grid */}
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-2 py-3">
+                                    <div>
+                                        <span className="text-[8px] uppercase font-bold tracking-wider block text-gray-400">Father/Husband</span>
+                                        <span className="text-xs font-semibold text-gray-800 truncate block">
+                                            {profile.father_name || "N/A"}
+                                        </span>
+                                    </div>
+                                    <div className="text-center">
+                                        <span className="text-[8px] uppercase font-bold tracking-wider block text-gray-400">Blood Group</span>
+                                        <span className="text-xl font-black" style={{ color: '#EF4444' }}>
+                                            {profile.blood_group || "—"}
+                                        </span>
+                                    </div>
+                                    {getValidityPeriod() && (
+                                        <div className="col-span-2">
+                                            <span className="text-[8px] uppercase font-bold tracking-wider block text-gray-400">Validity Period</span>
+                                            <span className="text-xs font-semibold text-gray-800">
+                                                {getValidityPeriod()}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Important Notice */}
+                                <div className="p-2 rounded-lg mt-auto" style={{ background: 'rgba(0, 31, 84, 0.05)', border: '1px solid rgba(0, 31, 84, 0.1)' }}>
+                                    <p className="text-[7px] leading-relaxed text-gray-500">
+                                        <strong className="text-gray-700">Note:</strong> This card is property of SOOOP Pakistan. If found, please return to: <span className="font-semibold">contact@sooop.org.pk</span>
+                                    </p>
+                                </div>
+
+                                {/* Footer */}
+                                <div className="flex items-center justify-between pt-2 border-t border-gray-100 mt-2">
+                                    <div className="flex items-center gap-1.5">
+                                        <Shield className="w-3 h-3" style={{ color: '#00A8CC' }} />
+                                        <span className="text-[8px] font-semibold" style={{ color: '#001F54' }}>www.sooop.org.pk</span>
+                                    </div>
+                                    <span className="text-[8px] text-gray-400 font-mono">
+                                        {profile.registration_number || "PENDING"}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Bottom Strip */}
+                        <div className="absolute bottom-0 left-0 w-full h-1.5" style={{
+                            background: 'linear-gradient(90deg, #001F54 0%, #00142e 100%)'
+                        }} />
+                    </div>
+
+                </div>
+            </div>
+
+            {/* ============================ */}
+            {/*       DOWNLOAD SECTION       */}
+            {/* ============================ */}
+            <div className="flex flex-col items-center gap-4 w-full max-w-md">
+                <button
+                    onClick={handleDownloadPDF}
+                    disabled={isDownloading || !canDownload}
+                    className={`
+                        w-full flex items-center justify-center gap-3 px-8 py-4 rounded-xl font-bold text-lg shadow-xl transition-all
+                        ${canDownload
+                            ? 'text-white hover:scale-[1.02] active:scale-[0.98]'
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'}
+                    `}
+                    style={canDownload ? {
+                        background: 'linear-gradient(135deg, #001F54 0%, #00142e 100%)',
+                        boxShadow: '0 10px 30px rgba(0, 31, 84, 0.3)'
+                    } : {}}
+                >
+                    {isDownloading ? (
+                        <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Generating PDF...
+                        </>
+                    ) : (
+                        <>
+                            <Download className="w-5 h-5" />
+                            Download Membership Card
+                        </>
+                    )}
+                </button>
+
+                {/* Help Text */}
+                <p className="text-xs text-gray-400 text-center">
+                    {canDownload
+                        ? "PDF includes front and back of the card (CR80 standard size)"
+                        : "Card download available after membership approval"
+                    }
                 </p>
-            )}
+            </div>
         </div>
     );
 }

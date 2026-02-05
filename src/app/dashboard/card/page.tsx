@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import IdentityCard from "@/components/dashboard/IdentityCard";
-import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 
@@ -19,11 +18,13 @@ export default async function IDCardPage() {
         .eq('id', user.id)
         .single();
 
-    // Auth Check
-    if (profile?.membership_status !== 'active') {
-        redirect("/dashboard"); // Only approved members can see this
+    // Allow viewing for pending and active members (download is disabled for pending in the component)
+    if (!profile || (profile.membership_status !== 'active' && profile.membership_status !== 'pending')) {
+        redirect("/dashboard");
     }
 
+    // Serialize to avoid hydration issues
+    const serializedProfile = JSON.parse(JSON.stringify(profile));
 
     return (
         <div className="flex flex-col items-center py-10 fade-in-up">
@@ -38,7 +39,7 @@ export default async function IDCardPage() {
                 Official SOOOP Membership Card. Valid for entry to all events and workshops.
             </p>
 
-            <IdentityCard profile={profile} />
+            <IdentityCard profile={serializedProfile} />
         </div>
     );
 }
