@@ -360,15 +360,17 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                         {/* Left - QR Code */}
                         <div className="flex flex-col items-center justify-center pr-3 sm:pr-5 border-r border-gray-200">
                             <div className="p-1.5 sm:p-2.5 bg-white rounded-lg sm:rounded-xl shadow-md" style={{ border: '2px solid rgba(45, 212, 191, 0.4)' }}>
-                                <QRCodeSVG
-                                    value={verificationUrl}
-                                    size={70}
-                                    level="H"
-                                    fgColor="#0a3d62"
-                                    bgColor="transparent"
-                                    includeMargin={false}
-                                    className="w-[60px] h-[60px] sm:w-[95px] sm:h-[95px]"
-                                />
+                                <div className="w-[60px] h-[60px] sm:w-[85px] sm:h-[85px]">
+                                    <QRCodeSVG
+                                        value={verificationUrl}
+                                        size={85}
+                                        level="H"
+                                        fgColor="#0a3d62"
+                                        bgColor="transparent"
+                                        includeMargin={false}
+                                        style={{ width: '100%', height: '100%' }}
+                                    />
+                                </div>
                             </div>
                             <p className="mt-1.5 sm:mt-2 text-[7px] sm:text-[8px] uppercase tracking-widest font-bold text-center" style={{ color: '#14b8a6' }}>
                                 Scan to Verify
