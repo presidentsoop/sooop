@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { Download, Loader2, RotateCcw, Shield, AlertCircle, CreditCard } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
@@ -90,6 +90,25 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
         // Get parent container
         const container = pdfFrontRef.current.parentElement;
 
+        // Helper function to wrap canvas capture with timeout
+        const captureWithTimeout = (element: HTMLElement, options: Parameters<typeof html2canvas>[1], timeoutMs: number = 10000): Promise<HTMLCanvasElement> => {
+            return new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    reject(new Error('Canvas capture timed out'));
+                }, timeoutMs);
+
+                html2canvas(element, options)
+                    .then((canvas) => {
+                        clearTimeout(timeoutId);
+                        resolve(canvas);
+                    })
+                    .catch((err) => {
+                        clearTimeout(timeoutId);
+                        reject(err);
+                    });
+            });
+        };
+
         try {
             // Temporarily make the hidden container visible for capture
             if (container) {
@@ -98,10 +117,11 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                 container.style.top = '0';
                 container.style.opacity = '1';
                 container.style.zIndex = '9999';
+                container.style.background = 'white';
             }
 
             // Wait for DOM update
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise(resolve => setTimeout(resolve, 500));
 
             // Card dimensions in mm (CR80 standard)
             const cardWidth = 85.6;
@@ -114,17 +134,26 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                 format: [cardWidth, cardHeight],
             });
 
-            // Capture Front Side
-            console.log('Capturing front side...');
-            const frontCanvas = await html2canvas(pdfFrontRef.current, {
+            // Simplified html2canvas options
+            const canvasOptions = {
                 scale: 2,
                 useCORS: true,
                 allowTaint: true,
-                backgroundColor: '#0a3d62',
-                logging: false,
-            });
+                logging: true, // Enable logging for debugging
+                imageTimeout: 5000,
+                removeContainer: false,
+                foreignObjectRendering: false,
+            };
 
-            console.log('Front canvas size:', frontCanvas.width, frontCanvas.height);
+            // Capture Front Side
+            console.log('Capturing front side...');
+            const frontCanvas = await captureWithTimeout(
+                pdfFrontRef.current,
+                { ...canvasOptions, backgroundColor: '#0a3d62' },
+                15000
+            );
+
+            console.log('Front canvas captured:', frontCanvas.width, 'x', frontCanvas.height);
             const frontImg = frontCanvas.toDataURL('image/png');
             pdf.addImage(frontImg, 'PNG', 0, 0, cardWidth, cardHeight);
 
@@ -133,15 +162,13 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
 
             // Capture Back Side
             console.log('Capturing back side...');
-            const backCanvas = await html2canvas(pdfBackRef.current, {
-                scale: 2,
-                useCORS: true,
-                allowTaint: true,
-                backgroundColor: '#ffffff',
-                logging: false,
-            });
+            const backCanvas = await captureWithTimeout(
+                pdfBackRef.current,
+                { ...canvasOptions, backgroundColor: '#ffffff' },
+                15000
+            );
 
-            console.log('Back canvas size:', backCanvas.width, backCanvas.height);
+            console.log('Back canvas captured:', backCanvas.width, 'x', backCanvas.height);
             const backImg = backCanvas.toDataURL('image/png');
             pdf.addImage(backImg, 'PNG', 0, 0, cardWidth, cardHeight);
 
@@ -151,6 +178,7 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                 container.style.left = '-9999px';
                 container.style.opacity = '0';
                 container.style.zIndex = '-1';
+                container.style.background = 'transparent';
             }
 
             // Save the PDF
@@ -167,9 +195,10 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                 container.style.left = '-9999px';
                 container.style.opacity = '0';
                 container.style.zIndex = '-1';
+                container.style.background = 'transparent';
             }
 
-            toast.error("Failed to generate PDF. Please check console for details.");
+            toast.error(`Failed to generate PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
             setIsDownloading(false);
         }
@@ -358,12 +387,12 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                 {/* Left - QR Code */}
                 <div className="flex flex-col items-center justify-center pr-5 border-r border-gray-200">
                     <div className="p-2.5 bg-white rounded-xl shadow-md" style={{ border: '2px solid rgba(45, 212, 191, 0.4)' }}>
-                        <QRCodeSVG
+                        <QRCodeCanvas
                             value={verificationUrl}
                             size={90}
                             level="H"
                             fgColor="#0a3d62"
-                            bgColor="transparent"
+                            bgColor="#ffffff"
                             includeMargin={false}
                         />
                     </div>

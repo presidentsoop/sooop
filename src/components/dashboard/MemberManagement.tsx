@@ -61,6 +61,10 @@ export default function MemberManagement() {
     const [approveModalOpen, setApproveModalOpen] = useState(false);
     const [registrationInput, setRegistrationInput] = useState("");
     const [memberToApprove, setMemberToApprove] = useState<Member | null>(null);
+    // Edit Registration Number Modal State
+    const [editRegModalOpen, setEditRegModalOpen] = useState(false);
+    const [memberToEditReg, setMemberToEditReg] = useState<Member | null>(null);
+    const [editRegInput, setEditRegInput] = useState("");
 
     const supabase = createClient();
 
@@ -251,6 +255,48 @@ export default function MemberManagement() {
         fetchMembers();
     };
 
+    // Open Edit Registration Number modal
+    const openEditRegModal = (member: Member) => {
+        setSelectedMember(null); // Close detail modal
+        setTimeout(() => {
+            setMemberToEditReg(member);
+            setEditRegInput(member.registration_number || "");
+            setEditRegModalOpen(true);
+        }, 150);
+    };
+
+    // Save Registration Number
+    const saveRegistrationNumber = async () => {
+        if (!memberToEditReg) return;
+        if (!editRegInput.trim()) {
+            toast.error("Please enter a registration number");
+            return;
+        }
+        setActionLoading(memberToEditReg.id);
+
+        const { error } = await supabase
+            .from('profiles')
+            .update({
+                registration_number: editRegInput.trim(),
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', memberToEditReg.id);
+
+        if (error) {
+            toast.error("Failed to update registration number");
+        } else {
+            toast.success("Registration number updated successfully");
+            setMembers(members.map(m =>
+                m.id === memberToEditReg.id
+                    ? { ...m, registration_number: editRegInput.trim() }
+                    : m
+            ));
+        }
+        setEditRegModalOpen(false);
+        setMemberToEditReg(null);
+        setActionLoading(null);
+    };
+
     // Get tab counts
     const tabCounts = {
         all: members.length,
@@ -429,6 +475,13 @@ export default function MemberManagement() {
                                 >
                                     <RefreshCw className="w-4 h-4" />
                                 </button>
+                                <button
+                                    onClick={() => openEditRegModal(row)}
+                                    className={`p-1.5 rounded-lg transition-colors ${row.registration_number ? 'text-gray-400 hover:text-blue-600 hover:bg-blue-50' : 'text-amber-500 hover:text-amber-600 hover:bg-amber-50'}`}
+                                    title={row.registration_number ? "Edit Registration Number" : "Assign Registration Number (Required for Card)"}
+                                >
+                                    <CreditCard className="w-4 h-4" />
+                                </button>
                                 {row.membership_status !== 'blocked' && (
                                     <button
                                         onClick={() => handleAction(row.id, 'block')}
@@ -579,11 +632,31 @@ export default function MemberManagement() {
                                     <div className="flex-1">
                                         <h3 className="text-lg font-semibold text-gray-900">{selectedMember.full_name}</h3>
                                         <p className="text-sm text-gray-600 font-mono">{selectedMember.cnic}</p>
-                                        <div className="flex gap-2 mt-2">
+                                        <div className="flex items-center gap-2 mt-2">
                                             <StatusBadge status={selectedMember.membership_status || 'pending'} />
                                             <span className="px-2 py-0.5 bg-white text-gray-600 text-xs font-medium rounded border">
                                                 {selectedMember.role || 'member'}
                                             </span>
+                                        </div>
+                                        {/* Registration Number with Edit */}
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <span className="text-xs text-gray-500">Reg #:</span>
+                                            {selectedMember.registration_number ? (
+                                                <span className="font-mono text-sm font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                                                    {selectedMember.registration_number}
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
+                                                    Not Assigned
+                                                </span>
+                                            )}
+                                            <button
+                                                onClick={() => openEditRegModal(selectedMember)}
+                                                className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                title="Edit Registration Number"
+                                            >
+                                                <Settings className="w-3.5 h-3.5" />
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -682,6 +755,68 @@ export default function MemberManagement() {
                         </div>
                     </div>
                 )}
+            </Modal>
+
+            {/* Edit Registration Number Modal */}
+            <Modal
+                isOpen={editRegModalOpen}
+                onClose={() => setEditRegModalOpen(false)}
+                title="Edit Registration Number"
+                subtitle={memberToEditReg?.full_name}
+                size="md"
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={() => setEditRegModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="primary"
+                            onClick={saveRegistrationNumber}
+                            loading={!!(memberToEditReg && actionLoading === memberToEditReg.id)}
+                            icon={<CreditCard className="w-4 h-4" />}
+                        >
+                            Save Registration Number
+                        </Button>
+                    </>
+                }
+            >
+                <div className="p-6 space-y-4">
+                    <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                            <strong>Note:</strong> The registration number is required for the member to download their membership card.
+                        </p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            Registration Number <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            value={editRegInput}
+                            onChange={(e) => setEditRegInput(e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-mono placeholder:text-gray-400"
+                            placeholder="e.g. SOOOP-2024-001"
+                            autoFocus
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            This number will appear on the member's identity card.
+                        </p>
+                    </div>
+
+                    {memberToEditReg && (
+                        <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
+                            <p><strong>Member:</strong> {memberToEditReg.full_name}</p>
+                            <p><strong>CNIC:</strong> {memberToEditReg.cnic || 'N/A'}</p>
+                            <p><strong>Status:</strong> {memberToEditReg.membership_status}</p>
+                            {memberToEditReg.registration_number && (
+                                <p className="mt-1 text-amber-600">
+                                    <strong>Current Reg #:</strong> {memberToEditReg.registration_number}
+                                </p>
+                            )}
+                        </div>
+                    )}
+                </div>
             </Modal>
         </div>
     );
