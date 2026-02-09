@@ -416,18 +416,18 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                             </div>
                             {/* Logo */}
                             <div style={{
-                                width: forPdf ? '50px' : '40px',
-                                height: forPdf ? '50px' : '40px',
+                                width: forPdf ? '65px' : '52px',
+                                height: forPdf ? '65px' : '52px',
                                 background: 'white',
-                                borderRadius: '8px',
-                                padding: '4px',
+                                borderRadius: '10px',
+                                padding: '5px',
                                 flexShrink: 0,
-                                boxShadow: '0 3px 12px rgba(0, 0, 0, 0.25)',
+                                boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)',
                             }}>
                                 <img
                                     src={forPdf && logoDataUrl ? logoDataUrl : '/logo.jpg'}
                                     alt="SOOOP"
-                                    style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '4px' }}
+                                    style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '6px' }}
                                     crossOrigin="anonymous"
                                 />
                             </div>
@@ -664,60 +664,74 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                         flexDirection: 'column',
                         minWidth: 0,
                     }}>
-                        {/* Header - Logo with title */}
+                        {/* Header - Logo with member name */}
                         <div style={{
                             display: 'flex',
-                            flexDirection: 'column',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            marginBottom: forPdf ? '10px' : '8px',
+                            gap: forPdf ? '12px' : '10px',
+                            marginBottom: forPdf ? '8px' : '6px',
+                            paddingBottom: forPdf ? '8px' : '6px',
+                            borderBottom: '1px solid rgba(10, 61, 98, 0.1)',
                         }}>
                             <div style={{
-                                width: forPdf ? '55px' : '44px',
-                                height: forPdf ? '55px' : '44px',
-                                borderRadius: '10px',
+                                width: forPdf ? '70px' : '56px',
+                                height: forPdf ? '70px' : '56px',
+                                borderRadius: '12px',
                                 overflow: 'hidden',
                                 background: 'white',
-                                boxShadow: '0 3px 12px rgba(0, 0, 0, 0.12)',
-                                padding: '4px',
+                                boxShadow: '0 4px 15px rgba(0, 0, 0, 0.15)',
+                                padding: '5px',
+                                flexShrink: 0,
                             }}>
                                 <img
                                     src={forPdf && logoDataUrl ? logoDataUrl : '/logo.jpg'}
                                     alt="SOOOP"
-                                    style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '6px' }}
+                                    style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '8px' }}
                                     crossOrigin="anonymous"
                                 />
                             </div>
-                            <p style={{
-                                margin: forPdf ? '6px 0 0 0' : '4px 0 0 0',
-                                fontSize: forPdf ? '9px' : '7px',
-                                fontWeight: 700,
-                                color: '#14b8a6',
-                                textTransform: 'uppercase',
-                                letterSpacing: '1px',
-                            }}>Official Member Card</p>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <h3 style={{
+                                    margin: 0,
+                                    fontSize: forPdf ? '16px' : '13px',
+                                    fontWeight: 700,
+                                    color: '#0a3d62',
+                                    lineHeight: 1.2,
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                }}>{profile.full_name}</h3>
+                                <p style={{
+                                    margin: forPdf ? '4px 0 0 0' : '3px 0 0 0',
+                                    fontSize: forPdf ? '8px' : '6px',
+                                    fontWeight: 700,
+                                    color: '#14b8a6',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '1px',
+                                }}>Official Member Card</p>
+                            </div>
                         </div>
 
                         {/* Member Info Grid */}
                         <div style={{
                             display: 'grid',
                             gridTemplateColumns: '1fr 1fr',
-                            gap: forPdf ? '12px 20px' : '8px 14px',
+                            gap: forPdf ? '10px 16px' : '6px 12px',
                             flex: 1,
                         }}>
                             <div>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '9px' : '7px',
+                                    fontSize: forPdf ? '8px' : '6px',
                                     fontWeight: 700,
                                     color: '#6b7280',
                                     textTransform: 'uppercase',
                                     letterSpacing: '1px',
-                                    marginBottom: '3px',
+                                    marginBottom: '2px',
                                 }}>Father/Husband</span>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '13px' : '11px',
+                                    fontSize: forPdf ? '12px' : '10px',
                                     fontWeight: 600,
                                     color: '#1f2937',
                                     whiteSpace: 'nowrap',
