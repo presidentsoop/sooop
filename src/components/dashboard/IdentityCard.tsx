@@ -231,41 +231,47 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
     // Can download card only if approved
     const canDownload = !!profile.registration_number;
 
-    // Common card content component for both preview and PDF
+    // CR80 Standard ID Card: 85.6mm x 54mm (3.375" x 2.125")
+    // At 300 DPI: 1012 x 638 pixels - we use 506 x 319 for PDF (150 DPI equivalent)
+    const CARD_WIDTH = 506;
+    const CARD_HEIGHT = 319;
+
     const FrontCardContent = ({ forPdf = false }: { forPdf?: boolean }) => {
-        // Fixed card dimensions
+        const scale = forPdf ? 1 : 0.85;
+
         const cardStyle: React.CSSProperties = {
-            width: forPdf ? '428px' : '100%',
-            height: forPdf ? '270px' : 'auto',
+            width: forPdf ? `${CARD_WIDTH}px` : '100%',
+            height: forPdf ? `${CARD_HEIGHT}px` : 'auto',
             aspectRatio: forPdf ? undefined : '85.6 / 54',
-            background: 'linear-gradient(135deg, #0a3d62 0%, #1a5276 50%, #0a3d62 100%)',
-            borderRadius: '16px',
+            background: 'linear-gradient(135deg, #0a3d62 0%, #1a5276 40%, #0a3d62 100%)',
+            borderRadius: forPdf ? '12px' : '16px',
             position: 'relative',
             overflow: 'hidden',
-            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
+            boxShadow: forPdf ? 'none' : '0 10px 40px rgba(0, 0, 0, 0.3)',
             fontFamily: 'system-ui, -apple-system, sans-serif',
         };
 
         return (
             <div style={cardStyle}>
-                {/* Decorative circles */}
+                {/* Decorative wave pattern */}
                 <div style={{
                     position: 'absolute',
-                    top: '-60px',
-                    right: '-60px',
-                    width: '180px',
-                    height: '180px',
-                    borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(45, 212, 191, 0.25) 0%, transparent 70%)',
+                    top: 0,
+                    right: 0,
+                    width: '60%',
+                    height: '100%',
+                    background: 'linear-gradient(135deg, transparent 0%, rgba(45, 212, 191, 0.08) 50%, transparent 100%)',
+                    clipPath: 'ellipse(80% 100% at 100% 50%)',
                 }} />
+
+                {/* Top accent line */}
                 <div style={{
                     position: 'absolute',
-                    bottom: '-40px',
-                    left: '-40px',
-                    width: '120px',
-                    height: '120px',
-                    borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(45, 212, 191, 0.15) 0%, transparent 70%)',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '4px',
+                    background: 'linear-gradient(90deg, #2dd4bf 0%, #5eead4 50%, #2dd4bf 100%)',
                 }} />
 
                 {/* Main content wrapper */}
@@ -275,7 +281,8 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                     display: 'flex',
                     width: '100%',
                     height: '100%',
-                    padding: forPdf ? '20px' : '16px',
+                    padding: forPdf ? '24px' : '18px',
+                    paddingTop: forPdf ? '28px' : '22px',
                     boxSizing: 'border-box',
                 }}>
                     {/* Left section - Photo */}
@@ -283,20 +290,18 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        paddingRight: forPdf ? '20px' : '14px',
-                        borderRight: '1px solid rgba(255, 255, 255, 0.2)',
+                        width: forPdf ? '130px' : '110px',
                         flexShrink: 0,
                     }}>
-                        {/* Photo container */}
+                        {/* Photo container with professional frame */}
                         <div style={{
-                            width: forPdf ? '100px' : '80px',
-                            height: forPdf ? '100px' : '80px',
-                            borderRadius: '12px',
-                            border: '3px solid rgba(45, 212, 191, 0.7)',
+                            width: forPdf ? '110px' : '90px',
+                            height: forPdf ? '130px' : '106px',
+                            borderRadius: '8px',
+                            border: '3px solid rgba(45, 212, 191, 0.6)',
                             overflow: 'hidden',
-                            background: 'linear-gradient(135deg, rgba(45, 212, 191, 0.3) 0%, rgba(10, 61, 98, 0.5) 100%)',
-                            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)',
+                            background: '#0d4a6e',
+                            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(45, 212, 191, 0.1)',
                         }}>
                             {(photoDataUrl || profile.profile_photo_url) ? (
                                 <img
@@ -314,59 +319,70 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                                     justifyContent: 'center',
                                     background: 'linear-gradient(135deg, #2dd4bf 0%, #14b8a6 100%)',
                                 }}>
-                                    <span style={{ color: 'white', fontSize: forPdf ? '36px' : '28px', fontWeight: 'bold' }}>
+                                    <span style={{ color: 'white', fontSize: forPdf ? '42px' : '34px', fontWeight: 'bold' }}>
                                         {profile.full_name.charAt(0).toUpperCase()}
                                     </span>
                                 </div>
                             )}
                         </div>
                         {/* Membership type badge */}
-                        <span style={{
-                            marginTop: '10px',
-                            padding: '4px 12px',
+                        <div style={{
+                            marginTop: forPdf ? '10px' : '8px',
+                            padding: forPdf ? '5px 16px' : '4px 12px',
                             borderRadius: '20px',
                             background: 'linear-gradient(135deg, #2dd4bf 0%, #14b8a6 100%)',
-                            color: 'white',
-                            fontSize: forPdf ? '9px' : '8px',
-                            fontWeight: 700,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px',
-                            boxShadow: '0 2px 8px rgba(45, 212, 191, 0.4)',
+                            boxShadow: '0 2px 10px rgba(45, 212, 191, 0.4)',
                         }}>
-                            {profile.membership_type || 'Member'}
-                        </span>
+                            <span style={{
+                                color: 'white',
+                                fontSize: forPdf ? '10px' : '8px',
+                                fontWeight: 700,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px',
+                            }}>
+                                {profile.membership_type || 'Member'}
+                            </span>
+                        </div>
                     </div>
+
+                    {/* Vertical divider */}
+                    <div style={{
+                        width: '1px',
+                        height: '90%',
+                        alignSelf: 'center',
+                        background: 'linear-gradient(180deg, transparent 0%, rgba(45, 212, 191, 0.4) 20%, rgba(45, 212, 191, 0.4) 80%, transparent 100%)',
+                        margin: forPdf ? '0 20px' : '0 14px',
+                    }} />
 
                     {/* Right section - Details */}
                     <div style={{
                         flex: 1,
                         display: 'flex',
                         flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        paddingLeft: forPdf ? '20px' : '14px',
                         minWidth: 0,
                     }}>
                         {/* Header with name and logo */}
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: forPdf ? '6px' : '4px' }}>
                             <div style={{ flex: 1, paddingRight: '10px', minWidth: 0 }}>
                                 <h2 style={{
                                     margin: 0,
-                                    fontSize: forPdf ? '18px' : '16px',
+                                    fontSize: forPdf ? '22px' : '18px',
                                     fontWeight: 700,
                                     color: 'white',
                                     lineHeight: 1.2,
                                     whiteSpace: 'nowrap',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
+                                    textShadow: '0 1px 2px rgba(0,0,0,0.2)',
                                 }}>
                                     {profile.full_name}
                                 </h2>
                                 {profile.designation && (
                                     <p style={{
-                                        margin: '4px 0 0 0',
-                                        fontSize: forPdf ? '10px' : '9px',
+                                        margin: '3px 0 0 0',
+                                        fontSize: forPdf ? '11px' : '9px',
                                         fontWeight: 600,
-                                        color: '#2dd4bf',
+                                        color: '#5eead4',
                                         textTransform: 'uppercase',
                                         letterSpacing: '0.5px',
                                     }}>
@@ -376,13 +392,13 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                             </div>
                             {/* Logo */}
                             <div style={{
-                                width: forPdf ? '44px' : '36px',
-                                height: forPdf ? '44px' : '36px',
+                                width: forPdf ? '50px' : '40px',
+                                height: forPdf ? '50px' : '40px',
                                 background: 'white',
                                 borderRadius: '8px',
                                 padding: '4px',
                                 flexShrink: 0,
-                                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                                boxShadow: '0 3px 12px rgba(0, 0, 0, 0.25)',
                             }}>
                                 <img
                                     src={forPdf && logoDataUrl ? logoDataUrl : '/logo.jpg'}
@@ -397,23 +413,24 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                         <div style={{
                             display: 'grid',
                             gridTemplateColumns: '1fr 1fr',
-                            gap: forPdf ? '12px 20px' : '8px 14px',
-                            marginTop: forPdf ? '14px' : '10px',
+                            gap: forPdf ? '12px 24px' : '8px 16px',
+                            marginTop: forPdf ? '12px' : '8px',
+                            flex: 1,
                         }}>
                             {/* Registration No */}
                             <div>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '8px' : '7px',
+                                    fontSize: forPdf ? '9px' : '7px',
                                     fontWeight: 700,
-                                    color: 'rgba(255, 255, 255, 0.7)',
+                                    color: 'rgba(255, 255, 255, 0.65)',
                                     textTransform: 'uppercase',
-                                    letterSpacing: '0.5px',
-                                    marginBottom: '2px',
+                                    letterSpacing: '1px',
+                                    marginBottom: '3px',
                                 }}>Registration No.</span>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '12px' : '11px',
+                                    fontSize: forPdf ? '14px' : '12px',
                                     fontWeight: 700,
                                     color: 'white',
                                     fontFamily: 'monospace',
@@ -426,16 +443,16 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                             <div>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '8px' : '7px',
+                                    fontSize: forPdf ? '9px' : '7px',
                                     fontWeight: 700,
-                                    color: 'rgba(255, 255, 255, 0.7)',
+                                    color: 'rgba(255, 255, 255, 0.65)',
                                     textTransform: 'uppercase',
-                                    letterSpacing: '0.5px',
-                                    marginBottom: '2px',
+                                    letterSpacing: '1px',
+                                    marginBottom: '3px',
                                 }}>CNIC</span>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '11px' : '10px',
+                                    fontSize: forPdf ? '13px' : '11px',
                                     fontWeight: 700,
                                     color: 'white',
                                     fontFamily: 'monospace',
@@ -448,16 +465,16 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                             <div>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '8px' : '7px',
+                                    fontSize: forPdf ? '9px' : '7px',
                                     fontWeight: 700,
-                                    color: 'rgba(255, 255, 255, 0.7)',
+                                    color: 'rgba(255, 255, 255, 0.65)',
                                     textTransform: 'uppercase',
-                                    letterSpacing: '0.5px',
-                                    marginBottom: '2px',
+                                    letterSpacing: '1px',
+                                    marginBottom: '3px',
                                 }}>City</span>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '12px' : '11px',
+                                    fontSize: forPdf ? '14px' : '12px',
                                     fontWeight: 600,
                                     color: 'white',
                                     whiteSpace: 'nowrap',
@@ -469,18 +486,18 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                             <div>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '8px' : '7px',
+                                    fontSize: forPdf ? '9px' : '7px',
                                     fontWeight: 700,
-                                    color: 'rgba(255, 255, 255, 0.7)',
+                                    color: 'rgba(255, 255, 255, 0.65)',
                                     textTransform: 'uppercase',
-                                    letterSpacing: '0.5px',
-                                    marginBottom: '2px',
+                                    letterSpacing: '1px',
+                                    marginBottom: '3px',
                                 }}>Valid Until</span>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '12px' : '11px',
+                                    fontSize: forPdf ? '14px' : '12px',
                                     fontWeight: 700,
-                                    color: isValid ? '#6ee7b7' : '#fca5a5',
+                                    color: isValid ? '#5eead4' : '#fca5a5',
                                     whiteSpace: 'nowrap',
                                 }}>
                                     {profile.subscription_end_date
@@ -493,14 +510,14 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                         {/* Footer - Organization name */}
                         <div style={{
                             marginTop: 'auto',
-                            paddingTop: forPdf ? '10px' : '8px',
+                            paddingTop: forPdf ? '10px' : '6px',
                             borderTop: '1px solid rgba(255, 255, 255, 0.15)',
                         }}>
                             <span style={{
-                                fontSize: forPdf ? '7px' : '6px',
-                                color: 'rgba(255, 255, 255, 0.6)',
+                                fontSize: forPdf ? '8px' : '6px',
+                                color: 'rgba(255, 255, 255, 0.55)',
                                 textTransform: 'uppercase',
-                                letterSpacing: '1px',
+                                letterSpacing: '1.5px',
                                 fontWeight: 500,
                             }}>
                                 Society of Optometrists, Orthoptists & Ophthalmic Technologists Pakistan
@@ -515,7 +532,7 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                     bottom: 0,
                     left: 0,
                     width: '100%',
-                    height: '5px',
+                    height: '4px',
                     background: 'linear-gradient(90deg, #2dd4bf 0%, #5eead4 50%, #2dd4bf 100%)',
                 }} />
             </div>
@@ -524,37 +541,38 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
 
     const BackCardContent = ({ forPdf = false }: { forPdf?: boolean }) => {
         const cardStyle: React.CSSProperties = {
-            width: forPdf ? '428px' : '100%',
-            height: forPdf ? '270px' : 'auto',
+            width: forPdf ? `${CARD_WIDTH}px` : '100%',
+            height: forPdf ? `${CARD_HEIGHT}px` : 'auto',
             aspectRatio: forPdf ? undefined : '85.6 / 54',
-            background: 'white',
-            borderRadius: '16px',
+            background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+            borderRadius: forPdf ? '12px' : '16px',
             position: 'relative',
             overflow: 'hidden',
-            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
+            boxShadow: forPdf ? 'none' : '0 10px 40px rgba(0, 0, 0, 0.15)',
             fontFamily: 'system-ui, -apple-system, sans-serif',
         };
 
         return (
             <div style={cardStyle}>
-                {/* Background Pattern */}
+                {/* Top accent line */}
                 <div style={{
                     position: 'absolute',
-                    top: '-50px',
-                    right: '-50px',
-                    width: '140px',
-                    height: '140px',
-                    borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(45, 212, 191, 0.15) 0%, transparent 70%)',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '4px',
+                    background: 'linear-gradient(90deg, #0a3d62 0%, #1a5276 50%, #0a3d62 100%)',
                 }} />
+
+                {/* Decorative wave pattern */}
                 <div style={{
                     position: 'absolute',
-                    bottom: '-40px',
-                    left: '-40px',
-                    width: '110px',
-                    height: '110px',
-                    borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(10, 61, 98, 0.1) 0%, transparent 70%)',
+                    bottom: 0,
+                    right: 0,
+                    width: '50%',
+                    height: '60%',
+                    background: 'linear-gradient(135deg, transparent 0%, rgba(10, 61, 98, 0.03) 50%, transparent 100%)',
+                    clipPath: 'ellipse(100% 80% at 100% 100%)',
                 }} />
 
                 {/* Content */}
@@ -564,7 +582,8 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                     display: 'flex',
                     width: '100%',
                     height: '100%',
-                    padding: forPdf ? '20px' : '16px',
+                    padding: forPdf ? '24px' : '18px',
+                    paddingTop: forPdf ? '28px' : '22px',
                     boxSizing: 'border-box',
                 }}>
                     {/* Left - QR Code */}
@@ -573,20 +592,19 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        paddingRight: forPdf ? '20px' : '14px',
-                        borderRight: '1px solid #e5e7eb',
+                        width: forPdf ? '130px' : '110px',
                         flexShrink: 0,
                     }}>
                         <div style={{
-                            padding: '10px',
+                            padding: forPdf ? '10px' : '8px',
                             background: 'white',
-                            borderRadius: '12px',
-                            border: '2px solid rgba(45, 212, 191, 0.4)',
-                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                            borderRadius: '10px',
+                            border: '2px solid rgba(10, 61, 98, 0.15)',
+                            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.08)',
                         }}>
                             <QRCodeCanvas
                                 value={verificationUrl}
-                                size={forPdf ? 90 : 70}
+                                size={forPdf ? 100 : 80}
                                 level="H"
                                 fgColor="#0a3d62"
                                 bgColor="#ffffff"
@@ -594,10 +612,10 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                             />
                         </div>
                         <p style={{
-                            marginTop: '8px',
-                            fontSize: forPdf ? '8px' : '7px',
+                            marginTop: forPdf ? '10px' : '8px',
+                            fontSize: forPdf ? '9px' : '7px',
                             textTransform: 'uppercase',
-                            letterSpacing: '1px',
+                            letterSpacing: '1.5px',
                             fontWeight: 700,
                             color: '#14b8a6',
                             textAlign: 'center',
@@ -606,18 +624,36 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                         </p>
                     </div>
 
+                    {/* Vertical divider */}
+                    <div style={{
+                        width: '1px',
+                        height: '85%',
+                        alignSelf: 'center',
+                        background: 'linear-gradient(180deg, transparent 0%, rgba(10, 61, 98, 0.15) 20%, rgba(10, 61, 98, 0.15) 80%, transparent 100%)',
+                        margin: forPdf ? '0 20px' : '0 14px',
+                    }} />
+
                     {/* Right - Info */}
                     <div style={{
                         flex: 1,
                         display: 'flex',
                         flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        paddingLeft: forPdf ? '20px' : '14px',
                         minWidth: 0,
                     }}>
-                        {/* Header */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <div style={{ width: forPdf ? '36px' : '28px', height: forPdf ? '36px' : '28px' }}>
+                        {/* Header - Logo only */}
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginBottom: forPdf ? '12px' : '10px',
+                        }}>
+                            <div style={{
+                                width: forPdf ? '50px' : '40px',
+                                height: forPdf ? '50px' : '40px',
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+                            }}>
                                 <img
                                     src={forPdf && logoDataUrl ? logoDataUrl : '/logo.jpg'}
                                     alt="SOOOP"
@@ -625,45 +661,28 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                                     crossOrigin="anonymous"
                                 />
                             </div>
-                            <div>
-                                <h3 style={{
-                                    margin: 0,
-                                    fontSize: forPdf ? '14px' : '12px',
-                                    fontWeight: 700,
-                                    color: '#0a3d62',
-                                    letterSpacing: '0.5px',
-                                }}>SOOOP Pakistan</h3>
-                                <p style={{
-                                    margin: 0,
-                                    fontSize: forPdf ? '8px' : '7px',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.5px',
-                                    fontWeight: 600,
-                                    color: '#14b8a6',
-                                }}>Official Member Card</p>
-                            </div>
                         </div>
 
                         {/* Member Info Grid */}
                         <div style={{
                             display: 'grid',
                             gridTemplateColumns: '1fr 1fr',
-                            gap: forPdf ? '8px 16px' : '6px 12px',
-                            padding: forPdf ? '12px 0' : '8px 0',
+                            gap: forPdf ? '12px 20px' : '8px 14px',
+                            flex: 1,
                         }}>
                             <div>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '8px' : '7px',
+                                    fontSize: forPdf ? '9px' : '7px',
                                     fontWeight: 700,
-                                    color: '#9ca3af',
+                                    color: '#6b7280',
                                     textTransform: 'uppercase',
-                                    letterSpacing: '0.5px',
-                                    marginBottom: '2px',
+                                    letterSpacing: '1px',
+                                    marginBottom: '3px',
                                 }}>Father/Husband</span>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '11px' : '10px',
+                                    fontSize: forPdf ? '13px' : '11px',
                                     fontWeight: 600,
                                     color: '#1f2937',
                                     whiteSpace: 'nowrap',
@@ -676,59 +695,57 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                             <div style={{ textAlign: 'center' }}>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '8px' : '7px',
+                                    fontSize: forPdf ? '9px' : '7px',
                                     fontWeight: 700,
-                                    color: '#9ca3af',
+                                    color: '#6b7280',
                                     textTransform: 'uppercase',
-                                    letterSpacing: '0.5px',
-                                    marginBottom: '2px',
+                                    letterSpacing: '1px',
+                                    marginBottom: '3px',
                                 }}>Blood Group</span>
                                 <span style={{
-                                    fontSize: forPdf ? '20px' : '16px',
+                                    fontSize: forPdf ? '24px' : '18px',
                                     fontWeight: 900,
                                     color: '#EF4444',
                                 }}>
                                     {profile.blood_group || '—'}
                                 </span>
                             </div>
-                            {getValidityPeriod() && (
-                                <div style={{ gridColumn: 'span 2' }}>
-                                    <span style={{
-                                        display: 'block',
-                                        fontSize: forPdf ? '8px' : '7px',
-                                        fontWeight: 700,
-                                        color: '#9ca3af',
-                                        textTransform: 'uppercase',
-                                        letterSpacing: '0.5px',
-                                        marginBottom: '2px',
-                                    }}>Validity Period</span>
-                                    <span style={{
-                                        display: 'block',
-                                        fontSize: forPdf ? '11px' : '10px',
-                                        fontWeight: 600,
-                                        color: '#1f2937',
-                                    }}>
-                                        {getValidityPeriod()}
-                                    </span>
-                                </div>
-                            )}
+                            <div style={{ gridColumn: 'span 2' }}>
+                                <span style={{
+                                    display: 'block',
+                                    fontSize: forPdf ? '9px' : '7px',
+                                    fontWeight: 700,
+                                    color: '#6b7280',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '1px',
+                                    marginBottom: '3px',
+                                }}>Validity Period</span>
+                                <span style={{
+                                    display: 'block',
+                                    fontSize: forPdf ? '13px' : '11px',
+                                    fontWeight: 600,
+                                    color: '#1f2937',
+                                }}>
+                                    {getValidityPeriod() || 'N/A'}
+                                </span>
+                            </div>
                         </div>
 
                         {/* Important Notice */}
                         <div style={{
-                            padding: forPdf ? '8px' : '6px',
+                            padding: forPdf ? '10px 12px' : '8px 10px',
                             borderRadius: '8px',
-                            background: 'rgba(10, 61, 98, 0.05)',
-                            border: '1px solid rgba(10, 61, 98, 0.1)',
-                            marginTop: 'auto',
+                            background: 'rgba(10, 61, 98, 0.04)',
+                            border: '1px solid rgba(10, 61, 98, 0.08)',
+                            marginTop: forPdf ? '10px' : '8px',
                         }}>
                             <p style={{
                                 margin: 0,
-                                fontSize: forPdf ? '7px' : '6px',
-                                lineHeight: 1.4,
+                                fontSize: forPdf ? '8px' : '6px',
+                                lineHeight: 1.5,
                                 color: '#6b7280',
                             }}>
-                                <strong style={{ color: '#374151' }}>Note:</strong> This card is property of SOOOP Pakistan. If found, please return to: <span style={{ fontWeight: 600 }}>contact@soopvision.com</span>
+                                <strong style={{ color: '#374151' }}>Note:</strong> This card is property of SOOOP Pakistan. If found, please return to: <span style={{ fontWeight: 600, color: '#0a3d62' }}>contact@soopvision.com</span>
                             </p>
                         </div>
 
@@ -737,22 +754,23 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            paddingTop: forPdf ? '8px' : '6px',
+                            paddingTop: forPdf ? '10px' : '8px',
                             marginTop: forPdf ? '8px' : '6px',
-                            borderTop: '1px solid #f3f4f6',
+                            borderTop: '1px solid rgba(10, 61, 98, 0.1)',
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <Shield style={{ width: forPdf ? '12px' : '10px', height: forPdf ? '12px' : '10px', color: '#14b8a6' }} />
+                                <Shield style={{ width: forPdf ? '14px' : '10px', height: forPdf ? '14px' : '10px', color: '#14b8a6' }} />
                                 <span style={{
-                                    fontSize: forPdf ? '8px' : '7px',
+                                    fontSize: forPdf ? '10px' : '8px',
                                     fontWeight: 600,
                                     color: '#0a3d62',
                                 }}>www.soopvision.com</span>
                             </div>
                             <span style={{
-                                fontSize: forPdf ? '8px' : '7px',
-                                color: '#9ca3af',
+                                fontSize: forPdf ? '10px' : '8px',
+                                color: '#6b7280',
                                 fontFamily: 'monospace',
+                                fontWeight: 600,
                             }}>
                                 {profile.registration_number || 'PENDING'}
                             </span>
@@ -766,8 +784,8 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                     bottom: 0,
                     left: 0,
                     width: '100%',
-                    height: '5px',
-                    background: 'linear-gradient(90deg, #0a3d62 0%, #1e5f74 100%)',
+                    height: '4px',
+                    background: 'linear-gradient(90deg, #0a3d62 0%, #1a5276 50%, #0a3d62 100%)',
                 }} />
             </div>
         );
