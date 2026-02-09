@@ -1,10 +1,8 @@
 "use client";
 
-import { useRef, useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Download, Loader2, RotateCcw, Shield, AlertCircle, CreditCard } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import { toast } from 'sonner';
 
 interface IdentityCardProps {
@@ -28,21 +26,27 @@ interface IdentityCardProps {
 
 export default function IdentityCard({ profile }: IdentityCardProps) {
     // CR80 Standard ID Card: 85.6mm x 54mm (3.375" x 2.125")
-    // At 300 DPI: 1012 x 638 pixels - we use 506 x 319 for PDF (150 DPI equivalent)
-    const CARD_WIDTH = 506;
-    const CARD_HEIGHT = 319;
-
-    // Refs for PDF generation (hidden container)
-    const pdfFrontRef = useRef<HTMLDivElement>(null);
-    const pdfBackRef = useRef<HTMLDivElement>(null);
+    const CARD_WIDTH_PX = 506;
+    const CARD_HEIGHT_PX = 319;
 
     const [isDownloading, setIsDownloading] = useState(false);
     const [showBack, setShowBack] = useState(false);
     const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
     const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
+    const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+    const [imagesLoaded, setImagesLoaded] = useState(false);
 
     // Convert images to data URLs for PDF generation
     useEffect(() => {
+        let photoLoaded = !profile.profile_photo_url;
+        let logoLoaded = false;
+
+        const checkAllLoaded = () => {
+            if (photoLoaded && logoLoaded) {
+                setImagesLoaded(true);
+            }
+        };
+
         // Convert profile photo
         if (profile.profile_photo_url) {
             const img = new window.Image();
@@ -60,6 +64,12 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                 } catch (e) {
                     console.error('Failed to convert profile image:', e);
                 }
+                photoLoaded = true;
+                checkAllLoaded();
+            };
+            img.onerror = () => {
+                photoLoaded = true;
+                checkAllLoaded();
             };
             img.src = profile.profile_photo_url;
         }
@@ -80,155 +90,106 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
             } catch (e) {
                 console.error('Failed to convert logo:', e);
             }
+            logoLoaded = true;
+            checkAllLoaded();
+        };
+        logoImg.onerror = () => {
+            logoLoaded = true;
+            checkAllLoaded();
         };
         logoImg.src = '/logo.jpg';
     }, [profile.profile_photo_url]);
 
-    const handleDownloadPDF = async () => {
-        if (!pdfFrontRef.current || !pdfBackRef.current) {
-            toast.error("Card elements not ready. Please try again.");
-            return;
-        }
+    // Generate QR code data URL
+    const generateQRDataUrl = useCallback((): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const verificationUrl = `https://soopvision.com/verify/${profile.registration_number || profile.id}`;
 
-        // Check if logo is loaded
-        if (!logoDataUrl) {
-            toast.error("Logo not loaded yet. Please wait and try again.");
+            // Create a temporary container
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.left = '-9999px';
+            document.body.appendChild(container);
+
+            // Render QR code
+            const qrElement = document.createElement('canvas');
+            container.appendChild(qrElement);
+
+            // Use QRCodeCanvas to generate
+            import('qrcode').then((QRCode) => {
+                QRCode.toDataURL(verificationUrl, {
+                    width: 200,
+                    margin: 1,
+                    color: {
+                        dark: '#0a3d62',
+                        light: '#ffffff',
+                    },
+                    errorCorrectionLevel: 'H',
+                }).then((url: string) => {
+                    document.body.removeChild(container);
+                    resolve(url);
+                }).catch((err: Error) => {
+                    document.body.removeChild(container);
+                    reject(err);
+                });
+            }).catch(reject);
+        });
+    }, [profile.registration_number, profile.id]);
+
+    // Handle PDF download using Server API
+    const handleDownloadPDF = async () => {
+        if (!imagesLoaded) {
+            toast.error("Images are still loading. Please wait a moment.");
             return;
         }
 
         setIsDownloading(true);
-
-        // Get parent container
-        const container = pdfFrontRef.current.parentElement;
-
-        // Helper to wait for all images in a container to load
-        const waitForImages = async (element: HTMLElement): Promise<void> => {
-            const images = element.querySelectorAll('img');
-            const promises = Array.from(images).map(img => {
-                if (img.complete) return Promise.resolve();
-                return new Promise<void>((resolve) => {
-                    img.onload = () => resolve();
-                    img.onerror = () => resolve(); // Continue even if image fails
-                });
-            });
-            await Promise.all(promises);
-        };
+        const toastId = toast.loading("Generating ID Card PDF...");
 
         try {
-            // Make container visible for capture
-            if (container) {
-                container.style.position = 'fixed';
-                container.style.left = '0';
-                container.style.top = '0';
-                container.style.opacity = '1';
-                container.style.zIndex = '9999';
-                container.style.background = 'white';
-                container.style.padding = '20px';
+            // Generate QR code data URL if not ready
+            let currentQrUrl = qrDataUrl;
+            if (!currentQrUrl) {
+                currentQrUrl = await generateQRDataUrl();
+                setQrDataUrl(currentQrUrl);
             }
 
-            // Wait for DOM update
-            await new Promise(resolve => setTimeout(resolve, 300));
-
-            // Wait for all images in both card containers to load
-            await waitForImages(pdfFrontRef.current);
-            await waitForImages(pdfBackRef.current);
-
-            // Additional wait for rendering
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            // CR80 card dimensions in mm (standard ID card)
-            const cardWidthMM = 85.6;
-            const cardHeightMM = 54;
-
-            // Card dimensions in pixels (506 x 319 at 150 DPI equivalent)
-            const cardWidthPx = CARD_WIDTH;
-            const cardHeightPx = CARD_HEIGHT;
-
-            // Create PDF with exact card dimensions
-            const pdf = new jsPDF({
-                orientation: 'landscape',
-                unit: 'mm',
-                format: [cardWidthMM, cardHeightMM],
+            // Call API to generate PDF
+            const response = await fetch('/api/generate-card', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    profile,
+                    photoDataUrl: photoDataUrl,
+                    logoDataUrl: logoDataUrl,
+                    qrDataUrl: currentQrUrl
+                }),
             });
 
-            // High quality html2canvas options - CRITICAL: set explicit dimensions
-            const createCanvasOptions = (bgColor: string) => ({
-                scale: 3, // Higher scale for better quality
-                useCORS: true,
-                allowTaint: true,
-                logging: false,
-                backgroundColor: bgColor,
-                imageTimeout: 10000,
-                removeContainer: false,
-                foreignObjectRendering: false,
-                // CRITICAL: Explicitly set dimensions to prevent cropping
-                width: cardWidthPx,
-                height: cardHeightPx,
-                windowWidth: cardWidthPx,
-                windowHeight: cardHeightPx,
-            });
-
-            // Capture Front Card
-            console.log('Capturing front card...');
-            const frontElement = pdfFrontRef.current;
-
-            // Ensure the element has correct dimensions before capture
-            frontElement.style.width = `${cardWidthPx}px`;
-            frontElement.style.height = `${cardHeightPx}px`;
-            frontElement.style.overflow = 'visible';
-
-            const frontCanvas = await html2canvas(frontElement, createCanvasOptions('#0a3d62'));
-            console.log('Front canvas:', frontCanvas.width, 'x', frontCanvas.height);
-
-            const frontImg = frontCanvas.toDataURL('image/png', 1.0);
-            pdf.addImage(frontImg, 'PNG', 0, 0, cardWidthMM, cardHeightMM, undefined, 'FAST');
-
-            // Add new page for back
-            pdf.addPage([cardWidthMM, cardHeightMM], 'landscape');
-
-            // Capture Back Card
-            console.log('Capturing back card...');
-            const backElement = pdfBackRef.current;
-
-            // Ensure the element has correct dimensions before capture
-            backElement.style.width = `${cardWidthPx}px`;
-            backElement.style.height = `${cardHeightPx}px`;
-            backElement.style.overflow = 'visible';
-
-            const backCanvas = await html2canvas(backElement, createCanvasOptions('#ffffff'));
-            console.log('Back canvas:', backCanvas.width, 'x', backCanvas.height);
-
-            const backImg = backCanvas.toDataURL('image/png', 1.0);
-            pdf.addImage(backImg, 'PNG', 0, 0, cardWidthMM, cardHeightMM, undefined, 'FAST');
-
-            // Hide container again
-            if (container) {
-                container.style.position = 'fixed';
-                container.style.left = '-9999px';
-                container.style.opacity = '0';
-                container.style.zIndex = '-1';
-                container.style.background = 'transparent';
-                container.style.padding = '0';
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.details || 'Failed to generate PDF');
             }
 
-            // Save the PDF
-            const fileName = `SOOOP-Card-${profile.registration_number || 'Member'}.pdf`;
-            pdf.save(fileName);
-            toast.success("Membership card downloaded successfully!");
+            // Get the blob from response
+            const pdfBlob = await response.blob();
 
+            // Download the PDF
+            const url = URL.createObjectURL(pdfBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `SOOOP-Card-${profile.registration_number || 'Member'}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            toast.success("Membership card downloaded successfully!", { id: toastId });
         } catch (error) {
             console.error("PDF Generation Error:", error);
-
-            // Make sure to hide container even on error
-            if (container) {
-                container.style.position = 'fixed';
-                container.style.left = '-9999px';
-                container.style.opacity = '0';
-                container.style.zIndex = '-1';
-                container.style.background = 'transparent';
-            }
-
-            toast.error(`Failed to generate PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            toast.error(`Failed to generate PDF: ${error instanceof Error ? error.message : 'Unknown error'}`, { id: toastId });
         } finally {
             setIsDownloading(false);
         }
@@ -255,43 +216,50 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
         return `${start.getFullYear()} - ${end.getFullYear()}`;
     };
 
+    // Format date
+    const formatDate = (dateString?: string) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    };
+
     // Check if membership is valid
     const isValid = profile.subscription_end_date && new Date(profile.subscription_end_date) > new Date();
 
     // Can download card only if approved
     const canDownload = !!profile.registration_number;
 
-    const FrontCardContent = ({ forPdf = false }: { forPdf?: boolean }) => {
-
+    // ============================================
+    // FRONT CARD COMPONENT (for preview)
+    // ============================================
+    const FrontCardPreview = () => {
         const cardStyle: React.CSSProperties = {
-            width: forPdf ? `${CARD_WIDTH}px` : '100%',
-            height: forPdf ? `${CARD_HEIGHT}px` : 'auto',
-            aspectRatio: forPdf ? undefined : '85.6 / 54',
+            width: '100%',
+            aspectRatio: '85.6 / 54',
             background: 'linear-gradient(135deg, #0a3d62 0%, #1a5276 40%, #0a3d62 100%)',
-            borderRadius: forPdf ? '12px' : '16px',
+            borderRadius: '16px',
             position: 'relative',
             overflow: 'hidden',
-            boxShadow: forPdf ? 'none' : '0 10px 40px rgba(0, 0, 0, 0.3)',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
             fontFamily: 'system-ui, -apple-system, sans-serif',
         };
 
         return (
             <div style={cardStyle}>
-                {/* Decorative wave pattern */}
-                <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    right: 0,
-                    width: '60%',
-                    height: '100%',
-                    background: 'linear-gradient(135deg, transparent 0%, rgba(45, 212, 191, 0.08) 50%, transparent 100%)',
-                    clipPath: 'ellipse(80% 100% at 100% 50%)',
-                }} />
-
                 {/* Top accent line */}
                 <div style={{
                     position: 'absolute',
                     top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '4px',
+                    background: 'linear-gradient(90deg, #2dd4bf 0%, #5eead4 50%, #2dd4bf 100%)',
+                }} />
+
+                {/* Bottom accent line */}
+                <div style={{
+                    position: 'absolute',
+                    bottom: 0,
                     left: 0,
                     width: '100%',
                     height: '4px',
@@ -305,8 +273,8 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                     display: 'flex',
                     width: '100%',
                     height: '100%',
-                    padding: forPdf ? '24px' : '18px',
-                    paddingTop: forPdf ? '28px' : '22px',
+                    padding: '18px',
+                    paddingTop: '22px',
                     boxSizing: 'border-box',
                 }}>
                     {/* Left section - Photo */}
@@ -314,25 +282,24 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        width: forPdf ? '130px' : '110px',
+                        width: '110px',
                         flexShrink: 0,
                     }}>
-                        {/* Photo container with professional frame */}
+                        {/* Photo container */}
                         <div style={{
-                            width: forPdf ? '110px' : '90px',
-                            height: forPdf ? '130px' : '106px',
+                            width: '90px',
+                            height: '106px',
                             borderRadius: '8px',
                             border: '3px solid rgba(45, 212, 191, 0.6)',
                             overflow: 'hidden',
                             background: '#0d4a6e',
-                            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(45, 212, 191, 0.1)',
+                            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)',
                         }}>
                             {(photoDataUrl || profile.profile_photo_url) ? (
                                 <img
-                                    src={forPdf ? (photoDataUrl ?? profile.profile_photo_url ?? '') : (profile.profile_photo_url ?? photoDataUrl ?? '')}
+                                    src={profile.profile_photo_url ?? photoDataUrl ?? ''}
                                     alt={profile.full_name}
                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                    crossOrigin="anonymous"
                                 />
                             ) : (
                                 <div style={{
@@ -343,23 +310,23 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                                     justifyContent: 'center',
                                     background: 'linear-gradient(135deg, #2dd4bf 0%, #14b8a6 100%)',
                                 }}>
-                                    <span style={{ color: 'white', fontSize: forPdf ? '42px' : '34px', fontWeight: 'bold' }}>
+                                    <span style={{ color: 'white', fontSize: '34px', fontWeight: 'bold' }}>
                                         {profile.full_name.charAt(0).toUpperCase()}
                                     </span>
                                 </div>
                             )}
                         </div>
-                        {/* Membership type badge */}
+                        {/* Membership badge */}
                         <div style={{
-                            marginTop: forPdf ? '10px' : '8px',
-                            padding: forPdf ? '5px 16px' : '4px 12px',
+                            marginTop: '8px',
+                            padding: '4px 12px',
                             borderRadius: '20px',
                             background: 'linear-gradient(135deg, #2dd4bf 0%, #14b8a6 100%)',
                             boxShadow: '0 2px 10px rgba(45, 212, 191, 0.4)',
                         }}>
                             <span style={{
                                 color: 'white',
-                                fontSize: forPdf ? '10px' : '8px',
+                                fontSize: '8px',
                                 fontWeight: 700,
                                 textTransform: 'uppercase',
                                 letterSpacing: '0.5px',
@@ -375,7 +342,7 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                         height: '90%',
                         alignSelf: 'center',
                         background: 'linear-gradient(180deg, transparent 0%, rgba(45, 212, 191, 0.4) 20%, rgba(45, 212, 191, 0.4) 80%, transparent 100%)',
-                        margin: forPdf ? '0 20px' : '0 14px',
+                        margin: '0 14px',
                     }} />
 
                     {/* Right section - Details */}
@@ -386,11 +353,11 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                         minWidth: 0,
                     }}>
                         {/* Header with name and logo */}
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: forPdf ? '6px' : '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '4px' }}>
                             <div style={{ flex: 1, paddingRight: '10px', minWidth: 0 }}>
                                 <h2 style={{
                                     margin: 0,
-                                    fontSize: forPdf ? '22px' : '18px',
+                                    fontSize: '18px',
                                     fontWeight: 700,
                                     color: 'white',
                                     lineHeight: 1.2,
@@ -404,7 +371,7 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                                 {profile.designation && (
                                     <p style={{
                                         margin: '3px 0 0 0',
-                                        fontSize: forPdf ? '11px' : '9px',
+                                        fontSize: '9px',
                                         fontWeight: 600,
                                         color: '#5eead4',
                                         textTransform: 'uppercase',
@@ -416,8 +383,8 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                             </div>
                             {/* Logo */}
                             <div style={{
-                                width: forPdf ? '65px' : '52px',
-                                height: forPdf ? '65px' : '52px',
+                                width: '52px',
+                                height: '52px',
                                 background: 'white',
                                 borderRadius: '10px',
                                 padding: '5px',
@@ -425,154 +392,137 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                                 boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)',
                             }}>
                                 <img
-                                    src={forPdf && logoDataUrl ? logoDataUrl : '/logo.jpg'}
+                                    src="/logo.jpg"
                                     alt="SOOOP"
                                     style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '6px' }}
-                                    crossOrigin="anonymous"
                                 />
                             </div>
                         </div>
 
-                        {/* Details Grid - 2x2 */}
+                        {/* Details Grid */}
                         <div style={{
                             display: 'grid',
                             gridTemplateColumns: '1fr 1fr',
-                            gap: forPdf ? '12px 24px' : '8px 16px',
-                            marginTop: forPdf ? '12px' : '8px',
+                            gap: '8px 16px',
+                            marginTop: '8px',
                             flex: 1,
                         }}>
-                            {/* Registration No */}
                             <div>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '9px' : '7px',
+                                    fontSize: '7px',
                                     fontWeight: 700,
-                                    color: 'rgba(255, 255, 255, 0.65)',
+                                    color: 'rgba(255, 255, 255, 0.7)',
                                     textTransform: 'uppercase',
                                     letterSpacing: '1px',
                                     marginBottom: '3px',
                                 }}>Registration No.</span>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '14px' : '12px',
+                                    fontSize: '12px',
                                     fontWeight: 700,
                                     color: 'white',
                                     fontFamily: 'monospace',
-                                    whiteSpace: 'nowrap',
                                 }}>
                                     {profile.registration_number || 'PENDING'}
                                 </span>
                             </div>
-                            {/* CNIC */}
                             <div>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '9px' : '7px',
+                                    fontSize: '7px',
                                     fontWeight: 700,
-                                    color: 'rgba(255, 255, 255, 0.65)',
+                                    color: 'rgba(255, 255, 255, 0.7)',
                                     textTransform: 'uppercase',
                                     letterSpacing: '1px',
                                     marginBottom: '3px',
                                 }}>CNIC</span>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '13px' : '11px',
+                                    fontSize: '11px',
                                     fontWeight: 700,
                                     color: 'white',
                                     fontFamily: 'monospace',
-                                    whiteSpace: 'nowrap',
                                 }}>
                                     {formatCNIC(profile.cnic)}
                                 </span>
                             </div>
-                            {/* City */}
                             <div>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '9px' : '7px',
+                                    fontSize: '7px',
                                     fontWeight: 700,
-                                    color: 'rgba(255, 255, 255, 0.65)',
+                                    color: 'rgba(255, 255, 255, 0.7)',
                                     textTransform: 'uppercase',
                                     letterSpacing: '1px',
                                     marginBottom: '3px',
                                 }}>City</span>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '14px' : '12px',
+                                    fontSize: '12px',
                                     fontWeight: 600,
                                     color: 'white',
-                                    whiteSpace: 'nowrap',
                                 }}>
                                     {profile.city || 'Pakistan'}
                                 </span>
                             </div>
-                            {/* Valid Until */}
                             <div>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '9px' : '7px',
+                                    fontSize: '7px',
                                     fontWeight: 700,
-                                    color: 'rgba(255, 255, 255, 0.65)',
+                                    color: 'rgba(255, 255, 255, 0.7)',
                                     textTransform: 'uppercase',
                                     letterSpacing: '1px',
                                     marginBottom: '3px',
                                 }}>Valid Until</span>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '14px' : '12px',
+                                    fontSize: '12px',
                                     fontWeight: 700,
-                                    color: isValid ? '#5eead4' : '#fca5a5',
-                                    whiteSpace: 'nowrap',
+                                    color: '#2dd4bf',
                                 }}>
-                                    {profile.subscription_end_date
-                                        ? new Date(profile.subscription_end_date).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
-                                        : 'Inactive'}
+                                    {formatDate(profile.subscription_end_date)}
                                 </span>
                             </div>
-                        </div>
-
-                        {/* Footer - Organization name */}
-                        <div style={{
-                            marginTop: 'auto',
-                            paddingTop: forPdf ? '10px' : '6px',
-                            borderTop: '1px solid rgba(255, 255, 255, 0.15)',
-                        }}>
-                            <span style={{
-                                fontSize: forPdf ? '8px' : '6px',
-                                color: 'rgba(255, 255, 255, 0.55)',
-                                textTransform: 'uppercase',
-                                letterSpacing: '1.5px',
-                                fontWeight: 500,
-                            }}>
-                                Society of Optometrists, Orthoptists & Ophthalmic Technologists Pakistan
-                            </span>
                         </div>
                     </div>
                 </div>
 
-                {/* Bottom accent strip */}
+                {/* Footer */}
                 <div style={{
                     position: 'absolute',
-                    bottom: 0,
+                    bottom: '8px',
                     left: 0,
                     width: '100%',
-                    height: '4px',
-                    background: 'linear-gradient(90deg, #2dd4bf 0%, #5eead4 50%, #2dd4bf 100%)',
-                }} />
+                    textAlign: 'center',
+                }}>
+                    <span style={{
+                        fontSize: '6px',
+                        fontWeight: 500,
+                        color: 'rgba(255, 255, 255, 0.6)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                    }}>
+                        Society of Optometrists, Orthoptists & Ophthalmic Technologists Pakistan
+                    </span>
+                </div>
             </div>
         );
     };
 
-    const BackCardContent = ({ forPdf = false }: { forPdf?: boolean }) => {
+    // ============================================
+    // BACK CARD COMPONENT (for preview)
+    // ============================================
+    const BackCardPreview = () => {
         const cardStyle: React.CSSProperties = {
-            width: forPdf ? `${CARD_WIDTH}px` : '100%',
-            height: forPdf ? `${CARD_HEIGHT}px` : 'auto',
-            aspectRatio: forPdf ? undefined : '85.6 / 54',
+            width: '100%',
+            aspectRatio: '85.6 / 54',
             background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-            borderRadius: forPdf ? '12px' : '16px',
+            borderRadius: '16px',
             position: 'relative',
             overflow: 'hidden',
-            boxShadow: forPdf ? 'none' : '0 10px 40px rgba(0, 0, 0, 0.15)',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
             fontFamily: 'system-ui, -apple-system, sans-serif',
         };
 
@@ -588,15 +538,14 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                     background: 'linear-gradient(90deg, #0a3d62 0%, #1a5276 50%, #0a3d62 100%)',
                 }} />
 
-                {/* Decorative wave pattern */}
+                {/* Bottom accent line */}
                 <div style={{
                     position: 'absolute',
                     bottom: 0,
-                    right: 0,
-                    width: '50%',
-                    height: '60%',
-                    background: 'linear-gradient(135deg, transparent 0%, rgba(10, 61, 98, 0.03) 50%, transparent 100%)',
-                    clipPath: 'ellipse(100% 80% at 100% 100%)',
+                    left: 0,
+                    width: '100%',
+                    height: '4px',
+                    background: 'linear-gradient(90deg, #0a3d62 0%, #1a5276 50%, #0a3d62 100%)',
                 }} />
 
                 {/* Content */}
@@ -606,8 +555,8 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                     display: 'flex',
                     width: '100%',
                     height: '100%',
-                    padding: forPdf ? '24px' : '18px',
-                    paddingTop: forPdf ? '28px' : '22px',
+                    padding: '18px',
+                    paddingTop: '22px',
                     boxSizing: 'border-box',
                 }}>
                     {/* Left - QR Code */}
@@ -616,11 +565,11 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        width: forPdf ? '130px' : '110px',
+                        width: '110px',
                         flexShrink: 0,
                     }}>
                         <div style={{
-                            padding: forPdf ? '10px' : '8px',
+                            padding: '8px',
                             background: 'white',
                             borderRadius: '10px',
                             border: '2px solid rgba(10, 61, 98, 0.15)',
@@ -628,7 +577,7 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                         }}>
                             <QRCodeCanvas
                                 value={verificationUrl}
-                                size={forPdf ? 100 : 80}
+                                size={80}
                                 level="H"
                                 fgColor="#0a3d62"
                                 bgColor="#ffffff"
@@ -636,8 +585,8 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                             />
                         </div>
                         <p style={{
-                            marginTop: forPdf ? '10px' : '8px',
-                            fontSize: forPdf ? '9px' : '7px',
+                            marginTop: '8px',
+                            fontSize: '7px',
                             textTransform: 'uppercase',
                             letterSpacing: '1.5px',
                             fontWeight: 700,
@@ -654,7 +603,7 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                         height: '85%',
                         alignSelf: 'center',
                         background: 'linear-gradient(180deg, transparent 0%, rgba(10, 61, 98, 0.15) 20%, rgba(10, 61, 98, 0.15) 80%, transparent 100%)',
-                        margin: forPdf ? '0 20px' : '0 14px',
+                        margin: '0 14px',
                     }} />
 
                     {/* Right - Info */}
@@ -668,14 +617,14 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                         <div style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: forPdf ? '12px' : '10px',
-                            marginBottom: forPdf ? '8px' : '6px',
-                            paddingBottom: forPdf ? '8px' : '6px',
+                            gap: '10px',
+                            marginBottom: '6px',
+                            paddingBottom: '6px',
                             borderBottom: '1px solid rgba(10, 61, 98, 0.1)',
                         }}>
                             <div style={{
-                                width: forPdf ? '70px' : '56px',
-                                height: forPdf ? '70px' : '56px',
+                                width: '56px',
+                                height: '56px',
                                 borderRadius: '12px',
                                 overflow: 'hidden',
                                 background: 'white',
@@ -684,16 +633,15 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                                 flexShrink: 0,
                             }}>
                                 <img
-                                    src={forPdf && logoDataUrl ? logoDataUrl : '/logo.jpg'}
+                                    src="/logo.jpg"
                                     alt="SOOOP"
                                     style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '8px' }}
-                                    crossOrigin="anonymous"
                                 />
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                                 <h3 style={{
                                     margin: 0,
-                                    fontSize: forPdf ? '16px' : '13px',
+                                    fontSize: '13px',
                                     fontWeight: 700,
                                     color: '#0a3d62',
                                     lineHeight: 1.2,
@@ -702,8 +650,8 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                                     textOverflow: 'ellipsis',
                                 }}>{profile.full_name}</h3>
                                 <p style={{
-                                    margin: forPdf ? '4px 0 0 0' : '3px 0 0 0',
-                                    fontSize: forPdf ? '8px' : '6px',
+                                    margin: '3px 0 0 0',
+                                    fontSize: '6px',
                                     fontWeight: 700,
                                     color: '#14b8a6',
                                     textTransform: 'uppercase',
@@ -716,13 +664,13 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                         <div style={{
                             display: 'grid',
                             gridTemplateColumns: '1fr 1fr',
-                            gap: forPdf ? '10px 16px' : '6px 12px',
+                            gap: '6px 12px',
                             flex: 1,
                         }}>
                             <div>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '8px' : '6px',
+                                    fontSize: '6px',
                                     fontWeight: 700,
                                     color: '#6b7280',
                                     textTransform: 'uppercase',
@@ -731,7 +679,7 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                                 }}>Father/Husband</span>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '12px' : '10px',
+                                    fontSize: '10px',
                                     fontWeight: 600,
                                     color: '#1f2937',
                                     whiteSpace: 'nowrap',
@@ -744,15 +692,15 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                             <div style={{ textAlign: 'center' }}>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '9px' : '7px',
+                                    fontSize: '6px',
                                     fontWeight: 700,
                                     color: '#6b7280',
                                     textTransform: 'uppercase',
                                     letterSpacing: '1px',
-                                    marginBottom: '3px',
+                                    marginBottom: '2px',
                                 }}>Blood Group</span>
                                 <span style={{
-                                    fontSize: forPdf ? '24px' : '18px',
+                                    fontSize: '18px',
                                     fontWeight: 900,
                                     color: '#EF4444',
                                 }}>
@@ -762,16 +710,16 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                             <div style={{ gridColumn: 'span 2' }}>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '9px' : '7px',
+                                    fontSize: '6px',
                                     fontWeight: 700,
                                     color: '#6b7280',
                                     textTransform: 'uppercase',
                                     letterSpacing: '1px',
-                                    marginBottom: '3px',
+                                    marginBottom: '2px',
                                 }}>Validity Period</span>
                                 <span style={{
                                     display: 'block',
-                                    fontSize: forPdf ? '13px' : '11px',
+                                    fontSize: '10px',
                                     fontWeight: 600,
                                     color: '#1f2937',
                                 }}>
@@ -780,17 +728,17 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                             </div>
                         </div>
 
-                        {/* Important Notice */}
+                        {/* Notice */}
                         <div style={{
-                            padding: forPdf ? '10px 12px' : '8px 10px',
+                            padding: '8px 10px',
                             borderRadius: '8px',
                             background: 'rgba(10, 61, 98, 0.04)',
                             border: '1px solid rgba(10, 61, 98, 0.08)',
-                            marginTop: forPdf ? '10px' : '8px',
+                            marginTop: '8px',
                         }}>
                             <p style={{
                                 margin: 0,
-                                fontSize: forPdf ? '8px' : '6px',
+                                fontSize: '6px',
                                 lineHeight: 1.5,
                                 color: '#6b7280',
                             }}>
@@ -803,20 +751,20 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            paddingTop: forPdf ? '10px' : '8px',
-                            marginTop: forPdf ? '8px' : '6px',
+                            paddingTop: '8px',
+                            marginTop: '6px',
                             borderTop: '1px solid rgba(10, 61, 98, 0.1)',
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <Shield style={{ width: forPdf ? '14px' : '10px', height: forPdf ? '14px' : '10px', color: '#14b8a6' }} />
+                                <Shield style={{ width: '10px', height: '10px', color: '#14b8a6' }} />
                                 <span style={{
-                                    fontSize: forPdf ? '10px' : '8px',
+                                    fontSize: '8px',
                                     fontWeight: 600,
                                     color: '#0a3d62',
                                 }}>www.soopvision.com</span>
                             </div>
                             <span style={{
-                                fontSize: forPdf ? '10px' : '8px',
+                                fontSize: '8px',
                                 color: '#6b7280',
                                 fontFamily: 'monospace',
                                 fontWeight: 600,
@@ -826,43 +774,12 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                         </div>
                     </div>
                 </div>
-
-                {/* Bottom Strip */}
-                <div style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '4px',
-                    background: 'linear-gradient(90deg, #0a3d62 0%, #1a5276 50%, #0a3d62 100%)',
-                }} />
             </div>
         );
     };
 
     return (
         <div className="flex flex-col items-center gap-6 sm:gap-8 animate-fade-in px-2 sm:px-0">
-
-            {/* Hidden container for PDF generation - positioned off-screen but still rendered */}
-            <div
-                style={{
-                    position: 'fixed',
-                    left: '-9999px',
-                    top: '0',
-                    width: `${CARD_WIDTH + 40}px`,
-                    opacity: 0,
-                    pointerEvents: 'none',
-                    zIndex: -1,
-                }}
-                aria-hidden="true"
-            >
-                <div ref={pdfFrontRef} style={{ width: `${CARD_WIDTH}px`, height: `${CARD_HEIGHT}px`, background: '#0a3d62', overflow: 'hidden' }}>
-                    <FrontCardContent forPdf={true} />
-                </div>
-                <div ref={pdfBackRef} style={{ width: `${CARD_WIDTH}px`, height: `${CARD_HEIGHT}px`, marginTop: '20px', background: '#ffffff', overflow: 'hidden' }}>
-                    <BackCardContent forPdf={true} />
-                </div>
-            </div>
 
             {/* Status Banner */}
             {!canDownload && (
@@ -895,54 +812,70 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                 </button>
             </div>
 
-            {/* ============================ */}
-            {/*    VISIBLE CARD PREVIEW     */}
-            {/* ============================ */}
-            <div className="w-full max-w-[428px] mx-auto">
-                {!showBack ? (
-                    <FrontCardContent forPdf={false} />
-                ) : (
-                    <BackCardContent forPdf={false} />
-                )}
+            {/* Card Preview */}
+            <div className="w-full max-w-md perspective-1000">
+                <div
+                    className={`relative transition-transform duration-700 preserve-3d ${showBack ? 'rotate-y-180' : ''}`}
+                    style={{ transformStyle: 'preserve-3d' }}
+                >
+                    {/* Front Face */}
+                    <div
+                        className={`w-full ${showBack ? 'invisible' : 'visible'}`}
+                        style={{ backfaceVisibility: 'hidden' }}
+                    >
+                        <FrontCardPreview />
+                    </div>
+
+                    {/* Back Face */}
+                    <div
+                        className={`absolute inset-0 w-full ${showBack ? 'visible' : 'invisible'}`}
+                        style={{
+                            backfaceVisibility: 'hidden',
+                            transform: 'rotateY(180deg)',
+                        }}
+                    >
+                        <BackCardPreview />
+                    </div>
+                </div>
             </div>
 
-            {/* ============================ */}
-            {/*       DOWNLOAD SECTION       */}
-            {/* ============================ */}
-            <div className="flex flex-col items-center gap-3 sm:gap-4 w-full max-w-md px-4 sm:px-0">
+            {/* Download Button */}
+            <div className="flex flex-col items-center gap-3">
                 <button
                     onClick={handleDownloadPDF}
                     disabled={isDownloading || !canDownload}
                     className={`
-                        w-full flex items-center justify-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg shadow-xl transition-all
+                        flex items-center gap-3 px-6 py-3 rounded-xl text-white font-semibold
+                        transition-all duration-300 shadow-lg
                         ${canDownload
-                            ? 'text-white hover:scale-[1.02] active:scale-[0.98]'
-                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'}
+                            ? 'bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 hover:shadow-xl hover:scale-105'
+                            : 'bg-gray-300 cursor-not-allowed'
+                        }
+                        ${isDownloading ? 'opacity-70' : ''}
                     `}
-                    style={canDownload ? {
-                        background: 'linear-gradient(135deg, #0a3d62 0%, #1e5f74 100%)',
-                        boxShadow: '0 10px 30px rgba(10, 61, 98, 0.3)'
-                    } : {}}
                 >
                     {isDownloading ? (
                         <>
-                            <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                            <Loader2 className="w-5 h-5 animate-spin" />
                             Generating PDF...
                         </>
                     ) : (
                         <>
-                            <Download className="w-4 h-4 sm:w-5 sm:h-5" />
-                            Download Membership Card
+                            <Download className="w-5 h-5" />
+                            Download Card PDF
                         </>
                     )}
                 </button>
 
-                {/* Help Text */}
-                <p className="text-[10px] sm:text-xs text-gray-400 text-center">
-                    {canDownload
-                        ? "PDF includes front and back of the card (CR80 standard size)"
-                        : "Card download available after membership approval"
-                    }
+                {!imagesLoaded && (
+                    <p className="text-xs text-gray-500 flex items-center gap-2">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Loading images...
+                    </p>
+                )}
+
+                <p className="text-xs text-gray-500 text-center max-w-xs">
+                    Professional CR80 card format (85.6mm × 54mm) • Print-ready quality
                 </p>
             </div>
         </div>
