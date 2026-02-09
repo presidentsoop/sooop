@@ -27,6 +27,11 @@ interface IdentityCardProps {
 }
 
 export default function IdentityCard({ profile }: IdentityCardProps) {
+    // CR80 Standard ID Card: 85.6mm x 54mm (3.375" x 2.125")
+    // At 300 DPI: 1012 x 638 pixels - we use 506 x 319 for PDF (150 DPI equivalent)
+    const CARD_WIDTH = 506;
+    const CARD_HEIGHT = 319;
+
     // Refs for PDF generation (hidden container)
     const pdfFrontRef = useRef<HTMLDivElement>(null);
     const pdfBackRef = useRef<HTMLDivElement>(null);
@@ -85,32 +90,32 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
             return;
         }
 
+        // Check if logo is loaded
+        if (!logoDataUrl) {
+            toast.error("Logo not loaded yet. Please wait and try again.");
+            return;
+        }
+
         setIsDownloading(true);
 
         // Get parent container
         const container = pdfFrontRef.current.parentElement;
 
-        // Helper function to wrap canvas capture with timeout
-        const captureWithTimeout = (element: HTMLElement, options: Parameters<typeof html2canvas>[1], timeoutMs: number = 10000): Promise<HTMLCanvasElement> => {
-            return new Promise((resolve, reject) => {
-                const timeoutId = setTimeout(() => {
-                    reject(new Error('Canvas capture timed out'));
-                }, timeoutMs);
-
-                html2canvas(element, options)
-                    .then((canvas) => {
-                        clearTimeout(timeoutId);
-                        resolve(canvas);
-                    })
-                    .catch((err) => {
-                        clearTimeout(timeoutId);
-                        reject(err);
-                    });
+        // Helper to wait for all images in a container to load
+        const waitForImages = async (element: HTMLElement): Promise<void> => {
+            const images = element.querySelectorAll('img');
+            const promises = Array.from(images).map(img => {
+                if (img.complete) return Promise.resolve();
+                return new Promise<void>((resolve) => {
+                    img.onload = () => resolve();
+                    img.onerror = () => resolve(); // Continue even if image fails
+                });
             });
+            await Promise.all(promises);
         };
 
         try {
-            // Temporarily make the hidden container visible for capture
+            // Make container visible for capture
             if (container) {
                 container.style.position = 'fixed';
                 container.style.left = '0';
@@ -118,59 +123,83 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                 container.style.opacity = '1';
                 container.style.zIndex = '9999';
                 container.style.background = 'white';
+                container.style.padding = '20px';
             }
 
             // Wait for DOM update
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            // Wait for all images in both card containers to load
+            await waitForImages(pdfFrontRef.current);
+            await waitForImages(pdfBackRef.current);
+
+            // Additional wait for rendering
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            // Card dimensions in mm (CR80 standard)
-            const cardWidth = 85.6;
-            const cardHeight = 54;
+            // CR80 card dimensions in mm (standard ID card)
+            const cardWidthMM = 85.6;
+            const cardHeightMM = 54;
 
-            // Create PDF
+            // Card dimensions in pixels (506 x 319 at 150 DPI equivalent)
+            const cardWidthPx = CARD_WIDTH;
+            const cardHeightPx = CARD_HEIGHT;
+
+            // Create PDF with exact card dimensions
             const pdf = new jsPDF({
                 orientation: 'landscape',
                 unit: 'mm',
-                format: [cardWidth, cardHeight],
+                format: [cardWidthMM, cardHeightMM],
             });
 
-            // Simplified html2canvas options
-            const canvasOptions = {
-                scale: 2,
+            // High quality html2canvas options - CRITICAL: set explicit dimensions
+            const createCanvasOptions = (bgColor: string) => ({
+                scale: 3, // Higher scale for better quality
                 useCORS: true,
                 allowTaint: true,
-                logging: true, // Enable logging for debugging
-                imageTimeout: 5000,
+                logging: false,
+                backgroundColor: bgColor,
+                imageTimeout: 10000,
                 removeContainer: false,
                 foreignObjectRendering: false,
-            };
+                // CRITICAL: Explicitly set dimensions to prevent cropping
+                width: cardWidthPx,
+                height: cardHeightPx,
+                windowWidth: cardWidthPx,
+                windowHeight: cardHeightPx,
+            });
 
-            // Capture Front Side
-            console.log('Capturing front side...');
-            const frontCanvas = await captureWithTimeout(
-                pdfFrontRef.current,
-                { ...canvasOptions, backgroundColor: '#0a3d62' },
-                15000
-            );
+            // Capture Front Card
+            console.log('Capturing front card...');
+            const frontElement = pdfFrontRef.current;
 
-            console.log('Front canvas captured:', frontCanvas.width, 'x', frontCanvas.height);
-            const frontImg = frontCanvas.toDataURL('image/png');
-            pdf.addImage(frontImg, 'PNG', 0, 0, cardWidth, cardHeight);
+            // Ensure the element has correct dimensions before capture
+            frontElement.style.width = `${cardWidthPx}px`;
+            frontElement.style.height = `${cardHeightPx}px`;
+            frontElement.style.overflow = 'visible';
+
+            const frontCanvas = await html2canvas(frontElement, createCanvasOptions('#0a3d62'));
+            console.log('Front canvas:', frontCanvas.width, 'x', frontCanvas.height);
+
+            const frontImg = frontCanvas.toDataURL('image/png', 1.0);
+            pdf.addImage(frontImg, 'PNG', 0, 0, cardWidthMM, cardHeightMM, undefined, 'FAST');
 
             // Add new page for back
-            pdf.addPage([cardWidth, cardHeight], 'landscape');
+            pdf.addPage([cardWidthMM, cardHeightMM], 'landscape');
 
-            // Capture Back Side
-            console.log('Capturing back side...');
-            const backCanvas = await captureWithTimeout(
-                pdfBackRef.current,
-                { ...canvasOptions, backgroundColor: '#ffffff' },
-                15000
-            );
+            // Capture Back Card
+            console.log('Capturing back card...');
+            const backElement = pdfBackRef.current;
 
-            console.log('Back canvas captured:', backCanvas.width, 'x', backCanvas.height);
-            const backImg = backCanvas.toDataURL('image/png');
-            pdf.addImage(backImg, 'PNG', 0, 0, cardWidth, cardHeight);
+            // Ensure the element has correct dimensions before capture
+            backElement.style.width = `${cardWidthPx}px`;
+            backElement.style.height = `${cardHeightPx}px`;
+            backElement.style.overflow = 'visible';
+
+            const backCanvas = await html2canvas(backElement, createCanvasOptions('#ffffff'));
+            console.log('Back canvas:', backCanvas.width, 'x', backCanvas.height);
+
+            const backImg = backCanvas.toDataURL('image/png', 1.0);
+            pdf.addImage(backImg, 'PNG', 0, 0, cardWidthMM, cardHeightMM, undefined, 'FAST');
 
             // Hide container again
             if (container) {
@@ -179,6 +208,7 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                 container.style.opacity = '0';
                 container.style.zIndex = '-1';
                 container.style.background = 'transparent';
+                container.style.padding = '0';
             }
 
             // Save the PDF
@@ -231,13 +261,7 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
     // Can download card only if approved
     const canDownload = !!profile.registration_number;
 
-    // CR80 Standard ID Card: 85.6mm x 54mm (3.375" x 2.125")
-    // At 300 DPI: 1012 x 638 pixels - we use 506 x 319 for PDF (150 DPI equivalent)
-    const CARD_WIDTH = 506;
-    const CARD_HEIGHT = 319;
-
     const FrontCardContent = ({ forPdf = false }: { forPdf?: boolean }) => {
-        const scale = forPdf ? 1 : 0.85;
 
         const cardStyle: React.CSSProperties = {
             width: forPdf ? `${CARD_WIDTH}px` : '100%',
@@ -640,27 +664,38 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                         flexDirection: 'column',
                         minWidth: 0,
                     }}>
-                        {/* Header - Logo only */}
+                        {/* Header - Logo with title */}
                         <div style={{
                             display: 'flex',
+                            flexDirection: 'column',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            marginBottom: forPdf ? '12px' : '10px',
+                            marginBottom: forPdf ? '10px' : '8px',
                         }}>
                             <div style={{
-                                width: forPdf ? '50px' : '40px',
-                                height: forPdf ? '50px' : '40px',
-                                borderRadius: '8px',
+                                width: forPdf ? '55px' : '44px',
+                                height: forPdf ? '55px' : '44px',
+                                borderRadius: '10px',
                                 overflow: 'hidden',
-                                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+                                background: 'white',
+                                boxShadow: '0 3px 12px rgba(0, 0, 0, 0.12)',
+                                padding: '4px',
                             }}>
                                 <img
                                     src={forPdf && logoDataUrl ? logoDataUrl : '/logo.jpg'}
                                     alt="SOOOP"
-                                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                    style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '6px' }}
                                     crossOrigin="anonymous"
                                 />
                             </div>
+                            <p style={{
+                                margin: forPdf ? '6px 0 0 0' : '4px 0 0 0',
+                                fontSize: forPdf ? '9px' : '7px',
+                                fontWeight: 700,
+                                color: '#14b8a6',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px',
+                            }}>Official Member Card</p>
                         </div>
 
                         {/* Member Info Grid */}
@@ -800,17 +835,17 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
                     position: 'fixed',
                     left: '-9999px',
                     top: '0',
-                    width: '428px',
+                    width: `${CARD_WIDTH + 40}px`,
                     opacity: 0,
                     pointerEvents: 'none',
                     zIndex: -1,
                 }}
                 aria-hidden="true"
             >
-                <div ref={pdfFrontRef} style={{ width: '428px', height: '270px', background: '#0a3d62' }}>
+                <div ref={pdfFrontRef} style={{ width: `${CARD_WIDTH}px`, height: `${CARD_HEIGHT}px`, background: '#0a3d62', overflow: 'hidden' }}>
                     <FrontCardContent forPdf={true} />
                 </div>
-                <div ref={pdfBackRef} style={{ width: '428px', height: '270px', marginTop: '20px', background: '#ffffff' }}>
+                <div ref={pdfBackRef} style={{ width: `${CARD_WIDTH}px`, height: `${CARD_HEIGHT}px`, marginTop: '20px', background: '#ffffff', overflow: 'hidden' }}>
                     <BackCardContent forPdf={true} />
                 </div>
             </div>
