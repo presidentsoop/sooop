@@ -16,7 +16,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://sooop.org.pk'),
+  metadataBase: new URL('https://soopvision.com'),
   title: "SOOOP - Society of Optometrists Pakistan",
   description: "Official website of the Society of Optometrists, Orthoptists and Ophthalmic Technologists Pakistan. Advancing eye care and supporting vision professionals.",
   keywords: ["optometry", "ophthalmology", "pakistan", "vision care", "eye care", "SOOOP"],
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "SOOOP - Society of Optometrists Pakistan",
     description: "Advancing eye care and supporting the next generation of vision professionals",
-    url: "https://sooop.org.pk",
+    url: "https://soopvision.com",
     siteName: "SOOOP",
     images: [
       {

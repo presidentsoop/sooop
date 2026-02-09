@@ -54,7 +54,7 @@ export default function PrivacyPolicyPage() {
 
                     <div className="bg-gray-50 border-l-4 border-primary p-4 mt-8 rounded-r-lg">
                         <p className="font-semibold text-gray-900">Contact Us</p>
-                        <p className="text-sm mt-1">If you have any questions about this privacy policy, please contact us at <a href="mailto:info@sooop.org.pk" className="text-primary hover:underline">info@sooop.org.pk</a>.</p>
+                        <p className="text-sm mt-1">If you have any questions about this privacy policy, please contact us at <a href="mailto:info@soopvision.com" className="text-primary hover:underline">info@soopvision.com</a>.</p>
                     </div>
                 </div>
             </div>

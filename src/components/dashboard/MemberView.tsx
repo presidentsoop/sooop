@@ -118,7 +118,7 @@ export default function MemberView({ status, profile }: MemberViewProps) {
                 </div>
 
                 <p className="text-center text-gray-400 text-sm mt-8">
-                    Need help? <a href="mailto:support@sooop.org.pk" className="text-primary hover:underline font-medium">Contact Support</a>
+                    Need help? <a href="mailto:support@soopvision.com" className="text-primary hover:underline font-medium">Contact Support</a>
                 </p>
             </div>
         );
@@ -257,7 +257,7 @@ export default function MemberView({ status, profile }: MemberViewProps) {
                         <div className="relative z-10">
                             <h3 className="text-2xl font-bold mb-2">Need Assistance?</h3>
                             <p className="text-accent-100 mb-6 max-w-sm">Contact the SOOOP administration team for queries regarding your membership status or technical issues.</p>
-                            <a href="mailto:contact@sooop.org.pk" className="inline-flex items-center gap-2 bg-white text-accent-700 px-5 py-2.5 rounded-xl font-bold hover:bg-accent-50 transition-colors shadow-lg">
+                            <a href="mailto:contact@soopvision.com" className="inline-flex items-center gap-2 bg-white text-accent-700 px-5 py-2.5 rounded-xl font-bold hover:bg-accent-50 transition-colors shadow-lg">
                                 Contact Support
                             </a>
                         </div>

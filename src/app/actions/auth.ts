@@ -88,7 +88,7 @@ export async function activateExistingMembership(email: string): Promise<{
         if (existingUser) {
             // User exists in auth, send password reset instead
             const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(normalizedEmail, {
-                redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://sooop.org.pk'}/auth/callback?type=recovery`
+                redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://soopvision.com'}/auth/callback?type=recovery`
             });
 
             if (resetError) {
@@ -114,7 +114,7 @@ export async function activateExistingMembership(email: string): Promise<{
 
         // Invite new user (creates auth user and sends email)
         const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(normalizedEmail, {
-            redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://sooop.org.pk'}/auth/callback?type=invite`,
+            redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://soopvision.com'}/auth/callback?type=invite`,
             data: {
                 full_name: importedMember.full_name,
                 imported_member_id: importedMember.id

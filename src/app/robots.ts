@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 
 export default function robots(): MetadataRoute.Robots {
-    const baseUrl = 'https://sooop.org.pk';
+    const baseUrl = 'https://soopvision.com';
     return {
         rules: {
             userAgent: '*',

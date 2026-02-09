@@ -51,7 +51,7 @@ export default function TermsPage() {
 
                     <div className="bg-gray-50 border-l-4 border-primary p-4 mt-8 rounded-r-lg">
                         <p className="font-semibold text-gray-900">Questions?</p>
-                        <p className="text-sm mt-1">Please contact the administration at <a href="mailto:admin@sooop.org.pk" className="text-primary hover:underline">admin@sooop.org.pk</a>.</p>
+                        <p className="text-sm mt-1">Please contact the administration at <a href="mailto:admin@soopvision.com" className="text-primary hover:underline">admin@soopvision.com</a>.</p>
                     </div>
                 </div>
             </div>

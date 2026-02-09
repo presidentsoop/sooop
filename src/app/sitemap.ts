@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next';
 
-const baseUrl = 'https://sooop.org.pk';
+const baseUrl = 'https://soopvision.com';
 
 export default function sitemap(): MetadataRoute.Sitemap {
     const staticRoutes = [

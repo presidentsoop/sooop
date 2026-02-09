@@ -71,9 +71,9 @@ export default async function VerifyPage({ params }: VerifyPageProps) {
 
                         {/* Status Banner */}
                         <div className={`p-6 text-center ${isValid && !isExpired ? 'bg-gradient-to-br from-green-500 to-emerald-600' :
-                                isPending ? 'bg-gradient-to-br from-amber-500 to-orange-500' :
-                                    isExpired ? 'bg-gradient-to-br from-red-500 to-rose-600' :
-                                        'bg-gradient-to-br from-gray-500 to-gray-600'
+                            isPending ? 'bg-gradient-to-br from-amber-500 to-orange-500' :
+                                isExpired ? 'bg-gradient-to-br from-red-500 to-rose-600' :
+                                    'bg-gradient-to-br from-gray-500 to-gray-600'
                             }`}>
                             <div className="w-20 h-20 mx-auto bg-white/20 rounded-full flex items-center justify-center mb-4 backdrop-blur-sm">
                                 {isValid && !isExpired ? (
@@ -150,8 +150,8 @@ export default async function VerifyPage({ params }: VerifyPageProps) {
                                             <span className="text-[10px] uppercase font-bold tracking-wider">Status</span>
                                         </div>
                                         <p className={`text-lg font-bold capitalize ${profile.membership_status === 'active' ? 'text-green-600' :
-                                                profile.membership_status === 'pending' ? 'text-amber-600' :
-                                                    'text-gray-600'
+                                            profile.membership_status === 'pending' ? 'text-amber-600' :
+                                                'text-gray-600'
                                             }`}>
                                             {isExpired ? 'Expired' : profile.membership_status}
                                         </p>
@@ -202,8 +202,8 @@ export default async function VerifyPage({ params }: VerifyPageProps) {
                                 </p>
                                 <p className="text-sm text-gray-400">
                                     If you believe this is an error, please contact us at{' '}
-                                    <a href="mailto:contact@sooop.org.pk" className="text-primary-600 hover:underline">
-                                        contact@sooop.org.pk
+                                    <a href="mailto:contact@soopvision.com" className="text-primary-600 hover:underline">
+                                        contact@soopvision.com
                                     </a>
                                 </p>
                             </div>

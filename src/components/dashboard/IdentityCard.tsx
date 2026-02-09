@@ -205,7 +205,7 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
     };
 
     // Verification URL for QR Code
-    const verificationUrl = `https://sooop.org.pk/verify/${profile.registration_number || profile.id}`;
+    const verificationUrl = `https://soopvision.com/verify/${profile.registration_number || profile.id}`;
 
     // Format CNIC with dashes: 00000-0000000-0
     const formatCNIC = (cnic: string) => {
@@ -232,243 +232,546 @@ export default function IdentityCard({ profile }: IdentityCardProps) {
     const canDownload = !!profile.registration_number;
 
     // Common card content component for both preview and PDF
-    const FrontCardContent = ({ forPdf = false }: { forPdf?: boolean }) => (
-        <div
-            className="rounded-2xl shadow-2xl relative overflow-hidden"
-            style={{
-                width: forPdf ? '428px' : '100%',
-                height: forPdf ? '270px' : 'auto',
-                aspectRatio: forPdf ? undefined : '85.6/54',
-                background: 'linear-gradient(135deg, #0a3d62 0%, #1e5f74 40%, #0a3d62 100%)',
-                minHeight: forPdf ? undefined : '200px',
-            }}
-        >
-            {/* Decorative Elements */}
-            <div className="absolute inset-0 overflow-hidden">
-                <div
-                    className="absolute -top-20 -right-20 w-56 h-56 rounded-full opacity-20"
-                    style={{ background: 'radial-gradient(circle, #2dd4bf 0%, transparent 70%)' }}
-                />
-                <div
-                    className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full opacity-15"
-                    style={{ background: 'radial-gradient(circle, #2dd4bf 0%, transparent 70%)' }}
-                />
-            </div>
+    const FrontCardContent = ({ forPdf = false }: { forPdf?: boolean }) => {
+        // Fixed card dimensions
+        const cardStyle: React.CSSProperties = {
+            width: forPdf ? '428px' : '100%',
+            height: forPdf ? '270px' : 'auto',
+            aspectRatio: forPdf ? undefined : '85.6 / 54',
+            background: 'linear-gradient(135deg, #0a3d62 0%, #1a5276 50%, #0a3d62 100%)',
+            borderRadius: '16px',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+        };
 
-            {/* Main Content */}
-            <div className="relative z-10 flex w-full h-full p-5">
-                {/* Left Section - Photo */}
-                <div className="flex flex-col items-center justify-center pr-5 border-r border-white/20">
-                    <div className="relative w-28 h-28 rounded-xl overflow-hidden shadow-xl" style={{
-                        border: '3px solid rgba(45, 212, 191, 0.7)',
-                        background: 'linear-gradient(135deg, rgba(45, 212, 191, 0.2) 0%, rgba(10, 61, 98, 0.3) 100%)'
+        return (
+            <div style={cardStyle}>
+                {/* Decorative circles */}
+                <div style={{
+                    position: 'absolute',
+                    top: '-60px',
+                    right: '-60px',
+                    width: '180px',
+                    height: '180px',
+                    borderRadius: '50%',
+                    background: 'radial-gradient(circle, rgba(45, 212, 191, 0.25) 0%, transparent 70%)',
+                }} />
+                <div style={{
+                    position: 'absolute',
+                    bottom: '-40px',
+                    left: '-40px',
+                    width: '120px',
+                    height: '120px',
+                    borderRadius: '50%',
+                    background: 'radial-gradient(circle, rgba(45, 212, 191, 0.15) 0%, transparent 70%)',
+                }} />
+
+                {/* Main content wrapper */}
+                <div style={{
+                    position: 'relative',
+                    zIndex: 10,
+                    display: 'flex',
+                    width: '100%',
+                    height: '100%',
+                    padding: forPdf ? '20px' : '16px',
+                    boxSizing: 'border-box',
+                }}>
+                    {/* Left section - Photo */}
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        paddingRight: forPdf ? '20px' : '14px',
+                        borderRight: '1px solid rgba(255, 255, 255, 0.2)',
+                        flexShrink: 0,
                     }}>
-                        {(photoDataUrl || profile.profile_photo_url) ? (
-                            <img
-                                src={forPdf ? (photoDataUrl ?? profile.profile_photo_url ?? '') : (profile.profile_photo_url ?? photoDataUrl ?? '')}
-                                alt={profile.full_name}
-                                className="w-full h-full object-cover"
-                                crossOrigin="anonymous"
-                            />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #2dd4bf 0%, #14b8a6 100%)' }}>
-                                <span className="text-white text-4xl font-bold">
-                                    {profile.full_name.charAt(0).toUpperCase()}
-                                </span>
-                            </div>
-                        )}
-                    </div>
-                    <span
-                        className="mt-2.5 px-3 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider"
-                        style={{
-                            background: 'linear-gradient(135deg, #2dd4bf 0%, #14b8a6 100%)',
-                            color: 'white',
-                            boxShadow: '0 2px 8px rgba(45, 212, 191, 0.4)'
-                        }}
-                    >
-                        {profile.membership_type || "Member"}
-                    </span>
-                </div>
-
-                {/* Right Section - Details */}
-                <div className="flex-1 flex flex-col justify-between pl-5">
-                    {/* Header with Name & Logo */}
-                    <div className="flex items-start justify-between">
-                        <div className="flex-1 pr-3">
-                            <h2 className="text-xl font-bold text-white leading-tight tracking-wide">
-                                {profile.full_name}
-                            </h2>
-                            {profile.designation && (
-                                <p className="text-xs font-semibold uppercase tracking-wider mt-1" style={{ color: '#2dd4bf' }}>
-                                    {profile.designation}
-                                </p>
+                        {/* Photo container */}
+                        <div style={{
+                            width: forPdf ? '100px' : '80px',
+                            height: forPdf ? '100px' : '80px',
+                            borderRadius: '12px',
+                            border: '3px solid rgba(45, 212, 191, 0.7)',
+                            overflow: 'hidden',
+                            background: 'linear-gradient(135deg, rgba(45, 212, 191, 0.3) 0%, rgba(10, 61, 98, 0.5) 100%)',
+                            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)',
+                        }}>
+                            {(photoDataUrl || profile.profile_photo_url) ? (
+                                <img
+                                    src={forPdf ? (photoDataUrl ?? profile.profile_photo_url ?? '') : (profile.profile_photo_url ?? photoDataUrl ?? '')}
+                                    alt={profile.full_name}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    crossOrigin="anonymous"
+                                />
+                            ) : (
+                                <div style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    background: 'linear-gradient(135deg, #2dd4bf 0%, #14b8a6 100%)',
+                                }}>
+                                    <span style={{ color: 'white', fontSize: forPdf ? '36px' : '28px', fontWeight: 'bold' }}>
+                                        {profile.full_name.charAt(0).toUpperCase()}
+                                    </span>
+                                </div>
                             )}
                         </div>
-                        <div className="flex-shrink-0 w-12 h-12 bg-white rounded-lg p-1 shadow-lg">
-                            <img
-                                src={forPdf && logoDataUrl ? logoDataUrl : '/logo.jpg'}
-                                alt="SOOOP"
-                                className="w-full h-full object-contain rounded"
-                                crossOrigin="anonymous"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Details Grid */}
-                    <div className="grid grid-cols-2 gap-x-5 gap-y-2.5 mt-4">
-                        <div>
-                            <span className="text-[9px] uppercase font-bold tracking-wider block" style={{ color: 'rgba(255,255,255,0.5)' }}>Registration No.</span>
-                            <span className="text-sm font-mono font-bold text-white">
-                                {profile.registration_number || "PENDING"}
-                            </span>
-                        </div>
-                        <div>
-                            <span className="text-[9px] uppercase font-bold tracking-wider block" style={{ color: 'rgba(255,255,255,0.5)' }}>CNIC</span>
-                            <span className="text-sm font-mono font-bold text-white">
-                                {formatCNIC(profile.cnic)}
-                            </span>
-                        </div>
-                        <div>
-                            <span className="text-[9px] uppercase font-bold tracking-wider block" style={{ color: 'rgba(255,255,255,0.5)' }}>City</span>
-                            <span className="text-sm font-semibold text-white">
-                                {profile.city || "Pakistan"}
-                            </span>
-                        </div>
-                        <div>
-                            <span className="text-[9px] uppercase font-bold tracking-wider block" style={{ color: 'rgba(255,255,255,0.5)' }}>Valid Until</span>
-                            <span className={`text-sm font-bold ${isValid ? 'text-emerald-300' : 'text-red-400'}`}>
-                                {profile.subscription_end_date
-                                    ? new Date(profile.subscription_end_date).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
-                                    : "Inactive"}
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Bottom Organization Name */}
-                    <div className="flex items-center justify-between mt-auto pt-3 border-t border-white/15">
-                        <span className="text-[7px] uppercase tracking-[0.15em] font-medium" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                            Society of Optometrists, Orthoptists & Ophthalmic Technologists Pakistan
+                        {/* Membership type badge */}
+                        <span style={{
+                            marginTop: '10px',
+                            padding: '4px 12px',
+                            borderRadius: '20px',
+                            background: 'linear-gradient(135deg, #2dd4bf 0%, #14b8a6 100%)',
+                            color: 'white',
+                            fontSize: forPdf ? '9px' : '8px',
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px',
+                            boxShadow: '0 2px 8px rgba(45, 212, 191, 0.4)',
+                        }}>
+                            {profile.membership_type || 'Member'}
                         </span>
                     </div>
-                </div>
-            </div>
 
-            {/* Bottom Accent Strip */}
-            <div className="absolute bottom-0 left-0 w-full h-1.5" style={{
-                background: 'linear-gradient(90deg, #2dd4bf 0%, #5eead4 50%, #2dd4bf 100%)'
-            }} />
-        </div>
-    );
-
-    const BackCardContent = ({ forPdf = false }: { forPdf?: boolean }) => (
-        <div
-            className="bg-white rounded-2xl shadow-2xl relative overflow-hidden"
-            style={{
-                width: forPdf ? '428px' : '100%',
-                height: forPdf ? '270px' : 'auto',
-                aspectRatio: forPdf ? undefined : '85.6/54',
-                minHeight: forPdf ? undefined : '200px',
-            }}
-        >
-            {/* Background Pattern */}
-            <div className="absolute inset-0 overflow-hidden">
-                <div
-                    className="absolute -top-12 -right-12 w-36 h-36 rounded-full opacity-60"
-                    style={{ background: 'radial-gradient(circle, rgba(45, 212, 191, 0.15) 0%, transparent 70%)' }}
-                />
-                <div
-                    className="absolute -bottom-10 -left-10 w-28 h-28 rounded-full opacity-40"
-                    style={{ background: 'radial-gradient(circle, rgba(10, 61, 98, 0.1) 0%, transparent 70%)' }}
-                />
-            </div>
-
-            {/* Content */}
-            <div className="relative z-10 flex w-full h-full p-5">
-                {/* Left - QR Code */}
-                <div className="flex flex-col items-center justify-center pr-5 border-r border-gray-200">
-                    <div className="p-2.5 bg-white rounded-xl shadow-md" style={{ border: '2px solid rgba(45, 212, 191, 0.4)' }}>
-                        <QRCodeCanvas
-                            value={verificationUrl}
-                            size={90}
-                            level="H"
-                            fgColor="#0a3d62"
-                            bgColor="#ffffff"
-                            includeMargin={false}
-                        />
-                    </div>
-                    <p className="mt-2 text-[8px] uppercase tracking-widest font-bold text-center" style={{ color: '#14b8a6' }}>
-                        Scan to Verify
-                    </p>
-                </div>
-
-                {/* Right - Info */}
-                <div className="flex-1 flex flex-col justify-between pl-5">
-                    {/* Header */}
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9">
-                            <img
-                                src={forPdf && logoDataUrl ? logoDataUrl : '/logo.jpg'}
-                                alt="SOOOP"
-                                className="w-full h-full object-contain"
-                                crossOrigin="anonymous"
-                            />
+                    {/* Right section - Details */}
+                    <div style={{
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        paddingLeft: forPdf ? '20px' : '14px',
+                        minWidth: 0,
+                    }}>
+                        {/* Header with name and logo */}
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                            <div style={{ flex: 1, paddingRight: '10px', minWidth: 0 }}>
+                                <h2 style={{
+                                    margin: 0,
+                                    fontSize: forPdf ? '18px' : '16px',
+                                    fontWeight: 700,
+                                    color: 'white',
+                                    lineHeight: 1.2,
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                }}>
+                                    {profile.full_name}
+                                </h2>
+                                {profile.designation && (
+                                    <p style={{
+                                        margin: '4px 0 0 0',
+                                        fontSize: forPdf ? '10px' : '9px',
+                                        fontWeight: 600,
+                                        color: '#2dd4bf',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.5px',
+                                    }}>
+                                        {profile.designation}
+                                    </p>
+                                )}
+                            </div>
+                            {/* Logo */}
+                            <div style={{
+                                width: forPdf ? '44px' : '36px',
+                                height: forPdf ? '44px' : '36px',
+                                background: 'white',
+                                borderRadius: '8px',
+                                padding: '4px',
+                                flexShrink: 0,
+                                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                            }}>
+                                <img
+                                    src={forPdf && logoDataUrl ? logoDataUrl : '/logo.jpg'}
+                                    alt="SOOOP"
+                                    style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '4px' }}
+                                    crossOrigin="anonymous"
+                                />
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="text-sm font-bold tracking-wide" style={{ color: '#0a3d62' }}>SOOOP Pakistan</h3>
-                            <p className="text-[8px] uppercase tracking-wider font-semibold" style={{ color: '#14b8a6' }}>Official Member Card</p>
-                        </div>
-                    </div>
 
-                    {/* Member Info Grid */}
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 py-3">
-                        <div>
-                            <span className="text-[8px] uppercase font-bold tracking-wider block text-gray-400">Father/Husband</span>
-                            <span className="text-xs font-semibold text-gray-800 truncate block">
-                                {profile.father_name || "N/A"}
-                            </span>
-                        </div>
-                        <div className="text-center">
-                            <span className="text-[8px] uppercase font-bold tracking-wider block text-gray-400">Blood Group</span>
-                            <span className="text-xl font-black" style={{ color: '#EF4444' }}>
-                                {profile.blood_group || "—"}
-                            </span>
-                        </div>
-                        {getValidityPeriod() && (
-                            <div className="col-span-2">
-                                <span className="text-[8px] uppercase font-bold tracking-wider block text-gray-400">Validity Period</span>
-                                <span className="text-xs font-semibold text-gray-800">
-                                    {getValidityPeriod()}
+                        {/* Details Grid - 2x2 */}
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr',
+                            gap: forPdf ? '12px 20px' : '8px 14px',
+                            marginTop: forPdf ? '14px' : '10px',
+                        }}>
+                            {/* Registration No */}
+                            <div>
+                                <span style={{
+                                    display: 'block',
+                                    fontSize: forPdf ? '8px' : '7px',
+                                    fontWeight: 700,
+                                    color: 'rgba(255, 255, 255, 0.7)',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px',
+                                    marginBottom: '2px',
+                                }}>Registration No.</span>
+                                <span style={{
+                                    display: 'block',
+                                    fontSize: forPdf ? '12px' : '11px',
+                                    fontWeight: 700,
+                                    color: 'white',
+                                    fontFamily: 'monospace',
+                                    whiteSpace: 'nowrap',
+                                }}>
+                                    {profile.registration_number || 'PENDING'}
                                 </span>
                             </div>
-                        )}
-                    </div>
+                            {/* CNIC */}
+                            <div>
+                                <span style={{
+                                    display: 'block',
+                                    fontSize: forPdf ? '8px' : '7px',
+                                    fontWeight: 700,
+                                    color: 'rgba(255, 255, 255, 0.7)',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px',
+                                    marginBottom: '2px',
+                                }}>CNIC</span>
+                                <span style={{
+                                    display: 'block',
+                                    fontSize: forPdf ? '11px' : '10px',
+                                    fontWeight: 700,
+                                    color: 'white',
+                                    fontFamily: 'monospace',
+                                    whiteSpace: 'nowrap',
+                                }}>
+                                    {formatCNIC(profile.cnic)}
+                                </span>
+                            </div>
+                            {/* City */}
+                            <div>
+                                <span style={{
+                                    display: 'block',
+                                    fontSize: forPdf ? '8px' : '7px',
+                                    fontWeight: 700,
+                                    color: 'rgba(255, 255, 255, 0.7)',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px',
+                                    marginBottom: '2px',
+                                }}>City</span>
+                                <span style={{
+                                    display: 'block',
+                                    fontSize: forPdf ? '12px' : '11px',
+                                    fontWeight: 600,
+                                    color: 'white',
+                                    whiteSpace: 'nowrap',
+                                }}>
+                                    {profile.city || 'Pakistan'}
+                                </span>
+                            </div>
+                            {/* Valid Until */}
+                            <div>
+                                <span style={{
+                                    display: 'block',
+                                    fontSize: forPdf ? '8px' : '7px',
+                                    fontWeight: 700,
+                                    color: 'rgba(255, 255, 255, 0.7)',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px',
+                                    marginBottom: '2px',
+                                }}>Valid Until</span>
+                                <span style={{
+                                    display: 'block',
+                                    fontSize: forPdf ? '12px' : '11px',
+                                    fontWeight: 700,
+                                    color: isValid ? '#6ee7b7' : '#fca5a5',
+                                    whiteSpace: 'nowrap',
+                                }}>
+                                    {profile.subscription_end_date
+                                        ? new Date(profile.subscription_end_date).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
+                                        : 'Inactive'}
+                                </span>
+                            </div>
+                        </div>
 
-                    {/* Important Notice */}
-                    <div className="p-2 rounded-lg mt-auto" style={{ background: 'rgba(10, 61, 98, 0.05)', border: '1px solid rgba(10, 61, 98, 0.1)' }}>
-                        <p className="text-[7px] leading-relaxed text-gray-500">
-                            <strong className="text-gray-700">Note:</strong> This card is property of SOOOP Pakistan. If found, please return to: <span className="font-semibold">contact@sooop.org.pk</span>
+                        {/* Footer - Organization name */}
+                        <div style={{
+                            marginTop: 'auto',
+                            paddingTop: forPdf ? '10px' : '8px',
+                            borderTop: '1px solid rgba(255, 255, 255, 0.15)',
+                        }}>
+                            <span style={{
+                                fontSize: forPdf ? '7px' : '6px',
+                                color: 'rgba(255, 255, 255, 0.6)',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px',
+                                fontWeight: 500,
+                            }}>
+                                Society of Optometrists, Orthoptists & Ophthalmic Technologists Pakistan
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bottom accent strip */}
+                <div style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '5px',
+                    background: 'linear-gradient(90deg, #2dd4bf 0%, #5eead4 50%, #2dd4bf 100%)',
+                }} />
+            </div>
+        );
+    };
+
+    const BackCardContent = ({ forPdf = false }: { forPdf?: boolean }) => {
+        const cardStyle: React.CSSProperties = {
+            width: forPdf ? '428px' : '100%',
+            height: forPdf ? '270px' : 'auto',
+            aspectRatio: forPdf ? undefined : '85.6 / 54',
+            background: 'white',
+            borderRadius: '16px',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+        };
+
+        return (
+            <div style={cardStyle}>
+                {/* Background Pattern */}
+                <div style={{
+                    position: 'absolute',
+                    top: '-50px',
+                    right: '-50px',
+                    width: '140px',
+                    height: '140px',
+                    borderRadius: '50%',
+                    background: 'radial-gradient(circle, rgba(45, 212, 191, 0.15) 0%, transparent 70%)',
+                }} />
+                <div style={{
+                    position: 'absolute',
+                    bottom: '-40px',
+                    left: '-40px',
+                    width: '110px',
+                    height: '110px',
+                    borderRadius: '50%',
+                    background: 'radial-gradient(circle, rgba(10, 61, 98, 0.1) 0%, transparent 70%)',
+                }} />
+
+                {/* Content */}
+                <div style={{
+                    position: 'relative',
+                    zIndex: 10,
+                    display: 'flex',
+                    width: '100%',
+                    height: '100%',
+                    padding: forPdf ? '20px' : '16px',
+                    boxSizing: 'border-box',
+                }}>
+                    {/* Left - QR Code */}
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        paddingRight: forPdf ? '20px' : '14px',
+                        borderRight: '1px solid #e5e7eb',
+                        flexShrink: 0,
+                    }}>
+                        <div style={{
+                            padding: '10px',
+                            background: 'white',
+                            borderRadius: '12px',
+                            border: '2px solid rgba(45, 212, 191, 0.4)',
+                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                        }}>
+                            <QRCodeCanvas
+                                value={verificationUrl}
+                                size={forPdf ? 90 : 70}
+                                level="H"
+                                fgColor="#0a3d62"
+                                bgColor="#ffffff"
+                                includeMargin={false}
+                            />
+                        </div>
+                        <p style={{
+                            marginTop: '8px',
+                            fontSize: forPdf ? '8px' : '7px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '1px',
+                            fontWeight: 700,
+                            color: '#14b8a6',
+                            textAlign: 'center',
+                        }}>
+                            Scan to Verify
                         </p>
                     </div>
 
-                    {/* Footer */}
-                    <div className="flex items-center justify-between pt-2 border-t border-gray-100 mt-2">
-                        <div className="flex items-center gap-1.5">
-                            <Shield className="w-3 h-3" style={{ color: '#14b8a6' }} />
-                            <span className="text-[8px] font-semibold" style={{ color: '#0a3d62' }}>www.sooop.org.pk</span>
+                    {/* Right - Info */}
+                    <div style={{
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        paddingLeft: forPdf ? '20px' : '14px',
+                        minWidth: 0,
+                    }}>
+                        {/* Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ width: forPdf ? '36px' : '28px', height: forPdf ? '36px' : '28px' }}>
+                                <img
+                                    src={forPdf && logoDataUrl ? logoDataUrl : '/logo.jpg'}
+                                    alt="SOOOP"
+                                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                    crossOrigin="anonymous"
+                                />
+                            </div>
+                            <div>
+                                <h3 style={{
+                                    margin: 0,
+                                    fontSize: forPdf ? '14px' : '12px',
+                                    fontWeight: 700,
+                                    color: '#0a3d62',
+                                    letterSpacing: '0.5px',
+                                }}>SOOOP Pakistan</h3>
+                                <p style={{
+                                    margin: 0,
+                                    fontSize: forPdf ? '8px' : '7px',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px',
+                                    fontWeight: 600,
+                                    color: '#14b8a6',
+                                }}>Official Member Card</p>
+                            </div>
                         </div>
-                        <span className="text-[8px] text-gray-400 font-mono">
-                            {profile.registration_number || "PENDING"}
-                        </span>
+
+                        {/* Member Info Grid */}
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr',
+                            gap: forPdf ? '8px 16px' : '6px 12px',
+                            padding: forPdf ? '12px 0' : '8px 0',
+                        }}>
+                            <div>
+                                <span style={{
+                                    display: 'block',
+                                    fontSize: forPdf ? '8px' : '7px',
+                                    fontWeight: 700,
+                                    color: '#9ca3af',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px',
+                                    marginBottom: '2px',
+                                }}>Father/Husband</span>
+                                <span style={{
+                                    display: 'block',
+                                    fontSize: forPdf ? '11px' : '10px',
+                                    fontWeight: 600,
+                                    color: '#1f2937',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                }}>
+                                    {profile.father_name || 'N/A'}
+                                </span>
+                            </div>
+                            <div style={{ textAlign: 'center' }}>
+                                <span style={{
+                                    display: 'block',
+                                    fontSize: forPdf ? '8px' : '7px',
+                                    fontWeight: 700,
+                                    color: '#9ca3af',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px',
+                                    marginBottom: '2px',
+                                }}>Blood Group</span>
+                                <span style={{
+                                    fontSize: forPdf ? '20px' : '16px',
+                                    fontWeight: 900,
+                                    color: '#EF4444',
+                                }}>
+                                    {profile.blood_group || '—'}
+                                </span>
+                            </div>
+                            {getValidityPeriod() && (
+                                <div style={{ gridColumn: 'span 2' }}>
+                                    <span style={{
+                                        display: 'block',
+                                        fontSize: forPdf ? '8px' : '7px',
+                                        fontWeight: 700,
+                                        color: '#9ca3af',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.5px',
+                                        marginBottom: '2px',
+                                    }}>Validity Period</span>
+                                    <span style={{
+                                        display: 'block',
+                                        fontSize: forPdf ? '11px' : '10px',
+                                        fontWeight: 600,
+                                        color: '#1f2937',
+                                    }}>
+                                        {getValidityPeriod()}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Important Notice */}
+                        <div style={{
+                            padding: forPdf ? '8px' : '6px',
+                            borderRadius: '8px',
+                            background: 'rgba(10, 61, 98, 0.05)',
+                            border: '1px solid rgba(10, 61, 98, 0.1)',
+                            marginTop: 'auto',
+                        }}>
+                            <p style={{
+                                margin: 0,
+                                fontSize: forPdf ? '7px' : '6px',
+                                lineHeight: 1.4,
+                                color: '#6b7280',
+                            }}>
+                                <strong style={{ color: '#374151' }}>Note:</strong> This card is property of SOOOP Pakistan. If found, please return to: <span style={{ fontWeight: 600 }}>contact@soopvision.com</span>
+                            </p>
+                        </div>
+
+                        {/* Footer */}
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            paddingTop: forPdf ? '8px' : '6px',
+                            marginTop: forPdf ? '8px' : '6px',
+                            borderTop: '1px solid #f3f4f6',
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <Shield style={{ width: forPdf ? '12px' : '10px', height: forPdf ? '12px' : '10px', color: '#14b8a6' }} />
+                                <span style={{
+                                    fontSize: forPdf ? '8px' : '7px',
+                                    fontWeight: 600,
+                                    color: '#0a3d62',
+                                }}>www.soopvision.com</span>
+                            </div>
+                            <span style={{
+                                fontSize: forPdf ? '8px' : '7px',
+                                color: '#9ca3af',
+                                fontFamily: 'monospace',
+                            }}>
+                                {profile.registration_number || 'PENDING'}
+                            </span>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Bottom Strip */}
-            <div className="absolute bottom-0 left-0 w-full h-1.5" style={{
-                background: 'linear-gradient(90deg, #0a3d62 0%, #1e5f74 100%)'
-            }} />
-        </div>
-    );
+                {/* Bottom Strip */}
+                <div style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '5px',
+                    background: 'linear-gradient(90deg, #0a3d62 0%, #1e5f74 100%)',
+                }} />
+            </div>
+        );
+    };
 
     return (
         <div className="flex flex-col items-center gap-6 sm:gap-8 animate-fade-in px-2 sm:px-0">
