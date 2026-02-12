@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { renderToStream } from '@react-pdf/renderer';
-import IdentityCardPDF from '@/components/dashboard/IdentityCardPDF';
+import MembershipCertificatePDF from '@/components/dashboard/MembershipCertificatePDF';
 
 // Force dynamic rendering to handle request body parsing
 export const dynamic = 'force-dynamic';
@@ -11,13 +11,12 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const { profile, photoDataUrl, logoDataUrl, qrDataUrl } = body;
 
-        console.log("Generating PDF for:", profile.full_name);
+        console.log("Generating Certificate for:", profile.full_name);
 
         // Generate PDF stream
         const stream = await renderToStream(
-            <IdentityCardPDF
+            <MembershipCertificatePDF
                 profile={profile}
-                photoDataUrl={photoDataUrl}
                 logoDataUrl={logoDataUrl}
                 qrDataUrl={qrDataUrl}
             />
@@ -35,13 +34,13 @@ export async function POST(req: NextRequest) {
         return new NextResponse(buffer, {
             headers: {
                 'Content-Type': 'application/pdf',
-                'Content-Disposition': `attachment; filename="SOOOP-Card-${profile.registration_number || 'Member'}.pdf"`,
+                'Content-Disposition': `attachment; filename="SOOOP-Certificate-${profile.registration_number || 'Member'}.pdf"`,
             },
         });
     } catch (error) {
-        console.error('PDF Generation Error:', error);
+        console.error('Certificate Generation Error:', error);
         return NextResponse.json(
-            { error: 'Failed to generate PDF', details: error instanceof Error ? error.message : 'Unknown error' },
+            { error: 'Failed to generate Certificate', details: error instanceof Error ? error.message : 'Unknown error' },
             { status: 500 }
         );
     }
