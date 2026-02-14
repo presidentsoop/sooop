@@ -43,19 +43,29 @@ export function ImageViewer({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[110] bg-black/90 flex flex-col animate-fade-in">
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-black/50 border-b border-white/10">
-                <div className="flex items-center gap-4">
-                    {title && <h3 className="text-white font-medium">{title}</h3>}
-                    {isVerified !== undefined && (
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${isVerified ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                            <Check className="w-3 h-3" />
-                            {isVerified ? 'Verified' : 'Unverified'}
-                        </span>
-                    )}
+        <div className="fixed inset-0 z-[110] bg-black/95 flex flex-col animate-fade-in touch-none">
+            {/* Header - Optimized for Mobile */}
+            <div className="flex items-center justify-between px-4 py-3 bg-black/50 border-b border-white/10 backdrop-blur-sm z-10 shrink-0">
+                <div className="flex items-center gap-3 overflow-hidden">
+                    <button
+                        onClick={onClose}
+                        className="p-2 -ml-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors md:hidden"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                    <div className="flex flex-col min-w-0">
+                        {title && <h3 className="text-white font-medium truncate text-sm md:text-base">{title}</h3>}
+                        {isVerified !== undefined && (
+                            <span className={`inline-flex items-center gap-1 text-[10px] md:text-xs font-medium ${isVerified ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                <Check className="w-3 h-3" />
+                                {isVerified ? 'Verified' : 'Unverified'}
+                            </span>
+                        )}
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
+
+                {/* Desktop Toolbar */}
+                <div className="hidden md:flex items-center gap-2">
                     <button
                         onClick={() => setZoom(z => Math.max(0.5, z - 0.25))}
                         className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
@@ -95,27 +105,65 @@ export function ImageViewer({
                         <X className="w-5 h-5" />
                     </button>
                 </div>
+
+                {/* Mobile Right Actions */}
+                <div className="flex md:hidden items-center gap-2">
+                    <button
+                        onClick={() => window.open(src, '_blank')}
+                        className="p-2 text-white/70 hover:text-white active:bg-white/10 rounded-full transition-colors"
+                    >
+                        <ExternalLink className="w-5 h-5" />
+                    </button>
+                </div>
             </div>
 
-            {/* Image */}
-            <div className="flex-1 flex items-center justify-center overflow-auto p-8">
-                <img
-                    src={src}
-                    alt={title || "Document"}
-                    className="max-w-full max-h-full object-contain transition-transform duration-200"
-                    style={{
-                        transform: `scale(${zoom}) rotate(${rotation}deg)`,
-                    }}
-                />
+            {/* Image Container */}
+            <div className="flex-1 overflow-hidden relative w-full h-full bg-black/90">
+                <div className="absolute inset-0 flex items-center justify-center p-4">
+                    <img
+                        src={src}
+                        alt={title || "Document"}
+                        className="max-w-full max-h-full object-contain transition-transform duration-200 ease-out select-none"
+                        style={{
+                            transform: `scale(${zoom}) rotate(${rotation}deg)`,
+                        }}
+                        draggable={false}
+                    />
+                </div>
             </div>
 
-            {/* Footer Actions */}
+            {/* Mobile Bottom Toolbar */}
+            <div className="md:hidden flex items-center justify-between px-6 py-4 bg-black/80 backdrop-blur-md border-t border-white/10 shrink-0 mb-safe">
+                <button
+                    onClick={() => setZoom(z => Math.max(0.5, z - 0.25))}
+                    className="p-3 text-white/80 active:text-white active:bg-white/10 rounded-full"
+                >
+                    <ZoomOut className="w-6 h-6" />
+                </button>
+
+                <button
+                    onClick={() => setRotation(r => r + 90)}
+                    className="p-3 text-white/80 active:text-white active:bg-white/10 rounded-full"
+                >
+                    <RotateCw className="w-6 h-6" />
+                </button>
+
+                <button
+                    onClick={() => setZoom(z => Math.min(3, z + 0.25))}
+                    className="p-3 text-white/80 active:text-white active:bg-white/10 rounded-full"
+                >
+                    <ZoomIn className="w-6 h-6" />
+                </button>
+            </div>
+
+            {/* Footer Verify Action */}
             {onVerify && (
-                <div className="flex items-center justify-center gap-4 px-4 py-4 bg-black/50 border-t border-white/10">
+                <div className="flex items-center justify-center gap-4 px-4 py-4 bg-black/80 backdrop-blur-md border-t border-white/10 shrink-0 z-10 pb-safe">
                     <Button
                         variant={isVerified ? 'secondary' : 'success'}
                         onClick={onVerify}
                         icon={<Check className="w-4 h-4" />}
+                        className="w-full md:w-auto"
                     >
                         {isVerified ? 'Mark as Unverified' : 'Verify Document'}
                     </Button>
@@ -146,6 +194,28 @@ interface DocumentGridProps {
 
 export function DocumentGrid({ documents, onVerify, highlightType }: DocumentGridProps) {
     const [viewingDoc, setViewingDoc] = useState<DocumentItem | null>(null);
+
+    // History API for Image Viewer
+    useEffect(() => {
+        if (viewingDoc) {
+            window.history.pushState({ modal: 'image-viewer' }, '');
+
+            const handlePopState = () => {
+                setViewingDoc(null);
+            };
+
+            window.addEventListener('popstate', handlePopState);
+            return () => window.removeEventListener('popstate', handlePopState);
+        }
+    }, [viewingDoc]);
+
+    const handleCloseViewer = () => {
+        if (window.history.state?.modal === 'image-viewer') {
+            window.history.back();
+        } else {
+            setViewingDoc(null);
+        }
+    };
 
     const formatDocType = (type: string) => {
         return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -237,11 +307,11 @@ export function DocumentGrid({ documents, onVerify, highlightType }: DocumentGri
             {viewingDoc && (
                 <ImageViewer
                     isOpen={!!viewingDoc}
-                    onClose={() => setViewingDoc(null)}
+                    onClose={handleCloseViewer}
                     src={viewingDoc.signedUrl || viewingDoc.file_url}
                     title={formatDocType(viewingDoc.document_type)}
                     isVerified={viewingDoc.verified}
-                    onVerify={onVerify ? () => { onVerify(viewingDoc); setViewingDoc(null); } : undefined}
+                    onVerify={onVerify ? () => { onVerify(viewingDoc); handleCloseViewer(); } : undefined}
                 />
             )}
         </>

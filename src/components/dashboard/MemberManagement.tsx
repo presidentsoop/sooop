@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, UserPlus, Upload, Clock, Check, X, Ban, RefreshCw, Settings, Eye, FileText, CreditCard, MoreHorizontal, ChevronDown, Users, Trash2 } from "lucide-react";
+import { Search, UserPlus, Upload, Clock, Check, X, Ban, RefreshCw, Settings, Eye, FileText, CreditCard, ChevronRight, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { format, addYears, isPast, formatDistanceToNow } from "date-fns";
@@ -67,6 +67,32 @@ export default function MemberManagement() {
     const [editRegInput, setEditRegInput] = useState("");
 
     const supabase = createClient();
+
+    // History State Management for Modal
+    useEffect(() => {
+        if (selectedMember) {
+            // Push state when modal opens
+            window.history.pushState({ modal: 'member-details' }, '');
+
+            const handlePopState = () => {
+                setSelectedMember(null);
+            };
+
+            window.addEventListener('popstate', handlePopState);
+            return () => {
+                window.removeEventListener('popstate', handlePopState);
+            };
+        }
+    }, [selectedMember]);
+
+    const handleCloseModal = () => {
+        // If we have history state, go back
+        if (window.history.state?.modal === 'member-details') {
+            window.history.back();
+        } else {
+            setSelectedMember(null);
+        }
+    };
 
     useEffect(() => {
         fetchMembers();
@@ -164,8 +190,12 @@ export default function MemberManagement() {
             toast.success(successMessage);
             setMembers(members.map(m => m.id === id ? { ...m, ...updateData } : m));
             if (selectedMember?.id === id) {
-                setSelectedMember({ ...selectedMember, ...updateData });
-                if (['block', 'revoke', 'reject'].includes(action)) setSelectedMember(null);
+                // Determine if we should close modal or just update state
+                if (['block', 'revoke', 'reject'].includes(action)) {
+                    handleCloseModal();
+                } else {
+                    setSelectedMember({ ...selectedMember, ...updateData });
+                }
             }
         }
         setActionLoading(null);
@@ -182,7 +212,7 @@ export default function MemberManagement() {
         } else {
             toast.success("Member processed for deletion");
             setMembers(members.filter(m => m.id !== id));
-            setSelectedMember(null);
+            handleCloseModal();
         }
         setActionLoading(null);
     };
@@ -231,7 +261,7 @@ export default function MemberManagement() {
 
     const openApproveModal = (member: Member) => {
         // Close detail modal first for better UX
-        setSelectedMember(null);
+        handleCloseModal();
         // Small delay to let the detail modal close smoothly
         setTimeout(() => {
             setMemberToApprove(member);
@@ -257,7 +287,7 @@ export default function MemberManagement() {
 
     // Open Edit Registration Number modal
     const openEditRegModal = (member: Member) => {
-        setSelectedMember(null); // Close detail modal
+        handleCloseModal(); // Close detail modal
         setTimeout(() => {
             setMemberToEditReg(member);
             setEditRegInput(member.registration_number || "");
@@ -305,6 +335,32 @@ export default function MemberManagement() {
         expired: members.filter(m => m.membership_status === 'expired').length,
         blocked: members.filter(m => m.membership_status === 'blocked').length,
     };
+
+    // Mobile Row Renderer (Card View)
+    const renderMobileRow = (row: Member) => (
+        <div className="p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 overflow-hidden">
+                <Avatar src={row.profile_photo_url} name={row.full_name} size="md" />
+                <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                        <p className="font-medium text-gray-900 truncate">{row.full_name}</p>
+                        {row.registration_number && (
+                            <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full shrink-0">
+                                #{row.registration_number}
+                            </span>
+                        )}
+                    </div>
+                    <p className="text-sm text-gray-500 truncate">{row.email}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                        <StatusBadge status={row.membership_status || 'pending'} size="sm" />
+                        <span className="text-xs text-gray-400">•</span>
+                        <span className="text-xs text-gray-500">{format(new Date(row.created_at), 'MMM d, yyyy')}</span>
+                    </div>
+                </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-300 shrink-0" />
+        </div>
+    );
 
     // Table columns
     const columns = [
@@ -381,17 +437,18 @@ export default function MemberManagement() {
                     <h1 className="text-2xl font-bold text-gray-900">Member Management</h1>
                     <p className="text-gray-500 mt-1">Manage memberships, approvals, and subscriptions</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0">
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={runExpirationScan}
                         icon={<Clock className="w-4 h-4" />}
+                        className="whitespace-nowrap"
                     >
                         Scan Expired
                     </Button>
                     <Link href="/dashboard/members/import">
-                        <Button variant="secondary" size="sm" icon={<Upload className="w-4 h-4" />}>
+                        <Button variant="secondary" size="sm" icon={<Upload className="w-4 h-4" />} className="whitespace-nowrap">
                             Import CSV
                         </Button>
                     </Link>
@@ -400,6 +457,7 @@ export default function MemberManagement() {
                         size="sm"
                         onClick={() => setShowAddModal(true)}
                         icon={<UserPlus className="w-4 h-4" />}
+                        className="whitespace-nowrap"
                     >
                         Add Member
                     </Button>
@@ -407,25 +465,27 @@ export default function MemberManagement() {
             </div>
 
             {/* Status Tabs */}
-            <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg w-fit">
-                {TABS.map(tab => {
-                    const isActive = activeTab === tab.id;
-                    const count = tabCounts[tab.id as keyof typeof tabCounts];
-                    return (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2 ${isActive ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
-                        >
-                            {tab.label}
-                            {count > 0 && (
-                                <span className={`px-1.5 py-0.5 text-xs rounded-full ${isActive ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'}`}>
-                                    {count}
-                                </span>
-                            )}
-                        </button>
-                    );
-                })}
+            <div className="overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
+                <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg w-fit">
+                    {TABS.map(tab => {
+                        const isActive = activeTab === tab.id;
+                        const count = tabCounts[tab.id as keyof typeof tabCounts];
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2 whitespace-nowrap ${isActive ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+                            >
+                                {tab.label}
+                                {count > 0 && (
+                                    <span className={`px-1.5 py-0.5 text-xs rounded-full ${isActive ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'}`}>
+                                        {count}
+                                    </span>
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
             {/* Data Table */}
@@ -440,6 +500,7 @@ export default function MemberManagement() {
                 idKey="id"
                 loading={loading}
                 emptyMessage="No members found"
+                mobileRenderer={renderMobileRow}
                 actions={(row) => (
                     <div className="flex items-center gap-1">
                         <button
@@ -558,14 +619,14 @@ export default function MemberManagement() {
             {/* Member Detail Modal */}
             <Modal
                 isOpen={!!selectedMember}
-                onClose={() => setSelectedMember(null)}
+                onClose={handleCloseModal}
                 title="Member Details"
                 subtitle={selectedMember?.email}
                 size="xl"
                 footer={
                     selectedMember && (
-                        <>
-                            <Button variant="secondary" onClick={() => setSelectedMember(null)}>
+                        <div className="flex flex-wrap items-center justify-end gap-2 w-full">
+                            <Button variant="secondary" onClick={handleCloseModal}>
                                 Close
                             </Button>
                             {selectedMember.membership_status === 'pending' ? (
@@ -595,7 +656,7 @@ export default function MemberManagement() {
                                         loading={actionLoading === selectedMember.id}
                                         icon={<RefreshCw className="w-4 h-4" />}
                                     >
-                                        Renew 1 Year
+                                        Renew
                                     </Button>
                                     {selectedMember.membership_status !== 'blocked' && (
                                         <Button
@@ -617,21 +678,21 @@ export default function MemberManagement() {
                                     </Button>
                                 </>
                             )}
-                        </>
+                        </div>
                     )
                 }
             >
                 {selectedMember && (
-                    <div className="p-6">
+                    <div className="p-4 md:p-6 pb-24 md:pb-6">
                         <div className="grid md:grid-cols-2 gap-6">
                             {/* Left: Member Info */}
                             <div className="space-y-6">
                                 {/* Profile Card */}
                                 <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
                                     <Avatar src={selectedMember.profile_photo_url} name={selectedMember.full_name} size="lg" />
-                                    <div className="flex-1">
-                                        <h3 className="text-lg font-semibold text-gray-900">{selectedMember.full_name}</h3>
-                                        <p className="text-sm text-gray-600 font-mono">{selectedMember.cnic}</p>
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="text-lg font-semibold text-gray-900 truncate">{selectedMember.full_name}</h3>
+                                        <p className="text-sm text-gray-600 font-mono truncate">{selectedMember.cnic}</p>
                                         <div className="flex items-center gap-2 mt-2">
                                             <StatusBadge status={selectedMember.membership_status || 'pending'} />
                                             <span className="px-2 py-0.5 bg-white text-gray-600 text-xs font-medium rounded border">
@@ -640,9 +701,9 @@ export default function MemberManagement() {
                                         </div>
                                         {/* Registration Number with Edit */}
                                         <div className="flex items-center gap-2 mt-2">
-                                            <span className="text-xs text-gray-500">Reg #:</span>
+                                            <span className="text-xs text-gray-500 shrink-0">Reg #:</span>
                                             {selectedMember.registration_number ? (
-                                                <span className="font-mono text-sm font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                                                <span className="font-mono text-sm font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded truncate">
                                                     {selectedMember.registration_number}
                                                 </span>
                                             ) : (
@@ -795,27 +856,11 @@ export default function MemberManagement() {
                             type="text"
                             value={editRegInput}
                             onChange={(e) => setEditRegInput(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-mono placeholder:text-gray-400"
+                            className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-mono placeholder:text-gray-400"
                             placeholder="e.g. SOOOP-2024-001"
                             autoFocus
                         />
-                        <p className="text-xs text-gray-500 mt-1">
-                            This number will appear on the member's identity card.
-                        </p>
                     </div>
-
-                    {memberToEditReg && (
-                        <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
-                            <p><strong>Member:</strong> {memberToEditReg.full_name}</p>
-                            <p><strong>CNIC:</strong> {memberToEditReg.cnic || 'N/A'}</p>
-                            <p><strong>Status:</strong> {memberToEditReg.membership_status}</p>
-                            {memberToEditReg.registration_number && (
-                                <p className="mt-1 text-amber-600">
-                                    <strong>Current Reg #:</strong> {memberToEditReg.registration_number}
-                                </p>
-                            )}
-                        </div>
-                    )}
                 </div>
             </Modal>
         </div>

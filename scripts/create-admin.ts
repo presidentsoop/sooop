@@ -9,7 +9,7 @@ const supabase = createClient(supabaseUrl, serviceRoleKey, {
 });
 
 async function createAdmin() {
-    const email = 'soooppresident@gmail.com';
+    const email = 'presidentsoop@gmail.com';
     const password = 'User4468@.';
 
     console.log('Creating admin user:', email);

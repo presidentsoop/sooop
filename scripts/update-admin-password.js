@@ -9,7 +9,7 @@ const supabase = createClient(supabaseUrl, serviceRoleKey, {
 });
 
 async function updateAdminPassword() {
-    const userId = '6a0fc2e3-62af-4acf-a8dc-96205cff3b47';
+    const userId = 'c7faa531-b151-4047-ae8e-2f18242bb8b4';
     const password = 'User4468@.';
 
     console.log('Updating password for user:', userId);
@@ -22,7 +22,7 @@ async function updateAdminPassword() {
     if (error) {
         console.error('Error updating password:', error.message);
     } else {
-        console.log('✅ Password updated successfully for soooppresident@gmail.com');
+        console.log('✅ Password updated successfully for presidentsoop@gmail.com');
     }
 }
 
