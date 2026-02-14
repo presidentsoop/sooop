@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { profile, photoDataUrl, logoDataUrl, qrDataUrl } = body;
+        const { profile, photoDataUrl, logoDataUrl, qrDataUrl, signatureDataUrl } = body;
 
         console.log("Generating Certificate for:", profile.full_name);
 
@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
                 logoDataUrl={logoDataUrl}
                 qrDataUrl={qrDataUrl}
                 photoDataUrl={photoDataUrl}
+                signatureDataUrl={signatureDataUrl}
             />
         );
 

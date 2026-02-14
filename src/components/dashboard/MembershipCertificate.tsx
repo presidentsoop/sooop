@@ -28,6 +28,7 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
     const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
     const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
     const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+    const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
     const [imagesLoaded, setImagesLoaded] = useState(false);
 
     // Convert images to data URLs for PDF generation
@@ -92,6 +93,26 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
             checkAllLoaded();
         };
         logoImg.src = '/logo.jpg';
+        // Convert signature
+        const sigImg = new window.Image();
+        sigImg.crossOrigin = 'anonymous';
+        sigImg.onload = () => {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = sigImg.width;
+                canvas.height = sigImg.height;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.drawImage(sigImg, 0, 0);
+                    setSignatureDataUrl(canvas.toDataURL('image/png'));
+                }
+            } catch (e) {
+                console.error('Failed to convert signature:', e);
+            }
+            // We don't block loading on signature, but it's good to have
+        };
+        sigImg.src = '/signature.png';
+
     }, [profile.profile_photo_url]);
 
     // Generate QR code data URL
@@ -149,7 +170,8 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
                     profile,
                     logoDataUrl: logoDataUrl,
                     qrDataUrl: currentQrUrl,
-                    photoDataUrl: photoDataUrl
+                    photoDataUrl: photoDataUrl,
+                    signatureDataUrl: signatureDataUrl
                 }),
             });
 
