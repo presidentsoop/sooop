@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
-
+import { SpeedInsights } from "@vercel/speed-insights/next"
+import { Analytics } from "@vercel/analytics/next"
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -63,6 +64,8 @@ export default function RootLayout({
       <body className="font-sans" suppressHydrationWarning>
         <SplashScreen />
         {children}
+        <Analytics />
+        <SpeedInsights />
         <Toaster richColors position="top-center" />
       </body>
     </html>

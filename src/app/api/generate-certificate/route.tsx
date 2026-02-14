@@ -19,6 +19,7 @@ export async function POST(req: NextRequest) {
                 profile={profile}
                 logoDataUrl={logoDataUrl}
                 qrDataUrl={qrDataUrl}
+                photoDataUrl={photoDataUrl}
             />
         );
 

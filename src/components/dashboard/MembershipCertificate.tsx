@@ -148,7 +148,8 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
                 body: JSON.stringify({
                     profile,
                     logoDataUrl: logoDataUrl,
-                    qrDataUrl: currentQrUrl
+                    qrDataUrl: currentQrUrl,
+                    photoDataUrl: photoDataUrl
                 }),
             });
 

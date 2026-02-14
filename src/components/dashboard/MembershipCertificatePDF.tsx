@@ -1,3 +1,4 @@
+
 import {
     Document,
     Page,
@@ -5,177 +6,239 @@ import {
     Text,
     Image,
     StyleSheet,
-    Font,
+    Svg,
+    Path,
 } from '@react-pdf/renderer';
 
-// Register fonts if available, otherwise fallback to Helvetica
-// Ideally we would register a formal font like Times New Roman or similar for certificates
-// Font.register({
-//   family: 'Times-Roman',
-//   src: '/fonts/Times-Roman.ttf'
-// });
-
+// Color Palette - Professional & Trustworthy
 const colors = {
-    primary: '#0a3d62', // Navy
-    secondary: '#1a5276',
-    gold: '#D4AF37', // Certificate Gold
-    text: '#1f2937',
-    lightText: '#6b7280',
+    primary: '#1e3a8a', // Deep Royal Blue
+    secondary: '#1e40af', // Lighter Blue
+    accent: '#cbceeb', // Soft blueish background
+    gold: '#D4AF37', // Metallic Gold
+    text: '#1f2937', // Dark Gray
+    lightText: '#6b7280', // Medium Gray
     white: '#ffffff',
 };
 
+// Styles
 const styles = StyleSheet.create({
     page: {
         flexDirection: 'column',
         backgroundColor: '#ffffff',
-        padding: 40,
         position: 'relative',
+        fontFamily: 'Helvetica',
     },
-    border: {
-        border: `4px solid ${colors.primary}`,
-        height: '100%',
+    // Background decorations
+    bgCurveTop: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
         width: '100%',
-        padding: 5, // Inner padding for double border effect
+        height: 200,
     },
-    innerBorder: {
-        border: `1px solid ${colors.gold}`,
-        height: '100%',
+    bgCurveBottom: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
         width: '100%',
-        padding: 30,
+        height: 200,
+        transform: 'rotate(180deg)',
+    },
+    // Main Container
+    container: {
+        padding: 40,
+        height: '100%',
+        flexDirection: 'row',
+    },
+    // Left Sidebar (Photo & QR)
+    sidebar: {
+        width: 180,
+        height: '100%',
         alignItems: 'center',
         justifyContent: 'space-between',
+        paddingTop: 40,
+        paddingBottom: 20,
+        borderRight: `1px solid ${colors.gold}`,
+        paddingRight: 20,
     },
-    header: {
+    photoContainer: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        overflow: 'hidden',
+        border: `3px solid ${colors.gold}`,
         alignItems: 'center',
-        marginBottom: 20,
-    },
-    logo: {
-        width: 80,
-        height: 80,
-        marginBottom: 10,
-        objectFit: 'contain',
-    },
-    orgName: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: colors.primary,
-        marginBottom: 5,
-        textTransform: 'uppercase',
-        letterSpacing: 2,
-    },
-    certificateTitle: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: colors.gold,
-        fontFamily: 'Helvetica-Bold', // Fallback
-        marginBottom: 30,
-        textTransform: 'uppercase',
-        letterSpacing: 4,
-    },
-    body: {
-        alignItems: 'center',
-        width: '100%',
-        flex: 1,
         justifyContent: 'center',
+        backgroundColor: '#f3f4f6',
     },
-    certifyText: {
-        fontSize: 14,
-        color: colors.lightText,
-        marginBottom: 10,
-        fontStyle: 'italic',
+    photo: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
     },
-    memberName: {
-        fontSize: 36,
-        fontWeight: 'bold',
-        color: colors.text,
-        marginBottom: 10,
-        textAlign: 'center',
-        fontFamily: 'Helvetica-Bold',
-        borderBottom: `1px solid ${colors.gold}`,
-        paddingBottom: 5,
-        minWidth: 400,
-    },
-    bodyText: {
-        fontSize: 16,
-        color: colors.text,
-        textAlign: 'center',
-        lineHeight: 1.5,
-        marginTop: 20,
-        maxWidth: 600,
-    },
-    membershipType: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: colors.primary,
-    },
-    detailsGrid: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        width: '80%',
-        marginTop: 40,
-        borderTop: `1px solid #e5e7eb`,
-        paddingTop: 20,
-    },
-    detailItem: {
-        alignItems: 'center',
-    },
-    detailLabel: {
+    photoPlaceholder: {
         fontSize: 10,
         color: colors.lightText,
+        textAlign: 'center',
+    },
+    qrContainer: {
+        alignItems: 'center',
+        marginTop: 'auto',
+    },
+    qrCode: {
+        width: 100,
+        height: 100,
+        border: `1px solid ${colors.gold}`,
+        padding: 5,
+        backgroundColor: 'white',
+    },
+    qrLabel: {
+        fontSize: 8,
+        color: colors.primary,
+        marginTop: 5,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+    },
+    // Right Content Area
+    content: {
+        flex: 1,
+        paddingLeft: 40,
+        paddingTop: 20,
+        alignItems: 'center',
+    },
+    // Header Section
+    header: {
+        width: '100%',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 30,
+        borderBottom: `2px solid ${colors.gold}`,
+        paddingBottom: 20,
+    },
+    logo: {
+        width: 60,
+        height: 60,
+        objectFit: 'contain',
+    },
+    orgInfo: {
+        flex: 1,
+        alignItems: 'flex-end',
+    },
+    orgName: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: colors.primary,
         textTransform: 'uppercase',
         marginBottom: 4,
     },
-    detailValue: {
+    orgSubtitle: {
+        fontSize: 10,
+        color: colors.lightText,
+        letterSpacing: 1,
+    },
+    // Body Section
+    title: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: colors.gold, // Gold Title
+        textTransform: 'uppercase',
+        letterSpacing: 3,
+        marginBottom: 40,
+        textAlign: 'center',
+        fontFamily: 'Helvetica-Bold',
+    },
+    certifyText: {
         fontSize: 12,
+        color: colors.lightText,
+        fontStyle: 'italic',
+        marginBottom: 15,
+    },
+    memberName: {
+        fontSize: 32,
+        fontWeight: 'bold',
+        color: colors.primary,
+        marginBottom: 10,
+        textAlign: 'center',
+        textTransform: 'uppercase',
+    },
+    memberLine: {
+        width: 300,
+        height: 1,
+        backgroundColor: colors.gold,
+        marginBottom: 20,
+    },
+    bodyText: {
+        fontSize: 12,
+        textAlign: 'center',
+        color: colors.text,
+        lineHeight: 1.6,
+        maxWidth: 450,
+        marginBottom: 30,
+    },
+    membershipBadge: {
+        paddingVertical: 8,
+        paddingHorizontal: 20,
+        backgroundColor: colors.primary,
+        borderRadius: 15,
+        marginBottom: 10,
+    },
+    membershipText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+    },
+    // Valid Dates Row
+    datesRow: {
+        flexDirection: 'row',
+        width: '100%',
+        justifyContent: 'center',
+        gap: 40,
+        marginBottom: 40,
+    },
+    dateItem: {
+        alignItems: 'center',
+    },
+    dateLabel: {
+        fontSize: 8,
+        color: colors.lightText,
+        textTransform: 'uppercase',
+        marginBottom: 2,
+    },
+    dateValue: {
+        fontSize: 10,
         fontWeight: 'bold',
         color: colors.text,
     },
-    footer: {
+    // Signatures
+    signatures: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         width: '100%',
-        marginTop: 50,
-        alignItems: 'flex-end',
+        marginTop: 'auto',
+        paddingTop: 20,
     },
-    signatureBlock: {
+    sigBlock: {
         alignItems: 'center',
-        width: 150,
+        width: 140,
     },
-    signatureLine: {
+    sigLine: {
         width: '100%',
         height: 1,
         backgroundColor: colors.text,
         marginBottom: 5,
     },
-    signatureName: {
-        fontSize: 12,
+    sigName: {
+        fontSize: 10,
         fontWeight: 'bold',
         color: colors.text,
     },
-    signatureTitle: {
-        fontSize: 10,
-        color: colors.lightText,
-    },
-    verificationBlock: {
-        alignItems: 'center',
-    },
-    qrCode: {
-        width: 70,
-        height: 70,
-        marginBottom: 5,
-    },
-    verificationText: {
+    sigTitle: {
         fontSize: 8,
-        color: colors.lightText,
-    },
-    watermark: {
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-150, -150)', // Center roughly
-        opacity: 0.05,
-        width: 300,
-        height: 300,
+        color: colors.primary,
+        textTransform: 'uppercase',
     }
 });
 
@@ -187,90 +250,141 @@ interface CertificateProps {
         membership_type?: string;
         subscription_start_date?: string;
         subscription_end_date?: string;
+        role?: string;
     };
     logoDataUrl?: string | null;
     qrDataUrl?: string | null;
+    photoDataUrl?: string | null;
 }
 
-const MembershipCertificatePDF = ({ profile, logoDataUrl, qrDataUrl }: CertificateProps) => {
+const MembershipCertificatePDF = ({ profile, logoDataUrl, qrDataUrl, photoDataUrl }: CertificateProps) => {
+    // Format Dates
     const issueDate = new Date().toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
+        day: 'numeric', month: 'long', year: 'numeric'
     });
 
-    // Formatting membership type for display
-    const membershipTypeDisplay = profile.membership_type
+    // Default 1 year validity if not provided
+    const validUntil = profile.subscription_end_date
+        ? new Date(profile.subscription_end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+        : new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    const membershipType = profile.membership_type
         ? profile.membership_type.replace(/_/g, ' ').toUpperCase()
         : 'MEMBER';
 
     return (
         <Document>
             <Page size="A4" orientation="landscape" style={styles.page}>
-                <View style={styles.border}>
-                    <View style={styles.innerBorder}>
-                        {/* Background Watermark (Optional, if logo provided) */}
-                        {/* {logoDataUrl && <Image src={logoDataUrl} style={styles.watermark} />} */}
+                {/* Decorative SVG Curve - Top Left */}
+                <Svg style={styles.bgCurveTop} viewBox="0 0 842 200">
+                    <Path
+                        d="M0,0 L842,0 L842,20 Q600,180 0,50 Z"
+                        fill={colors.primary}
+                        opacity={0.05}
+                    />
+                    <Path
+                        d="M0,0 L400,0 Q200,100 0,150 Z"
+                        fill={colors.gold}
+                        opacity={0.1}
+                    />
+                </Svg>
 
-                        {/* Header */}
-                        <View style={styles.header}>
-                            {logoDataUrl && <Image src={logoDataUrl} style={styles.logo} />}
-                            <Text style={styles.orgName}>Society of Optometrists Pakistan</Text>
+                {/* Decorative SVG Curve - Bottom Right (Mirrored logic in styling) */}
+                <Svg style={{ position: 'absolute', bottom: 0, right: 0, width: '100%', height: 100 }} viewBox="0 0 842 100">
+                    <Path
+                        d="M0,100 L842,100 L842,0 Q600,80 0,100 Z"
+                        fill={colors.primary}
+                        opacity={0.05}
+                    />
+                </Svg>
+
+                <View style={styles.container}>
+                    {/* Left Sidebar: Photo & QR */}
+                    <View style={styles.sidebar}>
+                        {/* Profile Photo */}
+                        <View style={styles.photoContainer}>
+                            {photoDataUrl ? (
+                                <Image src={photoDataUrl} style={styles.photo} />
+                            ) : (
+                                <Text style={styles.photoPlaceholder}>No Photo</Text>
+                            )}
                         </View>
 
-                        {/* Title */}
-                        <Text style={styles.certificateTitle}>Certificate of Membership</Text>
-
-                        {/* Body content */}
-                        <View style={styles.body}>
-                            <Text style={styles.certifyText}>This is to certify that</Text>
-
-                            <Text style={styles.memberName}>{profile.full_name}</Text>
-
-                            <Text style={styles.bodyText}>
-                                has been admitted as a{' '}
-                                <Text style={styles.membershipType}>{membershipTypeDisplay}</Text>
-                                {'\n'}of the Society of Optometrists Pakistan (SOOOP).
+                        {/* Membership Number */}
+                        <View style={{ marginTop: 20, alignItems: 'center' }}>
+                            <Text style={{ fontSize: 8, color: colors.lightText }}>MEMBERSHIP ID</Text>
+                            <Text style={{ fontSize: 12, fontWeight: 'bold', color: colors.primary, marginTop: 2 }}>
+                                {profile.registration_number || 'PENDING'}
                             </Text>
+                        </View>
 
-                            {/* Details Row */}
-                            <View style={styles.detailsGrid}>
-                                <View style={styles.detailItem}>
-                                    <Text style={styles.detailLabel}>Registration No.</Text>
-                                    <Text style={styles.detailValue}>{profile.registration_number || 'PENDING'}</Text>
-                                </View>
-                                <View style={styles.detailItem}>
-                                    <Text style={styles.detailLabel}>Date of Issue</Text>
-                                    <Text style={styles.detailValue}>{issueDate}</Text>
-                                </View>
-                                {/* Validity could be added here if needed */}
+                        {/* QR Code */}
+                        <View style={styles.qrContainer}>
+                            {qrDataUrl && <Image src={qrDataUrl} style={styles.qrCode} />}
+                            <Text style={styles.qrLabel}>Scan to Verify</Text>
+                        </View>
+                    </View>
+
+                    {/* Right Content */}
+                    <View style={styles.content}>
+                        {/* Header with Logo */}
+                        <View style={styles.header}>
+                            {/* Organization Info (Left aligned in this section) */}
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.orgName}>Society of Optometrists</Text>
+                                <Text style={[styles.orgName, { fontSize: 14, color: colors.gold }]}>Pakistan (SOOOP)</Text>
+                            </View>
+                            {/* Logo */}
+                            {logoDataUrl && <Image src={logoDataUrl} style={styles.logo} />}
+                        </View>
+
+                        {/* Certificate Title */}
+                        <Text style={styles.title}>Certificate of Membership</Text>
+
+                        {/* Body */}
+                        <Text style={styles.certifyText}>This is to certify that</Text>
+
+                        <Text style={styles.memberName}>{profile.full_name}</Text>
+                        <View style={styles.memberLine} />
+
+                        <Text style={styles.bodyText}>
+                            has been succesfully admitted as a member in good standing of the Society of Optometrists Pakistan.
+                            This membership is verifiable via the QR code provided.
+                        </Text>
+
+                        {/* Membership Badge */}
+                        <View style={styles.membershipBadge}>
+                            <Text style={styles.membershipText}>{membershipType}</Text>
+                        </View>
+
+                        {/* Dates */}
+                        <View style={styles.datesRow}>
+                            <View style={styles.dateItem}>
+                                <Text style={styles.dateLabel}>Issue Date</Text>
+                                <Text style={styles.dateValue}>{issueDate}</Text>
+                            </View>
+                            <View style={styles.dateItem}>
+                                <Text style={styles.dateLabel}>Valid Until</Text>
+                                <Text style={styles.dateValue}>{validUntil}</Text>
                             </View>
                         </View>
 
-                        {/* Footer */}
-                        <View style={styles.footer}>
-                            {/* President Signature */}
-                            <View style={styles.signatureBlock}>
-                                {/* TODO: Place Signature Image Here */}
-                                <View style={{ height: 30 }} />
-                                <View style={styles.signatureLine} />
-                                <Text style={styles.signatureName}>Dr. Muhammad Ajmal</Text>
-                                <Text style={styles.signatureTitle}>President, SOOOP</Text>
+                        {/* Signatures */}
+                        <View style={styles.signatures}>
+                            <View style={styles.sigBlock}>
+                                {/* President Sig Placeholder */}
+                                <View style={{ height: 40 }} />
+                                <View style={styles.sigLine} />
+                                <Text style={styles.sigName}>Dr. Muhammad Ajmal</Text>
+                                <Text style={styles.sigTitle}>President</Text>
                             </View>
 
-                            {/* Verification QR */}
-                            <View style={styles.verificationBlock}>
-                                {qrDataUrl && <Image src={qrDataUrl} style={styles.qrCode} />}
-                                <Text style={styles.verificationText}>Scan to Verify</Text>
-                            </View>
-
-                            {/* Secretary Signature */}
-                            <View style={styles.signatureBlock}>
-                                {/* TODO: Place Signature Image Here */}
-                                <View style={{ height: 30 }} />
-                                <View style={styles.signatureLine} />
-                                <Text style={styles.signatureName}>Dr. Ahmed Kamal</Text>
-                                <Text style={styles.signatureTitle}>General Secretary, SOOOP</Text>
+                            <View style={styles.sigBlock}>
+                                {/* Secretary Sig Placeholder */}
+                                <View style={{ height: 40 }} />
+                                <View style={styles.sigLine} />
+                                <Text style={styles.sigName}>Dr. Ahmed Kamal</Text>
+                                <Text style={styles.sigTitle}>General Secretary</Text>
                             </View>
                         </View>
                     </View>
