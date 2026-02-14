@@ -110,10 +110,52 @@ export default function SecurityView({ initialUsers }: SecurityViewProps) {
         provider: u.app_metadata?.provider || 'email'
     }));
 
+    // Mobile Row Renderer
+    const renderMobileRow = (row: any) => {
+        const name = row.profile?.full_name || row.user_metadata?.full_name || 'Unknown';
+        const photo = row.profile?.profile_photo_url;
+        const isOnline = row.last_sign_in_at && new Date(row.last_sign_in_at) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+        return (
+            <div className="p-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="relative shrink-0">
+                        <Avatar src={photo} name={name} size="md" />
+                        {isOnline && (
+                            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></span>
+                        )}
+                    </div>
+                    <div className="min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{name}</p>
+                        <p className="text-sm text-gray-500 truncate">{row.email}</p>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
+                            <Clock className="w-3 h-3" />
+                            <span>Active {row.last_sign_in_at ? formatDistanceToNow(new Date(row.last_sign_in_at), { addSuffix: true }) : 'Never'}</span>
+                        </div>
+                    </div>
+                </div>
+                <div className="flex bg-gray-50 rounded-lg p-1">
+                    <button
+                        onClick={() => toast.info("Reset password email would be sent here")}
+                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded-md transition-colors"
+                    >
+                        <Key className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => toast.info("Ban user functionality")}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded-md transition-colors"
+                    >
+                        <XCircle className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="space-y-6 animate-fade-in">
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
                     <div className="p-3 bg-blue-50 text-blue-600 rounded-lg"><User className="w-6 h-6" /></div>
                     <div>
@@ -128,7 +170,7 @@ export default function SecurityView({ initialUsers }: SecurityViewProps) {
                         <h3 className="text-2xl font-bold text-gray-900">{activeToday}</h3>
                     </div>
                 </div>
-                <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+                <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4 sm:col-span-2 lg:col-span-1">
                     <div className="p-3 bg-purple-50 text-purple-600 rounded-lg"><Shield className="w-6 h-6" /></div>
                     <div>
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Administrators</p>
@@ -137,8 +179,8 @@ export default function SecurityView({ initialUsers }: SecurityViewProps) {
                 </div>
             </div>
 
-            <div className="bg-white pt-1 rounded-2xl">
-                <div className="px-6 py-4 border-b border-gray-100 mb-2">
+            <div className="bg-white pt-1 rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-4 py-4 md:px-6 border-b border-gray-100 mb-2">
                     <h2 className="text-lg font-bold text-gray-900">User Security Audit</h2>
                     <p className="text-sm text-gray-500">Monitor login activity and account status</p>
                 </div>
@@ -147,9 +189,10 @@ export default function SecurityView({ initialUsers }: SecurityViewProps) {
                     columns={columns}
                     searchable
                     searchKeys={['full_name', 'email', 'provider']}
-                    searchPlaceholder="Search users by name or email..."
+                    searchPlaceholder="Search users..."
                     actions={actions}
                     pageSize={10}
+                    mobileRenderer={renderMobileRow}
                 />
             </div>
         </div>

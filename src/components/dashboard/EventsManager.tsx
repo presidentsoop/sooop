@@ -100,6 +100,64 @@ export default function EventsManager() {
         } : { status: 'upcoming', is_featured: false, title: '', location: '', description: '' });
     };
 
+    // History State Management
+    useEffect(() => {
+        if (currentEvent) {
+            window.history.pushState({ modal: 'event-modal' }, '');
+
+            const handlePopState = () => {
+                setCurrentEvent(null);
+            };
+
+            window.addEventListener('popstate', handlePopState);
+            return () => {
+                window.removeEventListener('popstate', handlePopState);
+            };
+        }
+    }, [currentEvent]);
+
+    const handleCloseModal = () => {
+        if (window.history.state?.modal === 'event-modal') {
+            window.history.back();
+        } else {
+            setCurrentEvent(null);
+        }
+    };
+
+    // Mobile Row Renderer
+    const renderMobileRow = (row: Event) => (
+        <div className="p-4 flex items-center justify-between gap-4">
+            <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-sm font-medium text-gray-900 truncate">{row.title}</h3>
+                    {row.is_featured && (
+                        <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-800">
+                            Featured
+                        </span>
+                    )}
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>{format(new Date(row.start_date), 'MMM d, yyyy')}</span>
+                    <span className="text-gray-300">|</span>
+                    <StatusBadge status={row.status} size="sm" />
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-gray-400 truncate">
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span className="truncate">{row.location}</span>
+                </div>
+            </div>
+            <div className="flex items-center gap-2">
+                <button
+                    onClick={(e) => { e.stopPropagation(); openModal(row); }}
+                    className="p-2 text-gray-400 hover:text-blue-600 bg-gray-50 rounded-lg transition-colors"
+                >
+                    <Edit className="w-4 h-4" />
+                </button>
+            </div>
+        </div>
+    );
+
     const columns = [
         {
             key: 'title',
@@ -152,12 +210,12 @@ export default function EventsManager() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Events Management</h1>
                     <p className="text-gray-500 mt-1">Schedule and manage conferences and meetings</p>
                 </div>
-                <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => openModal()}>
+                <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => openModal()} className="w-full sm:w-auto justify-center">
                     Create Event
                 </Button>
             </div>
@@ -169,6 +227,7 @@ export default function EventsManager() {
                 searchable
                 searchKeys={['title', 'location']}
                 searchPlaceholder="Search events..."
+                mobileRenderer={renderMobileRow}
                 actions={(row) => (
                     <div className="flex items-center gap-1">
                         <button
@@ -191,12 +250,12 @@ export default function EventsManager() {
 
             <Modal
                 isOpen={!!currentEvent}
-                onClose={() => setCurrentEvent(null)}
+                onClose={handleCloseModal}
                 title={currentEvent?.id ? 'Edit Event' : 'Create New Event'}
                 size="lg"
                 footer={
                     <>
-                        <Button variant="secondary" onClick={() => setCurrentEvent(null)}>Cancel</Button>
+                        <Button variant="secondary" onClick={handleCloseModal}>Cancel</Button>
                         <Button
                             variant="primary"
                             onClick={() => handleSave()}
@@ -208,7 +267,7 @@ export default function EventsManager() {
                     </>
                 }
             >
-                <div className="p-6 space-y-4">
+                <div className="p-4 md:p-6 space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Event Title</label>
                         <input
@@ -221,7 +280,7 @@ export default function EventsManager() {
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
                             <input
@@ -270,7 +329,7 @@ export default function EventsManager() {
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div className="grid md:grid-cols-2 gap-4 pt-2">
                         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
                             <input
                                 type="checkbox"

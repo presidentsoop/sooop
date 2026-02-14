@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, Plus, Send, RefreshCw } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -27,6 +27,30 @@ export default function CampaignsView({ initialCampaigns }: { initialCampaigns: 
     const [sendingId, setSendingId] = useState<string | null>(null);
     const router = useRouter();
     const supabase = createClient();
+
+    // History State Management
+    useEffect(() => {
+        if (isModalOpen) {
+            window.history.pushState({ modal: 'create-campaign' }, '');
+
+            const handlePopState = () => {
+                setIsModalOpen(false);
+            };
+
+            window.addEventListener('popstate', handlePopState);
+            return () => {
+                window.removeEventListener('popstate', handlePopState);
+            };
+        }
+    }, [isModalOpen]);
+
+    const handleCloseModal = () => {
+        if (window.history.state?.modal === 'create-campaign') {
+            window.history.back();
+        } else {
+            setIsModalOpen(false);
+        }
+    };
 
     const handleCreated = () => {
         router.refresh();
@@ -115,8 +139,8 @@ export default function CampaignsView({ initialCampaigns }: { initialCampaigns: 
                         )}
                         <div className="flex justify-between items-start mb-4">
                             <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${campaign.status === 'sent' ? 'bg-green-100 text-green-700' :
-                                    campaign.status === 'sending' ? 'bg-blue-100 text-blue-700' :
-                                        'bg-gray-100 text-gray-600'
+                                campaign.status === 'sending' ? 'bg-blue-100 text-blue-700' :
+                                    'bg-gray-100 text-gray-600'
                                 }`}>
                                 {campaign.status}
                             </span>
@@ -148,7 +172,7 @@ export default function CampaignsView({ initialCampaigns }: { initialCampaigns: 
 
             <CreateCampaignModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={handleCloseModal}
                 onCreated={handleCreated}
             />
         </div>

@@ -174,6 +174,74 @@ export default function LeadershipManager() {
     };
 
 
+    // History State Management
+    useEffect(() => {
+        if (currentHistory || currentWingMember || currentWingDetails) {
+            let modalName = 'leadership-modal';
+            if (currentHistory) modalName = 'history-modal';
+            else if (currentWingMember) modalName = 'wing-member-modal';
+            else if (currentWingDetails) modalName = 'wing-details-modal';
+
+            window.history.pushState({ modal: modalName }, '');
+
+            const handlePopState = () => {
+                setCurrentHistory(null);
+                setCurrentWingMember(null);
+                setCurrentWingDetails(null);
+            };
+
+            window.addEventListener('popstate', handlePopState);
+            return () => {
+                window.removeEventListener('popstate', handlePopState);
+            };
+        }
+    }, [currentHistory, currentWingMember, currentWingDetails]);
+
+    const handleCloseModal = () => {
+        if (window.history.state?.modal?.includes('-modal')) {
+            window.history.back();
+        } else {
+            setCurrentHistory(null);
+            setCurrentWingMember(null);
+            setCurrentWingDetails(null);
+        }
+    };
+
+    // Mobile Renderers
+    const renderMobileHistoryRow = (row: HistoryItem) => (
+        <div className="p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 overflow-hidden">
+                <Avatar src={row.image_url} name={row.name} size="md" />
+                <div className="min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{row.name}</p>
+                    <p className="text-sm text-gray-500 truncate">{row.role}</p>
+                    <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>{row.start_year} - {row.end_year || 'Present'}</span>
+                    </div>
+                </div>
+            </div>
+            <div className="flex gap-2">
+                <button onClick={() => setCurrentHistory(row)} className="p-2 text-gray-400 hover:text-blue-600 bg-gray-50 rounded-lg"><Edit className="w-4 h-4" /></button>
+            </div>
+        </div>
+    );
+
+    const renderMobileWingMemberRow = (row: WingMember) => (
+        <div className="p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 overflow-hidden">
+                <Avatar src={row.manual_image || row.profile?.avatar_url} name={row.manual_name || 'Member'} size="sm" />
+                <div className="min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{row.manual_name || 'Linked Profile'}</p>
+                    <p className="text-sm text-gray-500 truncate">{row.role}</p>
+                </div>
+            </div>
+            <div className="flex gap-2">
+                <button onClick={() => setCurrentWingMember(row)} className="p-2 text-gray-400 hover:text-blue-600 bg-gray-50 rounded-lg"><Edit className="w-4 h-4" /></button>
+            </div>
+        </div>
+    );
+
     // --- Columns Definitions ---
     const historyColumns = [
         {
@@ -205,7 +273,7 @@ export default function LeadershipManager() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Leadership Management</h1>
                     <p className="text-gray-500 mt-1">Manage executive cabinet, wings, and history</p>
@@ -218,6 +286,7 @@ export default function LeadershipManager() {
                             category: activeTab === 'cabinet' ? 'cabinet' : 'past_president',
                             start_year: new Date().getFullYear()
                         })}
+                        className="w-full sm:w-auto justify-center"
                     >
                         Add Member
                     </Button>
@@ -225,16 +294,18 @@ export default function LeadershipManager() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 p-1 bg-gray-100 rounded-lg w-fit">
-                {['cabinet', 'wings', 'history'].map((tab) => (
-                    <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab as any)}
-                        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
-                    >
-                        {tab === 'cabinet' ? 'Current Cabinet' : tab === 'wings' ? 'Professional Wings' : 'History'}
-                    </button>
-                ))}
+            <div className="overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
+                <div className="flex gap-1 p-1 bg-gray-100 rounded-lg w-fit">
+                    {['cabinet', 'wings', 'history'].map((tab) => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab as any)}
+                            className={`px-4 py-2 text-sm font-medium rounded-md transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+                        >
+                            {tab === 'cabinet' ? 'Current Cabinet' : tab === 'wings' ? 'Professional Wings' : 'History'}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {activeTab !== 'wings' ? (
@@ -244,6 +315,7 @@ export default function LeadershipManager() {
                     loading={isLoading}
                     searchable
                     searchKeys={['name', 'role']}
+                    mobileRenderer={renderMobileHistoryRow}
                     actions={(row) => (
                         <div className="flex items-center gap-1">
                             <button onClick={() => setCurrentHistory(row)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="Edit"><Edit className="w-4 h-4" /></button>
@@ -255,7 +327,7 @@ export default function LeadershipManager() {
                 <div className="space-y-8">
                     {wings.map(wing => (
                         <div key={wing.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                            <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
+                            <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                 <div className="flex items-center gap-3">
                                     <div className="bg-white p-2 rounded-lg border border-gray-100">
                                         <Award className="w-5 h-5 text-blue-600" />
@@ -265,9 +337,9 @@ export default function LeadershipManager() {
                                         <p className="text-xs text-gray-500 font-mono">{wing.slug}</p>
                                     </div>
                                 </div>
-                                <div className="flex gap-2">
-                                    <Button variant="ghost" size="sm" onClick={() => setCurrentWingDetails(wing)} icon={<Edit className="w-3 h-3" />}>Edit Wing</Button>
-                                    <Button variant="secondary" size="sm" onClick={() => setCurrentWingMember({ wing_id: wing.id })} icon={<Plus className="w-3 h-3" />}>Add Member</Button>
+                                <div className="flex gap-2 w-full sm:w-auto">
+                                    <Button variant="ghost" size="sm" onClick={() => setCurrentWingDetails(wing)} icon={<Edit className="w-3 h-3" />} className="flex-1 sm:flex-none justify-center">Edit Wing</Button>
+                                    <Button variant="secondary" size="sm" onClick={() => setCurrentWingMember({ wing_id: wing.id })} icon={<Plus className="w-3 h-3" />} className="flex-1 sm:flex-none justify-center">Add Member</Button>
                                 </div>
                             </div>
                             <DataTable
@@ -286,6 +358,7 @@ export default function LeadershipManager() {
                                     { key: 'role', header: 'Role', render: (val: string) => <span className="font-medium text-gray-700">{val}</span> },
                                     { key: 'is_active', header: 'Status', render: () => <StatusBadge status="active" /> }
                                 ]}
+                                mobileRenderer={renderMobileWingMemberRow}
                                 actions={(row) => (
                                     <div className="flex items-center gap-1">
                                         <button onClick={() => setCurrentWingMember(row)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Edit className="w-4 h-4" /></button>
@@ -303,10 +376,10 @@ export default function LeadershipManager() {
             {/* History Modal */}
             <Modal
                 isOpen={!!currentHistory}
-                onClose={() => setCurrentHistory(null)}
+                onClose={handleCloseModal}
                 title={currentHistory?.id ? 'Edit Record' : 'Add Record'}
                 size="md"
-                footer={<><Button variant="secondary" onClick={() => setCurrentHistory(null)}>Cancel</Button><Button variant="primary" onClick={saveHistory}>{currentHistory?.id ? 'Save' : 'Create'}</Button></>}
+                footer={<><Button variant="secondary" onClick={handleCloseModal}>Cancel</Button><Button variant="primary" onClick={saveHistory}>{currentHistory?.id ? 'Save' : 'Create'}</Button></>}
             >
                 <div className="p-6 space-y-4">
                     <div className="flex justify-center">
@@ -353,10 +426,10 @@ export default function LeadershipManager() {
             {/* Wing Member Modal */}
             <Modal
                 isOpen={!!currentWingMember}
-                onClose={() => setCurrentWingMember(null)}
+                onClose={handleCloseModal}
                 title={currentWingMember?.id ? 'Edit Member' : 'Add Wing Member'}
                 size="md"
-                footer={<><Button variant="secondary" onClick={() => setCurrentWingMember(null)}>Cancel</Button><Button variant="primary" onClick={saveWingMember}>Save Member</Button></>}
+                footer={<><Button variant="secondary" onClick={handleCloseModal}>Cancel</Button><Button variant="primary" onClick={saveWingMember}>Save Member</Button></>}
             >
                 <div className="p-6 space-y-4">
                     <div className="flex justify-center">
@@ -381,10 +454,10 @@ export default function LeadershipManager() {
             {/* Wing Detail Modal */}
             <Modal
                 isOpen={!!currentWingDetails}
-                onClose={() => setCurrentWingDetails(null)}
+                onClose={handleCloseModal}
                 title="Edit Wing Details"
                 size="md"
-                footer={<><Button variant="secondary" onClick={() => setCurrentWingDetails(null)}>Cancel</Button><Button variant="primary" onClick={saveWingDetails}>Save Changes</Button></>}
+                footer={<><Button variant="secondary" onClick={handleCloseModal}>Cancel</Button><Button variant="primary" onClick={saveWingDetails}>Save Changes</Button></>}
             >
                 <div className="p-6 space-y-4">
                     <div>

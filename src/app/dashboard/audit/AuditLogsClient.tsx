@@ -83,6 +83,56 @@ export default function AuditLogsClient() {
         return <Monitor className="w-3 h-3 text-blue-500" />;
     };
 
+    const renderMobileLog = (log: AuditLog) => (
+        <div key={log.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-3">
+            <div className="flex justify-between items-start">
+                <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-gray-600 font-bold text-xs ring-2 ring-white shadow-sm">
+                        {getName(log.performed_by).charAt(0)}
+                    </div>
+                    <div>
+                        <p className="font-semibold text-gray-900 text-sm">{getName(log.performed_by)}</p>
+                        <p className="text-[10px] text-gray-400 font-mono">{log.performed_by.slice(0, 8)}...</p>
+                    </div>
+                </div>
+                <div className="flex flex-col items-end">
+                    <span className="font-medium text-gray-900 text-xs">{format(new Date(log.created_at), 'MMM d, yyyy')}</span>
+                    <span className="text-[10px] text-gray-400 font-mono">{format(new Date(log.created_at), 'HH:mm:ss')}</span>
+                </div>
+            </div>
+
+            <div>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border ${log.action.includes('delete') ? 'bg-red-50 text-red-700 border-red-100' :
+                    log.action.includes('update') ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                        log.action.includes('create') || log.action.includes('approve') ? 'bg-green-50 text-green-700 border-green-100' :
+                            'bg-blue-50 text-blue-700 border-blue-100'
+                    }`}>
+                    {log.action.replace(/_/g, ' ')}
+                </span>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-2 text-xs text-gray-600 space-y-1">
+                {Object.entries(log.details || {}).slice(0, 3).map(([k, v]: any) => (
+                    <div key={k} className="flex justify-between">
+                        <span className="font-medium text-gray-500">{k}:</span>
+                        <span className="font-mono truncate max-w-[150px]">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+                    </div>
+                ))}
+                {log.details && Object.keys(log.details).length > 3 && (
+                    <div className="text-[10px] text-gray-400 text-center pt-1 border-t border-gray-100">+{Object.keys(log.details).length - 3} more details</div>
+                )}
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-gray-50">
+                <div title={log.ip_address} className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100">
+                    <Globe className="w-3 h-3 text-gray-400" />
+                    <span className="font-mono">{log.ip_address || 'Unknown IP'}</span>
+                </div>
+                {getDeviceIcon(log.user_agent)}
+            </div>
+        </div>
+    );
+
     return (
         <div className="space-y-6 animate-fade-in">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -111,7 +161,19 @@ export default function AuditLogsClient() {
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-soft overflow-hidden">
+            {/* Mobile View */}
+            <div className="md:hidden space-y-4">
+                {filteredLogs.map(renderMobileLog)}
+                {filteredLogs.length === 0 && !isLoading && (
+                    <div className="py-12 text-center bg-white rounded-xl border border-gray-100">
+                        <ShieldAlert className="w-12 h-12 mx-auto mb-3 text-gray-200" />
+                        <p className="font-medium text-gray-400">No audit logs found.</p>
+                    </div>
+                )}
+            </div>
+
+            {/* Desktop View */}
+            <div className="hidden md:block bg-white rounded-2xl border border-gray-200 shadow-soft overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
                         <thead className="bg-gray-50/50 border-b border-gray-100 text-xs uppercase font-bold text-gray-500">

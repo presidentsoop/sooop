@@ -185,6 +185,56 @@ export default function VerifyList({ initialMembers }: VerifyListProps) {
         }
     };
 
+    // History State Management
+    useEffect(() => {
+        if (selectedMember || quickViewDoc) {
+            const modalName = selectedMember ? 'verification-details' : 'quick-view';
+            window.history.pushState({ modal: modalName }, '');
+
+            const handlePopState = () => {
+                setSelectedMember(null);
+                setQuickViewDoc(null);
+            };
+
+            window.addEventListener('popstate', handlePopState);
+            return () => {
+                window.removeEventListener('popstate', handlePopState);
+            };
+        }
+    }, [selectedMember, quickViewDoc]);
+
+    const handleCloseModal = () => {
+        if (window.history.state?.modal === 'verification-details' || window.history.state?.modal === 'quick-view') {
+            window.history.back();
+        } else {
+            setSelectedMember(null);
+            setQuickViewDoc(null);
+        }
+    };
+
+    // Mobile Row Renderer
+    const renderMobileRow = (row: any) => (
+        <div className="p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 overflow-hidden">
+                <Avatar src={row.profile_photo_url} name={row.full_name} size="md" />
+                <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                        <p className="font-medium text-gray-900 truncate">{row.full_name}</p>
+                    </div>
+                    <p className="text-sm text-gray-500 truncate">{row.email}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded font-medium">
+                            {row.membership_type || 'Standard'}
+                        </span>
+                        <span className="text-xs text-gray-400">•</span>
+                        <span className="text-xs text-gray-500">{format(new Date(row.created_at), 'MMM d')}</span>
+                    </div>
+                </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-300 shrink-0" />
+        </div>
+    );
+
     // Table columns
     const columns = [
         {
@@ -230,7 +280,7 @@ export default function VerifyList({ initialMembers }: VerifyListProps) {
     return (
         <div className="space-y-6">
             {/* Page Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Verification Queue</h1>
                     <p className="text-gray-500 mt-1">
@@ -238,7 +288,7 @@ export default function VerifyList({ initialMembers }: VerifyListProps) {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg w-full sm:w-auto justify-center">
                         <Clock className="w-4 h-4 text-amber-600" />
                         <span className="text-sm font-medium text-amber-700">{members.length} Pending</span>
                     </div>
@@ -258,6 +308,7 @@ export default function VerifyList({ initialMembers }: VerifyListProps) {
                 emptyMessage="No pending applications"
                 selectedIds={selectedIds}
                 onSelectionChange={setSelectedIds}
+                mobileRenderer={renderMobileRow}
                 bulkActions={
                     <>
                         <Button
@@ -319,26 +370,27 @@ export default function VerifyList({ initialMembers }: VerifyListProps) {
             {/* Quick View Transaction Slip Modal */}
             <Modal
                 isOpen={!!quickViewDoc}
-                onClose={() => setQuickViewDoc(null)}
+                onClose={handleCloseModal}
                 title="Transaction Slip"
                 subtitle={quickViewDoc?.memberName}
                 size="lg"
             >
-                <div className="p-6">
+                <div className="p-4 md:p-6">
                     {quickViewDoc && (
                         <div className="space-y-4">
                             <img
                                 src={quickViewDoc.signedUrl}
                                 alt="Transaction Slip"
-                                className="w-full max-h-[60vh] object-contain rounded-lg border border-gray-200"
+                                className="w-full max-h-[50vh] md:max-h-[60vh] object-contain rounded-lg border border-gray-200 bg-gray-50"
                             />
-                            <div className="flex items-center justify-between pt-4 border-t">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t">
                                 <StatusBadge status={quickViewDoc.verified ? 'active' : 'pending'} />
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 w-full sm:w-auto">
                                     <Button
                                         variant="secondary"
                                         onClick={() => window.open(quickViewDoc.signedUrl, '_blank')}
                                         icon={<Eye className="w-4 h-4" />}
+                                        className="flex-1 sm:flex-none"
                                     >
                                         Full Size
                                     </Button>
@@ -351,12 +403,13 @@ export default function VerifyList({ initialMembers }: VerifyListProps) {
                                             }) || members.find(m => m.full_name === quickViewDoc.memberName);
                                             if (member) {
                                                 handleSingleAction(member, 'approved');
-                                                setQuickViewDoc(null);
+                                                handleCloseModal();
                                             }
                                         }}
                                         icon={<Check className="w-4 h-4" />}
+                                        className="flex-1 sm:flex-none"
                                     >
-                                        Approve Application
+                                        Approve
                                     </Button>
                                 </div>
                             </div>
@@ -368,53 +421,60 @@ export default function VerifyList({ initialMembers }: VerifyListProps) {
             {/* Member Detail Modal */}
             <Modal
                 isOpen={!!selectedMember}
-                onClose={() => setSelectedMember(null)}
+                onClose={handleCloseModal}
                 title="Application Review"
                 subtitle={selectedMember?.full_name}
                 size="xl"
                 footer={
-                    <>
-                        <Button variant="secondary" onClick={() => setSelectedMember(null)}>
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="danger"
-                            onClick={() => handleSingleAction(selectedMember, 'rejected')}
-                            loading={processing === selectedMember?.id}
-                            icon={<X className="w-4 h-4" />}
-                        >
-                            Reject
-                        </Button>
-                        <Button
-                            variant="success"
-                            onClick={() => handleSingleAction(selectedMember, 'approved')}
-                            loading={processing === selectedMember?.id}
-                            icon={<Check className="w-4 h-4" />}
-                        >
-                            Approve & Activate
-                        </Button>
-                        <Button
-                            variant="danger"
-                            onClick={() => handleDelete(selectedMember.id)}
-                            loading={processing === selectedMember?.id}
-                            icon={<Trash2 className="w-4 h-4" />}
-                        >
-                            Delete
-                        </Button>
-                    </>
+                    selectedMember && (
+                        <div className="flex flex-wrap items-center justify-end gap-2 w-full">
+                            <Button variant="secondary" onClick={handleCloseModal}>
+                                Cancel
+                            </Button>
+                            <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                                <Button
+                                    variant="danger"
+                                    onClick={() => handleSingleAction(selectedMember, 'rejected')}
+                                    loading={processing === selectedMember?.id}
+                                    icon={<X className="w-4 h-4" />}
+                                    className="flex-1 sm:flex-none"
+                                >
+                                    Reject
+                                </Button>
+                                <Button
+                                    variant="success"
+                                    onClick={() => handleSingleAction(selectedMember, 'approved')}
+                                    loading={processing === selectedMember?.id}
+                                    icon={<Check className="w-4 h-4" />}
+                                    className="flex-1 sm:flex-none"
+                                >
+                                    Approve & Activate
+                                </Button>
+                            </div>
+                            <Button
+                                variant="danger"
+                                onClick={() => handleDelete(selectedMember.id)}
+                                loading={processing === selectedMember?.id}
+                                icon={<Trash2 className="w-4 h-4" />}
+                                className="w-full sm:w-auto mt-2 sm:mt-0"
+                            >
+                                Delete
+                            </Button>
+                        </div>
+                    )
                 }
             >
                 {selectedMember && (
-                    <div className="p-6">
+                    <div className="p-4 md:p-6 pb-24 md:pb-6">
                         <div className="grid md:grid-cols-2 gap-6">
                             {/* Left: Personal Info */}
                             <div className="space-y-6">
                                 {/* Profile Card */}
                                 <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
                                     <Avatar src={selectedMember.profile_photo_url} name={selectedMember.full_name} size="lg" />
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-gray-900">{selectedMember.full_name}</h3>
-                                        <p className="text-sm text-gray-500">{selectedMember.email}</p>
+                                    <div className="min-w-0">
+                                        <h3 className="text-lg font-semibold text-gray-900 truncate">{selectedMember.full_name}</h3>
+                                        <p className="text-sm text-gray-500 truncate">{selectedMember.email}</p>
                                         <div className="flex gap-2 mt-2">
                                             <StatusBadge status={selectedMember.membership_status || 'pending'} />
                                             {selectedMember.membership_type && (

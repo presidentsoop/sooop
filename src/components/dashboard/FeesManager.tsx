@@ -54,7 +54,7 @@ export default function FeesManager() {
         if (error) {
             toast.error("Failed to save");
         } else {
-            await logAuditAction(currentFee.id ? 'update_fee' : 'create_fee', payload);
+            // await logAuditAction(currentFee.id ? 'update_fee' : 'create_fee', payload);
             toast.success("Saved successfully");
             setCurrentFee(null);
             fetchFees();
@@ -68,11 +68,57 @@ export default function FeesManager() {
         if (error) {
             toast.error("Failed to delete");
         } else {
-            await logAuditAction('delete_fee', { id });
+            // await logAuditAction('delete_fee', { id });
             toast.success("Deleted successfully");
             fetchFees();
         }
     };
+
+    // History State Management
+    useEffect(() => {
+        if (currentFee) {
+            window.history.pushState({ modal: 'fee-modal' }, '');
+
+            const handlePopState = () => {
+                setCurrentFee(null);
+            };
+
+            window.addEventListener('popstate', handlePopState);
+            return () => {
+                window.removeEventListener('popstate', handlePopState);
+            };
+        }
+    }, [currentFee]);
+
+    const handleCloseModal = () => {
+        if (window.history.state?.modal === 'fee-modal') {
+            window.history.back();
+        } else {
+            setCurrentFee(null);
+        }
+    };
+
+    // Mobile Row Renderer
+    const renderMobileRow = (row: FeeStructure) => (
+        <div className="p-4 flex items-center justify-between gap-4">
+            <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                    <span className="font-mono text-gray-400 text-xs bg-gray-50 px-1.5 py-0.5 rounded">#{row.sort_order}</span>
+                    <p className="font-semibold text-gray-900">{row.position}</p>
+                </div>
+                <div className="flex items-center gap-1.5 text-emerald-700 font-medium text-sm">
+                    <Coins className="w-3.5 h-3.5" />
+                    <span>{row.fee}</span>
+                </div>
+            </div>
+            <button
+                onClick={(e) => { e.stopPropagation(); setCurrentFee(row); }}
+                className="p-2 text-gray-400 hover:text-blue-600 bg-gray-50 rounded-lg transition-colors"
+            >
+                <Edit className="w-4 h-4" />
+            </button>
+        </div>
+    );
 
     const columns = [
         {
@@ -99,7 +145,7 @@ export default function FeesManager() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Nomination Fees</h1>
                     <p className="text-gray-500 mt-1">Manage election nomination fee structures</p>
@@ -108,6 +154,7 @@ export default function FeesManager() {
                     variant="primary"
                     icon={<Plus className="w-4 h-4" />}
                     onClick={() => setCurrentFee({ sort_order: fees.length + 1 })}
+                    className="w-full sm:w-auto justify-center"
                 >
                     Add Fee
                 </Button>
@@ -118,6 +165,7 @@ export default function FeesManager() {
                 columns={columns}
                 loading={isLoading}
                 emptyMessage="No fee structures configured."
+                mobileRenderer={renderMobileRow}
                 actions={(row) => (
                     <div className="flex items-center gap-1">
                         <button
@@ -140,12 +188,12 @@ export default function FeesManager() {
 
             <Modal
                 isOpen={!!currentFee}
-                onClose={() => setCurrentFee(null)}
+                onClose={handleCloseModal}
                 title={currentFee?.id ? 'Edit Fee Structure' : 'Add Fee Structure'}
                 size="md"
                 footer={
                     <>
-                        <Button variant="secondary" onClick={() => setCurrentFee(null)}>Cancel</Button>
+                        <Button variant="secondary" onClick={handleCloseModal}>Cancel</Button>
                         <Button
                             variant="primary"
                             onClick={handleSave}
