@@ -74,7 +74,7 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
 
     const memberLinks = [
         { href: "/dashboard", label: "My Overview", icon: LayoutDashboard },
-        { href: "/dashboard/card", label: "Membership Card", icon: CreditCard },
+        { href: "/dashboard/card", label: "Membershp Certificate", icon: CreditCard },
         { href: "/dashboard/profile", label: "My Profile", icon: User },
         { href: "/dashboard/payments", label: "Fee & Payments", icon: DollarSign },
         { href: "/dashboard/documents", label: "My Documents", icon: FileText },

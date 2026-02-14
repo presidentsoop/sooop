@@ -259,18 +259,21 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-semibold text-gray-700">Email Address</label>
-                                <div className="relative group">
-                                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                                <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                    Email Address <Lock className="w-3 h-3 text-gray-400" />
+                                </label>
+                                <div className="relative">
+                                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                                     <input
                                         type="email"
                                         value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary-50 transition-all outline-none"
+                                        disabled
+                                        readOnly
+                                        className="w-full pl-11 pr-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 cursor-not-allowed font-medium"
                                         placeholder="your@email.com"
                                     />
                                 </div>
-                                <p className="text-xs text-xs text-orange-500 font-medium ml-1">Note: Changing email requires re-verification.</p>
+                                <p className="text-xs text-gray-400">Email address cannot be changed.</p>
                             </div>
 
                             <div className="space-y-2">

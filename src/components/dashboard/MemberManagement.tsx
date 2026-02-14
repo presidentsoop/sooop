@@ -783,7 +783,7 @@ export default function MemberManagement() {
                 <div className="p-6 space-y-4">
                     <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg">
                         <p className="text-sm text-blue-800">
-                            <strong>Note:</strong> The registration number is required for the member to download their membership card.
+                            <strong>Note:</strong> The registration number is required for the member to download their Membershp Certificate.
                         </p>
                     </div>
 

@@ -64,7 +64,7 @@ export default function MembershipForm() {
                 requiredFiles.push({ key: 'studentId', label: 'Student ID' });
             }
             if (data.isRenewal) {
-                requiredFiles.push({ key: 'oldCard', label: 'Old Membership Card' });
+                requiredFiles.push({ key: 'oldCard', label: 'Old Membershp Certificate' });
             }
 
             for (const req of requiredFiles) {
@@ -197,7 +197,7 @@ export default function MembershipForm() {
                 </div>
                 {isRenewal && (
                     <div className="p-4 border border-dashed border-gray-300 rounded-xl bg-gray-50">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Upload Old Membership Card</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Upload Old Membershp Certificate</label>
                         <input type="file" onChange={(e) => handleFileChange('oldCard', e)} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary" />
                     </div>
                 )}

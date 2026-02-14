@@ -229,7 +229,7 @@ export default function MemberView({ status, profile }: MemberViewProps) {
                 <div className="grid md:grid-cols-2 gap-8">
                     <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
                         <div className="flex items-center justify-between mb-6">
-                            <h3 className="font-bold text-xl text-gray-900">Official Membership Card</h3>
+                            <h3 className="font-bold text-xl text-gray-900">Official Membershp Certificate</h3>
                             <Link href="/dashboard/card" className="text-sm font-bold text-primary hover:underline">Full Screen</Link>
                         </div>
                         <div className="relative aspect-[1.586/1] w-full max-w-sm mx-auto bg-gray-900 rounded-xl shadow-2xl overflow-hidden group cursor-pointer border border-gray-800 transform transition hover:scale-[1.02]">
