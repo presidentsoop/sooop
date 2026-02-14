@@ -1,4 +1,3 @@
-
 import {
     Document,
     Page,
@@ -13,19 +12,21 @@ import {
 // --- COLOR PALETTE ---
 const colors = {
     purple: '#4b0082',
+    darkPurple: '#3d0066',
     gold: '#D4AF37',
     text: '#111827',
     lightText: '#6b7280',
     red: '#dc2626',
     white: '#ffffff',
-    bg: '#ffffff'
+    bg: '#ffffff',
+    border: '#000000'
 };
 
 // --- A4 LANDSCAPE DIMENSIONS (POINTS) ---
-// Width: 841.89pt, Height: 595.28pt
 const PAGE_WIDTH = 841.89;
 const PAGE_HEIGHT = 595.28;
-const MARGIN = 40;
+const MARGIN = 20;
+const SIDEBAR_WIDTH = 240; // ~28% of page width
 
 const styles = StyleSheet.create({
     page: {
@@ -33,272 +34,366 @@ const styles = StyleSheet.create({
         height: PAGE_HEIGHT,
         backgroundColor: colors.bg,
         fontFamily: 'Helvetica',
+        display: 'flex',
+        flexDirection: 'row',
         position: 'relative',
     },
-    // --- LAYOUT LAYERS ---
-    // 1. Sidebar (Left Curve)
-    sidebar: {
+
+    // --- OUTER BORDER ---
+    borderContainer: {
+        position: 'absolute',
+        top: MARGIN,
+        left: MARGIN,
+        right: MARGIN,
+        bottom: MARGIN,
+        width: PAGE_WIDTH - (MARGIN * 2),
+        height: PAGE_HEIGHT - (MARGIN * 2),
+        borderWidth: 2,
+        borderColor: colors.border,
+        zIndex: 1,
+        pointerEvents: 'none',
+    },
+
+    // --- SIDEBAR (LEFT SECTION) ---
+    sidebarContainer: {
         position: 'absolute',
         top: 0,
         left: 0,
-        width: 260, // Fixed width for sidebar area
+        width: SIDEBAR_WIDTH,
         height: PAGE_HEIGHT,
-        zIndex: 1,
-    },
-    // 2. Main Content Container (Right)
-    content: {
-        position: 'absolute',
-        top: MARGIN,
-        left: 260, // Starts after sidebar
-        right: MARGIN,
-        bottom: MARGIN,
-        height: PAGE_HEIGHT - (MARGIN * 2),
-        width: PAGE_WIDTH - 260 - MARGIN,
         zIndex: 2,
     },
-    // 3. Border (Overlay)
-    border: {
+
+    sidebarCurve: {
         position: 'absolute',
-        top: 20,
-        left: 20,
-        right: 20,
-        bottom: 20,
-        width: PAGE_WIDTH - 40,
-        height: PAGE_HEIGHT - 40,
-        border: `1px solid black`,
-        zIndex: 3,
-        pointerEvents: 'none'
+        top: 0,
+        left: 0,
+        width: SIDEBAR_WIDTH,
+        height: PAGE_HEIGHT,
+        zIndex: 2,
     },
 
-    // --- SIDEBAR ELEMENTS ---
     sidebarContent: {
         position: 'absolute',
-        top: 60,
-        left: 0,
-        width: 220, // Content is slightly narrower than curve
+        top: MARGIN + 20,
+        left: MARGIN,
+        right: MARGIN,
+        width: SIDEBAR_WIDTH - (MARGIN * 2),
+        height: PAGE_HEIGHT - (MARGIN * 2),
+        display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
+        justifyContent: 'space-between',
+        zIndex: 3,
     },
+
+    // --- PHOTO SECTION ---
     photoContainer: {
-        width: 140,
-        height: 140,
-        borderRadius: 70,
+        width: 130,
+        height: 130,
+        borderRadius: 65,
         backgroundColor: colors.white,
-        border: `4px solid ${colors.white}`,
+        borderWidth: 3,
+        borderColor: colors.white,
         overflow: 'hidden',
-        marginBottom: 30,
         alignItems: 'center',
         justifyContent: 'center',
+        flexShrink: 0,
     },
+
     photo: {
         width: '100%',
         height: '100%',
         objectFit: 'cover',
     },
+
     photoPlaceholder: {
-        fontSize: 10,
+        fontSize: 9,
         color: colors.lightText,
         textAlign: 'center',
     },
+
+    // --- DIAMOND DECORATION ---
+    diamondContainer: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexGrow: 1,
+    },
+
     diamond: {
-        width: 20,
-        height: 20,
+        width: 18,
+        height: 18,
         backgroundColor: colors.gold,
         transform: 'rotate(45deg)',
-        marginBottom: 180, // Space between diamond and QR
     },
-    qrContainer: {
-        width: 110,
-        padding: 8,
+
+    // --- QR CODE SECTION ---
+    qrSection: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
         backgroundColor: colors.white,
         borderRadius: 4,
-        alignItems: 'center',
+        padding: 8,
+        flexShrink: 0,
     },
+
     qrCode: {
-        width: 94,
-        height: 94,
+        width: 90,
+        height: 90,
     },
+
     scanText: {
-        marginTop: 4,
-        fontSize: 9,
+        marginTop: 6,
+        fontSize: 8,
         fontWeight: 'bold',
         color: colors.purple,
         textTransform: 'uppercase',
+        textAlign: 'center',
+        fontFamily: 'Helvetica-Bold',
     },
 
-    // --- CORNER DECORATIONS ---
-    topLeftTriangle: {
+    // --- MAIN CONTENT AREA ---
+    contentContainer: {
         position: 'absolute',
-        top: 20,
-        left: 0,
-        width: 60,
-        height: 60,
+        top: MARGIN,
+        left: SIDEBAR_WIDTH,
+        right: MARGIN,
+        bottom: MARGIN,
+        width: PAGE_WIDTH - SIDEBAR_WIDTH - (MARGIN * 2),
+        height: PAGE_HEIGHT - (MARGIN * 2),
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
         zIndex: 4,
-    },
-    bottomRightTriangle: {
-        position: 'absolute',
-        bottom: 20,
-        right: 20,
-        width: 60,
-        height: 60,
-        zIndex: 4,
+        paddingHorizontal: 30,
+        paddingVertical: 25,
     },
 
-    // --- CONTENT SECTIONS ---
-    // Header
+    // --- HEADER SECTION ---
     header: {
+        display: 'flex',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: 40,
-        borderBottom: `1px solid ${colors.gold}`,
-        paddingBottom: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.gold,
+        paddingBottom: 16,
+        marginBottom: 25,
+        width: '100%',
     },
-    titleSection: {
+
+    headerLeft: {
+        display: 'flex',
         flexDirection: 'column',
-        alignItems: 'flex-start',
+        justifyContent: 'flex-start',
     },
+
     certTitle: {
-        fontSize: 36,
+        fontSize: 32,
         fontWeight: 'bold',
         color: colors.text,
         letterSpacing: 2,
         fontFamily: 'Helvetica-Bold',
         textTransform: 'uppercase',
+        marginBottom: 2,
     },
+
     certSubtitle: {
-        fontSize: 16,
-        marginTop: 5,
+        fontSize: 14,
         color: colors.text,
-        letterSpacing: 4,
+        letterSpacing: 3,
         textTransform: 'uppercase',
+        fontFamily: 'Helvetica',
     },
-    // Right Header Block
+
     headerRight: {
+        display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-end',
+        justifyContent: 'flex-start',
     },
+
     serialNo: {
-        fontSize: 12,
+        fontSize: 10,
         color: colors.red,
         fontWeight: 'bold',
-        marginBottom: 10,
+        marginBottom: 8,
         fontFamily: 'Helvetica-Bold',
     },
-    logoBlock: {
+
+    orgBlock: {
+        display: 'flex',
         flexDirection: 'row',
-        alignItems: 'center',
-    },
-    logoTextGroup: {
         alignItems: 'flex-end',
-        marginRight: 10,
-        paddingRight: 10,
-        borderRight: `1px solid ${colors.gold}`,
+        gap: 8,
     },
-    logoText: {
-        fontSize: 9,
+
+    orgText: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        borderRightWidth: 1,
+        borderRightColor: colors.gold,
+        paddingRight: 8,
+    },
+
+    orgLine: {
+        fontSize: 7,
         fontWeight: 'bold',
         color: colors.text,
         textTransform: 'uppercase',
         textAlign: 'right',
+        lineHeight: 1.2,
     },
+
     logo: {
-        width: 50,
-        height: 50,
+        width: 40,
+        height: 40,
         objectFit: 'contain',
     },
 
-    // Body
-    body: {
+    // --- BODY SECTION ---
+    bodySection: {
+        display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
-        width: '100%',
-    },
-    certifyText: {
-        fontSize: 12,
-        color: colors.lightText,
+        justifyContent: 'center',
+        flexGrow: 1,
         marginBottom: 20,
-        fontStyle: 'italic',
     },
+
+    certifyText: {
+        fontSize: 11,
+        color: colors.lightText,
+        fontStyle: 'italic',
+        marginBottom: 12,
+    },
+
     memberName: {
-        fontSize: 32,
+        fontSize: 36,
         fontWeight: 'bold',
         color: colors.gold,
         textTransform: 'capitalize',
         textAlign: 'center',
-        marginBottom: 10,
+        marginBottom: 12,
         fontFamily: 'Helvetica-Bold',
+        letterSpacing: 1,
     },
+
     memberNo: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: 'bold',
         color: colors.purple,
         textTransform: 'uppercase',
-        marginBottom: 30,
+        marginBottom: 20,
         fontFamily: 'Helvetica-Bold',
-    },
-    bodyParagraph: {
-        fontSize: 12,
-        textAlign: 'center',
-        color: colors.text,
-        lineHeight: 1.6,
-        maxWidth: 480,
-        marginBottom: 40,
-    },
-    validity: {
-        fontSize: 11,
-        fontStyle: 'italic',
-        color: colors.text,
-        marginBottom: 50,
+        letterSpacing: 1,
     },
 
-    // Footer
-    footer: {
+    bodyText: {
+        fontSize: 11,
+        textAlign: 'center',
+        color: colors.text,
+        lineHeight: 1.5,
+        width: '100%',
+        marginBottom: 16,
+    },
+
+    validityText: {
+        fontSize: 10,
+        fontStyle: 'italic',
+        color: colors.text,
+        textAlign: 'center',
+        marginTop: 10,
+    },
+
+    // --- FOOTER SECTION ---
+    footerContainer: {
+        display: 'flex',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-end',
         width: '100%',
-        marginTop: 'auto',
-        position: 'absolute',
-        bottom: 20,
+        paddingTop: 16,
     },
-    sigBlock: {
-        width: 180,
+
+    signatureBlock: {
+        display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
+        width: '30%',
     },
-    sigImage: {
-        height: 50,
-        width: 120,
+
+    signatureImage: {
+        height: 45,
+        width: 110,
         objectFit: 'contain',
-        marginBottom: 5,
+        marginBottom: 4,
     },
-    sigBar: {
+
+    signatureLine: {
         width: '100%',
-        height: 4,
+        height: 2,
         backgroundColor: colors.purple,
-        marginBottom: 5,
+        marginBottom: 6,
     },
-    sigRole: {
-        fontSize: 10,
+
+    signatureRole: {
+        fontSize: 9,
         fontWeight: 'bold',
         color: colors.text,
         textTransform: 'uppercase',
+        textAlign: 'center',
+        fontFamily: 'Helvetica-Bold',
     },
 
-    // Bottom Verification
-    verifyBar: {
+    // --- VERIFICATION URL ---
+    verificationContainer: {
         position: 'absolute',
-        bottom: 0,
-        width: '100%',
+        bottom: 8,
+        left: SIDEBAR_WIDTH,
+        right: MARGIN,
+        width: PAGE_WIDTH - SIDEBAR_WIDTH - MARGIN,
+        display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 4,
     },
+
     verifyText: {
         fontSize: 9,
         color: colors.lightText,
+        textAlign: 'center',
     },
+
     verifyUrl: {
         color: colors.gold,
         fontWeight: 'bold',
         textDecoration: 'none',
-    }
+    },
+
+    // --- CORNER DECORATIONS ---
+    cornerTriangle: {
+        position: 'absolute',
+        zIndex: 5,
+    },
+
+    topLeftTriangle: {
+        top: MARGIN,
+        left: MARGIN,
+        width: 50,
+        height: 50,
+    },
+
+    bottomRightTriangle: {
+        bottom: MARGIN,
+        right: MARGIN,
+        width: 50,
+        height: 50,
+    },
 });
 
 interface CertificateProps {
@@ -316,44 +411,66 @@ interface CertificateProps {
     signatureDataUrl?: string | null;
 }
 
-const MembershipCertificatePDF = ({ profile, logoDataUrl, qrDataUrl, photoDataUrl, signatureDataUrl }: CertificateProps) => {
-
-    // --- DATA PREPARATION ---
-    const issueDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+const MembershipCertificatePDF = ({
+    profile,
+    logoDataUrl,
+    qrDataUrl,
+    photoDataUrl,
+    signatureDataUrl,
+}: CertificateProps) => {
+    // --- DATE FORMATTING ---
+    const issueDate = new Date().toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+    });
 
     const validFrom = profile.subscription_start_date
-        ? new Date(profile.subscription_start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+        ? new Date(profile.subscription_start_date).toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+        })
         : issueDate;
 
     const validUntil = profile.subscription_end_date
-        ? new Date(profile.subscription_end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
-        : new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+        ? new Date(profile.subscription_end_date).toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+        })
+        : new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString(
+            'en-GB',
+            { day: 'numeric', month: 'long', year: 'numeric' }
+        );
 
     const membershipType = profile.membership_type
         ? profile.membership_type.replace(/_/g, ' ').toUpperCase()
         : 'MEMBER';
 
-    // --- RENDER ---
     return (
         <Document>
             <Page size="A4" orientation="landscape" style={styles.page}>
+                {/* OUTER BORDER */}
+                <View style={styles.borderContainer} />
 
-                {/* 1. OUTER BORDER */}
-                <View style={styles.border} />
-
-                {/* 2. SIDEBAR (Reference: Left Curved Purple Panel) */}
-                <View style={styles.sidebar}>
-                    {/* Background Curve SVG */}
-                    <Svg width={260} height={PAGE_HEIGHT} viewBox={`0 0 260 ${PAGE_HEIGHT}`} style={{ position: 'absolute', top: 0, left: 0 }}>
+                {/* SIDEBAR BACKGROUND CURVE */}
+                <View style={styles.sidebarContainer}>
+                    <Svg
+                        width={SIDEBAR_WIDTH}
+                        height={PAGE_HEIGHT}
+                        viewBox={`0 0 ${SIDEBAR_WIDTH} ${PAGE_HEIGHT}`}
+                        style={styles.sidebarCurve}
+                    >
                         <Path
-                            d={`M0,0 L200,0 Q260,${PAGE_HEIGHT / 2} 200,${PAGE_HEIGHT} L0,${PAGE_HEIGHT} Z`}
+                            d={`M0,0 L${SIDEBAR_WIDTH * 0.8},0 Q${SIDEBAR_WIDTH},${PAGE_HEIGHT / 2} ${SIDEBAR_WIDTH * 0.8},${PAGE_HEIGHT} L0,${PAGE_HEIGHT} Z`}
                             fill={colors.purple}
                         />
                     </Svg>
 
-                    {/* Sidebar Content Overlay */}
+                    {/* SIDEBAR CONTENT */}
                     <View style={styles.sidebarContent}>
-                        {/* Member Photo (Circle) */}
+                        {/* PHOTO */}
                         <View style={styles.photoContainer}>
                             {photoDataUrl ? (
                                 <Image src={photoDataUrl} style={styles.photo} />
@@ -362,101 +479,102 @@ const MembershipCertificatePDF = ({ profile, logoDataUrl, qrDataUrl, photoDataUr
                             )}
                         </View>
 
-                        {/* Gold Diamond Decoration */}
-                        <View style={styles.diamond} />
+                        {/* DIAMOND DECORATION */}
+                        <View style={styles.diamondContainer}>
+                            <View style={styles.diamond} />
+                        </View>
 
-                        {/* Bottom QR Block */}
-                        <View style={styles.qrContainer}>
-                            {qrDataUrl && <Image src={qrDataUrl} style={styles.qrCode} />}
+                        {/* QR CODE */}
+                        <View style={styles.qrSection}>
+                            {qrDataUrl ? (
+                                <Image src={qrDataUrl} style={styles.qrCode} />
+                            ) : (
+                                <View style={{ width: 90, height: 90, backgroundColor: colors.gold }} />
+                            )}
                             <Text style={styles.scanText}>Scan me</Text>
                         </View>
                     </View>
                 </View>
 
-                {/* 3. CORNER DECORATIONS */}
-                {/* Top Left Gold Triangle (Behind border) */}
-                <Svg style={styles.topLeftTriangle} viewBox="0 0 60 60">
-                    <Path d="M0,0 L60,0 L0,60 Z" fill={colors.gold} />
+                {/* TOP LEFT GOLD TRIANGLE */}
+                <Svg style={[styles.cornerTriangle, styles.topLeftTriangle]} viewBox="0 0 50 50">
+                    <Path d="M0,0 L50,0 L0,50 Z" fill={colors.gold} />
                 </Svg>
 
-                {/* Bottom Right Gold Triangle */}
-                <Svg style={styles.bottomRightTriangle} viewBox="0 0 60 60">
-                    <Path d="M60,0 L60,60 L0,60 Z" fill={colors.gold} />
+                {/* BOTTOM RIGHT GOLD TRIANGLE */}
+                <Svg style={[styles.cornerTriangle, styles.bottomRightTriangle]} viewBox="0 0 50 50">
+                    <Path d="M50,0 L50,50 L0,50 Z" fill={colors.gold} />
                 </Svg>
 
-                {/* 4. MAIN CONTENT AREA */}
-                <View style={styles.content}>
-
-                    {/* Header: Title + Logo Block */}
+                {/* MAIN CONTENT */}
+                <View style={styles.contentContainer}>
+                    {/* HEADER */}
                     <View style={styles.header}>
-                        <View style={styles.titleSection}>
+                        <View style={styles.headerLeft}>
                             <Text style={styles.certTitle}>Certificate</Text>
-                            <Text style={styles.certSubtitle}>Of Membership</Text>
+                            <Text style={styles.certSubtitle}>of Membership</Text>
                         </View>
 
                         <View style={styles.headerRight}>
                             <Text style={styles.serialNo}>Serial No: {profile.id.slice(0, 8).toUpperCase()}</Text>
 
-                            <View style={styles.logoBlock}>
-                                <View style={styles.logoTextGroup}>
-                                    <Text style={styles.logoText}>Society of</Text>
-                                    <Text style={styles.logoText}>Optometrists</Text>
-                                    <Text style={styles.logoText}>Pakistan</Text>
+                            <View style={styles.orgBlock}>
+                                <View style={styles.orgText}>
+                                    <Text style={styles.orgLine}>Society of</Text>
+                                    <Text style={styles.orgLine}>Optometrists</Text>
+                                    <Text style={styles.orgLine}>Pakistan</Text>
                                 </View>
                                 {logoDataUrl && <Image src={logoDataUrl} style={styles.logo} />}
                             </View>
                         </View>
                     </View>
 
-                    {/* Body: Name + Details */}
-                    <View style={styles.body}>
+                    {/* BODY */}
+                    <View style={styles.bodySection}>
                         <Text style={styles.certifyText}>this is to certify that</Text>
 
                         <Text style={styles.memberName}>{profile.full_name}</Text>
 
                         <Text style={styles.memberNo}>MEMBERSHIP NO: {profile.registration_number || 'PENDING'}</Text>
 
-                        <Text style={styles.bodyParagraph}>
+                        <Text style={styles.bodyText}>
                             is a member of good standing and abides by the constitution, by-laws and code of ethics of the
                             Society of Optometrists Pakistan (SOOOP) under {membershipType} membership.
                         </Text>
 
-                        <Text style={styles.validity}>
+                        <Text style={styles.validityText}>
                             This document is valid from {validFrom} to {validUntil}
                         </Text>
                     </View>
 
-                    {/* Footer: Signatures */}
-                    <View style={styles.footer}>
-                        {/* Left: Secretary General */}
-                        <View style={styles.sigBlock}>
-                            {/* Placeholder for Sec Gen sig if available, otherwise space */}
-                            <View style={{ height: 50, marginBottom: 5 }} />
-                            <View style={styles.sigBar} />
-                            <Text style={styles.sigRole}>Secretary General</Text>
+                    {/* FOOTER - SIGNATURES */}
+                    <View style={styles.footerContainer}>
+                        <View style={styles.signatureBlock}>
+                            <View style={{ height: 45, marginBottom: 4 }} />
+                            <View style={styles.signatureLine} />
+                            <Text style={styles.signatureRole}>Secretary General</Text>
                         </View>
 
-                        {/* Right: President */}
-                        <View style={styles.sigBlock}>
+                        <View style={styles.signatureBlock} />
+
+                        <View style={styles.signatureBlock}>
                             {signatureDataUrl ? (
-                                <Image src={signatureDataUrl} style={styles.sigImage} />
+                                <Image src={signatureDataUrl} style={styles.signatureImage} />
                             ) : (
-                                <View style={{ height: 50, marginBottom: 5 }} />
+                                <View style={{ height: 45, marginBottom: 4 }} />
                             )}
-                            <View style={styles.sigBar} />
-                            <Text style={styles.sigRole}>SOOOP President</Text>
+                            <View style={styles.signatureLine} />
+                            <Text style={styles.signatureRole}>SOOOP President</Text>
                         </View>
                     </View>
 
-                    {/* Bottom Center: Verification Line */}
-                    <View style={styles.verifyBar}>
+                    {/* VERIFICATION URL */}
+                    <View style={styles.verificationContainer}>
                         <Text style={styles.verifyText}>
                             Visit <Text style={styles.verifyUrl}>sooopvision.com/verify</Text> to validate
                         </Text>
                     </View>
-
                 </View>
-
             </Page>
         </Document>
     );

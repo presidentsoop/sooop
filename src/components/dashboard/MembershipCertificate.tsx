@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { Download, Loader2, Award, CheckCircle } from 'lucide-react';
+import { Download, Loader2, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CertificateProps {
@@ -35,14 +35,15 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
     useEffect(() => {
         let photoLoaded = !profile.profile_photo_url;
         let logoLoaded = false;
+        let signatureLoaded = false;
 
         const checkAllLoaded = () => {
-            if (photoLoaded && logoLoaded) {
+            if (photoLoaded && logoLoaded && signatureLoaded) {
                 setImagesLoaded(true);
             }
         };
 
-        // Convert profile photo (if needed for certificate, maybe not but good to have)
+        // Convert profile photo
         if (profile.profile_photo_url) {
             const img = new window.Image();
             img.crossOrigin = 'anonymous';
@@ -93,6 +94,7 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
             checkAllLoaded();
         };
         logoImg.src = '/logo.jpg';
+
         // Convert signature
         const sigImg = new window.Image();
         sigImg.crossOrigin = 'anonymous';
@@ -109,50 +111,58 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
             } catch (e) {
                 console.error('Failed to convert signature:', e);
             }
-            // We don't block loading on signature, but it's good to have
+            signatureLoaded = true;
+            checkAllLoaded();
+        };
+        sigImg.onerror = () => {
+            signatureLoaded = true;
+            checkAllLoaded();
         };
         sigImg.src = '/signature.png';
-
     }, [profile.profile_photo_url]);
 
     // Generate QR code data URL
     const generateQRDataUrl = useCallback((): Promise<string> => {
         return new Promise((resolve, reject) => {
-            const verificationUrl = `https://soopvision.com/verify/${profile.registration_number || profile.id}`;
+            const verificationUrl = `https://sooopvision.com/verify/${profile.registration_number || profile.id}`;
 
             const container = document.createElement('div');
             container.style.position = 'absolute';
             container.style.left = '-9999px';
             document.body.appendChild(container);
 
-            import('qrcode').then((QRCode) => {
-                QRCode.toDataURL(verificationUrl, {
-                    width: 200,
-                    margin: 1,
-                    color: {
-                        dark: '#0a3d62',
-                        light: '#ffffff',
-                    },
-                    errorCorrectionLevel: 'H',
-                }).then((url: string) => {
-                    document.body.removeChild(container);
-                    resolve(url);
-                }).catch((err: Error) => {
-                    document.body.removeChild(container);
-                    reject(err);
-                });
-            }).catch(reject);
+            import('qrcode')
+                .then((QRCode) => {
+                    QRCode.toDataURL(verificationUrl, {
+                        width: 200,
+                        margin: 1,
+                        color: {
+                            dark: '#4b0082',
+                            light: '#ffffff',
+                        },
+                        errorCorrectionLevel: 'H',
+                    })
+                        .then((url: string) => {
+                            document.body.removeChild(container);
+                            resolve(url);
+                        })
+                        .catch((err: Error) => {
+                            document.body.removeChild(container);
+                            reject(err);
+                        });
+                })
+                .catch(reject);
         });
     }, [profile.registration_number, profile.id]);
 
     const handleDownloadCertificate = async () => {
         if (!imagesLoaded) {
-            toast.error("Assets are still loading. Please wait a moment.");
+            toast.error('Assets are still loading. Please wait a moment.');
             return;
         }
 
         setIsDownloading(true);
-        const toastId = toast.loading("Generating Membership Certificate...");
+        const toastId = toast.loading('Generating Membership Certificate...');
 
         try {
             let currentQrUrl = qrDataUrl;
@@ -171,7 +181,7 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
                     logoDataUrl: logoDataUrl,
                     qrDataUrl: currentQrUrl,
                     photoDataUrl: photoDataUrl,
-                    signatureDataUrl: signatureDataUrl
+                    signatureDataUrl: signatureDataUrl,
                 }),
             });
 
@@ -190,95 +200,211 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
 
-            toast.success("Certificate downloaded successfully!", { id: toastId });
+            toast.success('Certificate downloaded successfully!', { id: toastId });
         } catch (error) {
-            console.error("Certificate Generation Error:", error);
-            toast.error(`Failed to generate Certificate: ${error instanceof Error ? error.message : 'Unknown error'}`, { id: toastId });
+            console.error('Certificate Generation Error:', error);
+            toast.error(
+                `Failed to generate Certificate: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                { id: toastId }
+            );
         } finally {
             setIsDownloading(false);
         }
     };
 
-    const issueDate = new Date().toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-    });
-
     const membershipType = profile.membership_type
         ? profile.membership_type.replace(/_/g, ' ').toUpperCase()
         : 'MEMBER';
 
+    const validFrom = profile.subscription_start_date
+        ? new Date(profile.subscription_start_date).toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+        })
+        : new Date().toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+        });
+
+    const validUntil = profile.subscription_end_date
+        ? new Date(profile.subscription_end_date).toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+        })
+        : new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString(
+            'en-GB',
+            { day: 'numeric', month: 'long', year: 'numeric' }
+        );
+
     return (
-        <div className="w-full flex flex-col items-center gap-8">
-            {/* Certificate Preview Card */}
-            <div className="w-full max-w-3xl aspect-[1.414] bg-white text-gray-900 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center p-8 md:p-12 border-4 border-slate-900 mt-4 rounded-sm scale-95 md:scale-100 transition-all duration-300">
-                {/* Inner Gold Border */}
-                <div className="absolute inset-2 border border-yellow-500 pointer-events-none"></div>
+        <div className="w-full flex flex-col items-center gap-8 py-8">
+            {/* CERTIFICATE PREVIEW */}
+            <div className="w-full max-w-5xl bg-white shadow-2xl rounded-sm overflow-hidden border-2 border-gray-900 aspect-[1.414]">
+                <div className="relative w-full h-full flex">
+                    {/* SIDEBAR */}
+                    <div className="w-[28%] bg-gradient-to-b from-purple-900 via-purple-800 to-purple-900 relative flex flex-col items-center justify-between py-6 px-4">
+                        {/* PHOTO */}
+                        <div className="w-32 h-32 rounded-full border-4 border-white bg-white overflow-hidden shadow-lg flex-shrink-0">
+                            {photoDataUrl ? (
+                                <img
+                                    src={photoDataUrl}
+                                    alt="Member Photo"
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs text-center">
+                                    NO PHOTO
+                                </div>
+                            )}
+                        </div>
 
-                {/* Watermark/Background decoration */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none select-none">
-                    <Award size={300} />
-                </div>
+                        {/* DIAMOND */}
+                        <div className="flex-grow flex items-center justify-center">
+                            <div
+                                className="w-5 h-5 bg-yellow-500 transform rotate-45"
+                                style={{ boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)' }}
+                            />
+                        </div>
 
-                {/* Header */}
-                <div className="text-center z-10 mb-8">
-                    <h2 className="text-xl md:text-2xl font-bold text-slate-900 uppercase tracking-widest mb-1">Society of Optometrists Pakistan</h2>
-                    <div className="w-24 h-1 bg-yellow-500 mx-auto mt-2"></div>
-                </div>
-
-                {/* Title */}
-                <h1 className="text-3xl md:text-5xl font-serif text-yellow-600 font-bold mb-6 text-center uppercase z-10 drop-shadow-sm">
-                    Certificate of Membership
-                </h1>
-
-                {/* Body */}
-                <div className="text-center z-10 space-y-4 max-w-2xl">
-                    <p className="text-gray-500 italic text-lg">This is to certify that</p>
-
-                    <h2 className="text-2xl md:text-4xl font-bold text-slate-900 border-b border-yellow-500 pb-2 px-8 inline-block min-w-[300px]">
-                        {profile.full_name}
-                    </h2>
-
-                    <div className="text-lg md:text-xl text-gray-700 leading-relaxed mt-4">
-                        <p>has been admitted as a</p>
-                        <p className="text-slate-900 font-bold text-2xl my-2">{membershipType}</p>
-                        <p>of the Society of Optometrists Pakistan (SOOOP).</p>
-                    </div>
-                </div>
-
-                {/* Footer Details */}
-                <div className="absolute bottom-12 w-full px-16 flex justify-between items-end z-10 text-sm">
-                    <div className="text-center">
-                        <div className="w-40 border-b border-gray-900 mb-2"></div>
-                        <p className="font-bold">President</p>
-                        <p className="text-xs text-gray-500">Dr. Muhammad Ajmal</p>
-                    </div>
-
-                    <div className="text-center">
-                        <p className="font-bold text-slate-900">Reg. No: {profile.registration_number || 'PENDING'}</p>
-                        <p className="text-gray-500">{issueDate}</p>
+                        {/* QR CODE */}
+                        <div className="bg-white rounded-lg p-2 flex flex-col items-center gap-1 flex-shrink-0">
+                            {qrDataUrl ? (
+                                <img
+                                    src={qrDataUrl}
+                                    alt="QR Code"
+                                    className="w-24 h-24"
+                                />
+                            ) : (
+                                <div className="w-24 h-24 bg-yellow-400" />
+                            )}
+                            <p className="text-xs font-bold text-purple-900 uppercase tracking-widest">Scan me</p>
+                        </div>
                     </div>
 
-                    <div className="text-center">
-                        <div className="w-40 border-b border-gray-900 mb-2"></div>
-                        <p className="font-bold">General Secretary</p>
-                        <p className="text-xs text-gray-500">Dr. Ahmed Kamal</p>
+                    {/* MAIN CONTENT */}
+                    <div className="flex-1 relative flex flex-col justify-between p-8 bg-white">
+                        {/* BORDER */}
+                        <div className="absolute inset-0 border border-black pointer-events-none" style={{ margin: '10px' }} />
+
+                        {/* TOP LEFT TRIANGLE */}
+                        <div className="absolute top-2 left-2 w-12 h-12 bg-yellow-500 clip-triangle" style={{
+                            clipPath: 'polygon(0 0, 100% 0, 0 100%)'
+                        }} />
+
+                        {/* BOTTOM RIGHT TRIANGLE */}
+                        <div className="absolute bottom-2 right-2 w-12 h-12 bg-yellow-500" style={{
+                            clipPath: 'polygon(100% 0, 100% 100%, 0 100%)'
+                        }} />
+
+                        {/* HEADER */}
+                        <div className="relative z-10 flex justify-between items-start border-b border-yellow-500 pb-4 mb-6">
+                            <div>
+                                <h2 className="text-3xl font-bold text-gray-900 uppercase tracking-wide">Certificate</h2>
+                                <p className="text-sm text-gray-900 uppercase tracking-widest">of Membership</p>
+                            </div>
+
+                            <div className="text-right">
+                                <p className="text-xs font-bold text-red-600 mb-2">
+                                    Serial No: {profile.id.slice(0, 8).toUpperCase()}
+                                </p>
+                                <div className="flex items-center gap-2 justify-end">
+                                    <div className="text-right border-r border-yellow-500 pr-2">
+                                        <p className="text-[7px] font-bold text-gray-900 uppercase leading-tight">Society of</p>
+                                        <p className="text-[7px] font-bold text-gray-900 uppercase leading-tight">Optometrists</p>
+                                        <p className="text-[7px] font-bold text-gray-900 uppercase leading-tight">Pakistan</p>
+                                    </div>
+                                    {logoDataUrl && (
+                                        <img
+                                            src={logoDataUrl}
+                                            alt="Logo"
+                                            className="w-8 h-8 object-contain"
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* BODY - CENTERED */}
+                        <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center gap-2">
+                            <p className="text-xs text-gray-500 italic">this is to certify that</p>
+
+                            <h3 className="text-4xl font-bold text-yellow-500 uppercase tracking-wide">
+                                {profile.full_name}
+                            </h3>
+
+                            <p className="text-xs font-bold text-purple-900 uppercase tracking-wide">
+                                MEMBERSHIP NO: {profile.registration_number || 'PENDING'}
+                            </p>
+
+                            <p className="text-xs text-gray-700 leading-relaxed max-w-md mt-2">
+                                is a member of good standing and abides by the constitution, by-laws and code of ethics of the
+                                Society of Optometrists Pakistan (SOOOP) under {membershipType} membership.
+                            </p>
+
+                            <p className="text-xs text-gray-600 italic mt-3">
+                                This document is valid from {validFrom} to {validUntil}
+                            </p>
+                        </div>
+
+                        {/* FOOTER SIGNATURES */}
+                        <div className="relative z-10 flex justify-between items-end mt-6 text-center text-xs">
+                            <div className="flex flex-col items-center w-1/3">
+                                <div className="h-8 mb-1" />
+                                <div className="w-24 h-0.5 bg-purple-900 mb-1" />
+                                <p className="font-bold text-gray-900 uppercase text-[7px] tracking-wide">
+                                    Secretary General
+                                </p>
+                            </div>
+
+                            <div className="w-1/3" />
+
+                            <div className="flex flex-col items-center w-1/3">
+                                {signatureDataUrl ? (
+                                    <img
+                                        src={signatureDataUrl}
+                                        alt="Signature"
+                                        className="h-8 mb-1 object-contain"
+                                    />
+                                ) : (
+                                    <div className="h-8 mb-1" />
+                                )}
+                                <div className="w-24 h-0.5 bg-purple-900 mb-1" />
+                                <p className="font-bold text-gray-900 uppercase text-[7px] tracking-wide">
+                                    SOOOP President
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* VERIFICATION URL */}
+                        <div className="relative z-10 text-center text-xs text-gray-500 mt-4">
+                            <p>
+                                Visit{' '}
+                                <span className="font-bold text-yellow-500">sooopvision.com/verify</span> to validate
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Actions */}
+            {/* ACTION BUTTONS */}
             <div className="flex flex-col items-center gap-4 w-full px-4">
                 <button
                     onClick={handleDownloadCertificate}
                     disabled={isDownloading || !imagesLoaded}
-                    className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-bold px-8 py-4 rounded-full shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed scale-100 hover:scale-105 active:scale-95"
+                    className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 disabled:bg-yellow-300 text-gray-900 font-bold px-8 py-4 rounded-full shadow-lg hover:shadow-xl transition-all disabled:cursor-not-allowed transform hover:scale-105 active:scale-95"
                 >
                     {isDownloading ? (
                         <>
                             <Loader2 className="w-5 h-5 animate-spin" />
                             Generating Certificate...
+                        </>
+                    ) : !imagesLoaded ? (
+                        <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Loading Assets...
                         </>
                     ) : (
                         <>
@@ -287,9 +413,10 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
                         </>
                     )}
                 </button>
-                <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 px-4 py-2 rounded-lg border border-gray-100">
+
+                <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
                     <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span>Official Document with Verification QR</span>
+                    <span>Official Document with Verification QR Code</span>
                 </div>
             </div>
         </div>
