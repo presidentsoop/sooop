@@ -26,138 +26,66 @@ interface CertificateProps {
 export default function MembershipCertificate({ profile }: CertificateProps) {
     const [isDownloading, setIsDownloading] = useState(false);
     const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
-    const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
-    const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-    const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
-    const [imagesLoaded, setImagesLoaded] = useState(false);
+    const [photoLoaded, setPhotoLoaded] = useState(!profile.profile_photo_url);
 
-    // Convert images to data URLs for PDF generation
+    // ═══ Convert profile photo to base64 data URL for server ═══
     useEffect(() => {
-        let photoLoaded = !profile.profile_photo_url;
-        let logoLoaded = false;
-        let signatureLoaded = false;
-
-        const checkAllLoaded = () => {
-            if (photoLoaded && logoLoaded && signatureLoaded) {
-                setImagesLoaded(true);
-            }
-        };
-
-        // Convert profile photo
-        if (profile.profile_photo_url) {
-            const img = new window.Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = () => {
-                try {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    const ctx = canvas.getContext('2d');
-                    if (ctx) {
-                        ctx.drawImage(img, 0, 0);
-                        setPhotoDataUrl(canvas.toDataURL('image/png'));
-                    }
-                } catch (e) {
-                    console.error('Failed to convert profile image:', e);
-                }
-                photoLoaded = true;
-                checkAllLoaded();
-            };
-            img.onerror = () => {
-                photoLoaded = true;
-                checkAllLoaded();
-            };
-            img.src = profile.profile_photo_url;
+        if (!profile.profile_photo_url) {
+            setPhotoLoaded(true);
+            return;
         }
 
-        // Convert logo
-        const logoImg = new window.Image();
-        logoImg.crossOrigin = 'anonymous';
-        logoImg.onload = () => {
+        const img = new window.Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
             try {
                 const canvas = document.createElement('canvas');
-                canvas.width = logoImg.width;
-                canvas.height = logoImg.height;
+                canvas.width = img.width;
+                canvas.height = img.height;
                 const ctx = canvas.getContext('2d');
                 if (ctx) {
-                    ctx.drawImage(logoImg, 0, 0);
-                    setLogoDataUrl(canvas.toDataURL('image/png'));
+                    ctx.drawImage(img, 0, 0);
+                    setPhotoDataUrl(canvas.toDataURL('image/png'));
                 }
             } catch (e) {
-                console.error('Failed to convert logo:', e);
+                console.error('Failed to convert profile photo:', e);
             }
-            logoLoaded = true;
-            checkAllLoaded();
+            setPhotoLoaded(true);
         };
-        logoImg.onerror = () => {
-            logoLoaded = true;
-            checkAllLoaded();
+        img.onerror = () => {
+            console.error('Failed to load profile photo');
+            setPhotoLoaded(true);
         };
-        logoImg.src = '/logo.jpg';
-
-        // Convert signature
-        const sigImg = new window.Image();
-        sigImg.crossOrigin = 'anonymous';
-        sigImg.onload = () => {
-            try {
-                const canvas = document.createElement('canvas');
-                canvas.width = sigImg.width;
-                canvas.height = sigImg.height;
-                const ctx = canvas.getContext('2d');
-                if (ctx) {
-                    ctx.drawImage(sigImg, 0, 0);
-                    setSignatureDataUrl(canvas.toDataURL('image/png'));
-                }
-            } catch (e) {
-                console.error('Failed to convert signature:', e);
-            }
-            signatureLoaded = true;
-            checkAllLoaded();
-        };
-        sigImg.onerror = () => {
-            signatureLoaded = true;
-            checkAllLoaded();
-        };
-        sigImg.src = '/signature.png';
+        img.src = profile.profile_photo_url;
     }, [profile.profile_photo_url]);
 
-    // Generate QR code data URL
+    // ═══ Generate QR code on-demand ═══
     const generateQRDataUrl = useCallback((): Promise<string> => {
         return new Promise((resolve, reject) => {
             const verificationUrl = `https://sooopvision.com/verify/${profile.registration_number || profile.id}`;
 
-            const container = document.createElement('div');
-            container.style.position = 'absolute';
-            container.style.left = '-9999px';
-            document.body.appendChild(container);
-
             import('qrcode')
                 .then((QRCode) => {
                     QRCode.toDataURL(verificationUrl, {
-                        width: 200,
+                        width: 300,
                         margin: 1,
                         color: {
-                            dark: '#4b0082',
+                            dark: '#001F54',
                             light: '#ffffff',
                         },
                         errorCorrectionLevel: 'H',
                     })
-                        .then((url: string) => {
-                            document.body.removeChild(container);
-                            resolve(url);
-                        })
-                        .catch((err: Error) => {
-                            document.body.removeChild(container);
-                            reject(err);
-                        });
+                        .then((url: string) => resolve(url))
+                        .catch((err: Error) => reject(err));
                 })
                 .catch(reject);
         });
     }, [profile.registration_number, profile.id]);
 
+    // ═══ Download handler ═══
     const handleDownloadCertificate = async () => {
-        if (!imagesLoaded) {
-            toast.error('Assets are still loading. Please wait a moment.');
+        if (!photoLoaded) {
+            toast.error('Profile photo is still loading. Please wait.');
             return;
         }
 
@@ -165,23 +93,17 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
         const toastId = toast.loading('Generating Membership Certificate...');
 
         try {
-            let currentQrUrl = qrDataUrl;
-            if (!currentQrUrl) {
-                currentQrUrl = await generateQRDataUrl();
-                setQrDataUrl(currentQrUrl);
-            }
+            // Generate QR code
+            const qrDataUrl = await generateQRDataUrl();
 
+            // Send to server for sharp-based image overlay + PDF generation
             const response = await fetch('/api/generate-certificate', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     profile,
-                    logoDataUrl: logoDataUrl,
-                    qrDataUrl: currentQrUrl,
+                    qrDataUrl,
                     photoDataUrl: photoDataUrl,
-                    signatureDataUrl: signatureDataUrl,
                 }),
             });
 
@@ -190,6 +112,7 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
                 throw new Error(errorData.details || 'Failed to generate Certificate');
             }
 
+            // Download the PDF
             const pdfBlob = await response.blob();
             const url = URL.createObjectURL(pdfBlob);
             const link = document.createElement('a');
@@ -212,199 +135,179 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
         }
     };
 
+    // ═══ Preview data formatting ═══
     const membershipType = profile.membership_type
-        ? profile.membership_type.replace(/_/g, ' ').toUpperCase()
-        : 'MEMBER';
+        ? profile.membership_type.replace(/_/g, ' ')
+        : 'Full';
 
     const validFrom = profile.subscription_start_date
         ? new Date(profile.subscription_start_date).toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
+            day: 'numeric', month: 'long', year: 'numeric',
         })
         : new Date().toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
+            day: 'numeric', month: 'long', year: 'numeric',
         });
 
     const validUntil = profile.subscription_end_date
         ? new Date(profile.subscription_end_date).toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
+            day: 'numeric', month: 'long', year: 'numeric',
         })
         : new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString(
-            'en-GB',
-            { day: 'numeric', month: 'long', year: 'numeric' }
+            'en-GB', { day: 'numeric', month: 'long', year: 'numeric' }
         );
+
+    const serialNumber = profile.registration_number || profile.id?.slice(0, 8)?.toUpperCase() || 'PENDING';
+
+    // ═══ Gold circle position (percentages of 1250x884) ═══
+    // Center: (106, 102) → percentage
+    // Inner diameter: 148px
+    const circleLeftPercent = ((106 - 74) / 1250) * 100;    // ~2.56%
+    const circleTopPercent = ((102 - 74) / 884) * 100;      // ~3.17%
+    const circleSizePercent = (148 / 1250) * 100;            // ~11.84%
+    const circleSizePercentH = (148 / 884) * 100;            // ~16.74%
 
     return (
         <div className="w-full flex flex-col items-center gap-8 py-8">
-            {/* CERTIFICATE PREVIEW */}
-            <div className="w-full max-w-5xl bg-white shadow-2xl rounded-sm overflow-hidden border-2 border-gray-900 aspect-[1.414]">
-                <div className="relative w-full h-full flex">
-                    {/* SIDEBAR */}
-                    <div className="w-[28%] bg-gradient-to-b from-purple-900 via-purple-800 to-purple-900 relative flex flex-col items-center justify-between py-6 px-4">
-                        {/* PHOTO */}
-                        <div className="w-32 h-32 rounded-full border-4 border-white bg-white overflow-hidden shadow-lg flex-shrink-0">
-                            {photoDataUrl ? (
-                                <img
-                                    src={photoDataUrl}
-                                    alt="Member Photo"
-                                    className="w-full h-full object-cover"
-                                />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs text-center">
-                                    NO PHOTO
-                                </div>
-                            )}
-                        </div>
+            {/* ═══════════ CERTIFICATE PREVIEW ═══════════ */}
+            <div className="w-full max-w-5xl relative shadow-2xl rounded-lg overflow-hidden border border-gray-200">
+                <div className="relative" style={{ aspectRatio: '1250 / 884' }}>
+                    {/* Template Background */}
+                    <img
+                        src="/certificate-template.png"
+                        alt="Certificate Template"
+                        className="w-full h-full object-contain select-none pointer-events-none"
+                        draggable={false}
+                    />
 
-                        {/* DIAMOND */}
-                        <div className="flex-grow flex items-center justify-center">
-                            <div
-                                className="w-5 h-5 bg-yellow-500 transform rotate-45"
-                                style={{ boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)' }}
+                    {/* ── 1. PROFILE PHOTO (inside gold circle, top-left) ── */}
+                    <div
+                        className="absolute overflow-hidden"
+                        style={{
+                            left: `${circleLeftPercent}%`,
+                            top: `${circleTopPercent}%`,
+                            width: `${circleSizePercent}%`,
+                            height: `${circleSizePercentH}%`,
+                            borderRadius: '50%',
+                        }}
+                    >
+                        {(photoDataUrl || profile.profile_photo_url) ? (
+                            <img
+                                src={photoDataUrl || profile.profile_photo_url}
+                                alt="Member"
+                                className="w-full h-full object-cover"
+                                style={{ borderRadius: '50%' }}
                             />
-                        </div>
-
-                        {/* QR CODE */}
-                        <div className="bg-white rounded-lg p-2 flex flex-col items-center gap-1 flex-shrink-0">
-                            {qrDataUrl ? (
-                                <img
-                                    src={qrDataUrl}
-                                    alt="QR Code"
-                                    className="w-24 h-24"
-                                />
-                            ) : (
-                                <div className="w-24 h-24 bg-yellow-400" />
-                            )}
-                            <p className="text-xs font-bold text-purple-900 uppercase tracking-widest">Scan me</p>
-                        </div>
+                        ) : (
+                            <div
+                                className="w-full h-full flex items-center justify-center bg-gray-700/80"
+                                style={{ borderRadius: '50%' }}
+                            >
+                                <span className="text-white text-xs font-medium">PHOTO</span>
+                            </div>
+                        )}
                     </div>
 
-                    {/* MAIN CONTENT */}
-                    <div className="flex-1 relative flex flex-col justify-between p-8 bg-white">
-                        {/* BORDER */}
-                        <div className="absolute inset-0 border border-black pointer-events-none" style={{ margin: '10px' }} />
+                    {/* ── 2. Serial Number (after "SERIAL:") ── */}
+                    <div
+                        className="absolute font-bold"
+                        style={{
+                            left: `${(1015 / 1250) * 100}%`,
+                            top: `${(18 / 884) * 100}%`,
+                            fontSize: 'clamp(8px, 1.6vw, 20px)',
+                            fontFamily: 'Arial, Helvetica, sans-serif',
+                            color: '#c0392b',
+                        }}
+                    >
+                        {serialNumber}
+                    </div>
 
-                        {/* TOP LEFT TRIANGLE */}
-                        <div className="absolute top-2 left-2 w-12 h-12 bg-yellow-500 clip-triangle" style={{
-                            clipPath: 'polygon(0 0, 100% 0, 0 100%)'
-                        }} />
+                    {/* ── 3. Member Name (centered below "THIS IS TO HEREBY THAT") ── */}
+                    <div
+                        className="absolute font-bold text-center"
+                        style={{
+                            left: '50%',
+                            top: `${(320 / 884) * 100}%`,
+                            transform: 'translateX(-50%)',
+                            fontSize: 'clamp(12px, 2.7vw, 34px)',
+                            fontFamily: "'Georgia', 'Times New Roman', serif",
+                            color: '#001F54',
+                            letterSpacing: '1.5px',
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        {profile.full_name}
+                    </div>
 
-                        {/* BOTTOM RIGHT TRIANGLE */}
-                        <div className="absolute bottom-2 right-2 w-12 h-12 bg-yellow-500" style={{
-                            clipPath: 'polygon(100% 0, 100% 100%, 0 100%)'
-                        }} />
+                    {/* ── 4. Membership Type (cover "Full Membership") ── */}
+                    <div
+                        className="absolute text-center font-bold"
+                        style={{
+                            left: '50%',
+                            top: `${(460 / 884) * 100}%`,
+                            transform: 'translateX(-50%)',
+                            fontSize: 'clamp(7px, 1.35vw, 17px)',
+                            fontFamily: "'Georgia', 'Times New Roman', serif",
+                            color: '#222222',
+                            whiteSpace: 'nowrap',
+                            backgroundColor: 'white',
+                            padding: '0 6px',
+                        }}
+                    >
+                        {membershipType} Membership
+                    </div>
 
-                        {/* HEADER */}
-                        <div className="relative z-10 flex justify-between items-start border-b border-yellow-500 pb-4 mb-6">
-                            <div>
-                                <h2 className="text-3xl font-bold text-gray-900 uppercase tracking-wide">Certificate</h2>
-                                <p className="text-sm text-gray-900 uppercase tracking-widest">of Membership</p>
-                            </div>
+                    {/* ── 5. Validity Dates ── */}
+                    <div
+                        className="absolute text-center"
+                        style={{
+                            left: `${(575 / 1250) * 100}%`,
+                            top: `${(506 / 884) * 100}%`,
+                            transform: 'translateX(-50%)',
+                            fontSize: 'clamp(6px, 1.28vw, 16px)',
+                            fontFamily: "'Georgia', 'Times New Roman', serif",
+                            color: '#333333',
+                            whiteSpace: 'nowrap',
+                            backgroundColor: 'white',
+                            padding: '0 8px',
+                            letterSpacing: '0.5px',
+                        }}
+                    >
+                        This document is valid from {validFrom} to {validUntil}
+                    </div>
 
-                            <div className="text-right">
-                                <p className="text-xs font-bold text-red-600 mb-2">
-                                    Serial No: {profile.id.slice(0, 8).toUpperCase()}
-                                </p>
-                                <div className="flex items-center gap-2 justify-end">
-                                    <div className="text-right border-r border-yellow-500 pr-2">
-                                        <p className="text-[7px] font-bold text-gray-900 uppercase leading-tight">Society of</p>
-                                        <p className="text-[7px] font-bold text-gray-900 uppercase leading-tight">Optometrists</p>
-                                        <p className="text-[7px] font-bold text-gray-900 uppercase leading-tight">Pakistan</p>
-                                    </div>
-                                    {logoDataUrl && (
-                                        <img
-                                            src={logoDataUrl}
-                                            alt="Logo"
-                                            className="w-8 h-8 object-contain"
-                                        />
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* BODY - CENTERED */}
-                        <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center gap-2">
-                            <p className="text-xs text-gray-500 italic">this is to certify that</p>
-
-                            <h3 className="text-4xl font-bold text-yellow-500 uppercase tracking-wide">
-                                {profile.full_name}
-                            </h3>
-
-                            <p className="text-xs font-bold text-purple-900 uppercase tracking-wide">
-                                MEMBERSHIP NO: {profile.registration_number || 'PENDING'}
-                            </p>
-
-                            <p className="text-xs text-gray-700 leading-relaxed max-w-md mt-2">
-                                is a member of good standing and abides by the constitution, by-laws and code of ethics of the
-                                Society of Optometrists Pakistan (SOOOP) under {membershipType} membership.
-                            </p>
-
-                            <p className="text-xs text-gray-600 italic mt-3">
-                                This document is valid from {validFrom} to {validUntil}
-                            </p>
-                        </div>
-
-                        {/* FOOTER SIGNATURES */}
-                        <div className="relative z-10 flex justify-between items-end mt-6 text-center text-xs">
-                            <div className="flex flex-col items-center w-1/3">
-                                <div className="h-8 mb-1" />
-                                <div className="w-24 h-0.5 bg-purple-900 mb-1" />
-                                <p className="font-bold text-gray-900 uppercase text-[7px] tracking-wide">
-                                    Secretary General
-                                </p>
-                            </div>
-
-                            <div className="w-1/3" />
-
-                            <div className="flex flex-col items-center w-1/3">
-                                {signatureDataUrl ? (
-                                    <img
-                                        src={signatureDataUrl}
-                                        alt="Signature"
-                                        className="h-8 mb-1 object-contain"
-                                    />
-                                ) : (
-                                    <div className="h-8 mb-1" />
-                                )}
-                                <div className="w-24 h-0.5 bg-purple-900 mb-1" />
-                                <p className="font-bold text-gray-900 uppercase text-[7px] tracking-wide">
-                                    SOOOP President
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* VERIFICATION URL */}
-                        <div className="relative z-10 text-center text-xs text-gray-500 mt-4">
-                            <p>
-                                Visit{' '}
-                                <span className="font-bold text-yellow-500">sooopvision.com/verify</span> to validate
-                            </p>
+                    {/* ── 6. QR Code (bottom-left) ── */}
+                    <div
+                        className="absolute flex items-center justify-center"
+                        style={{
+                            left: `${(15 / 1250) * 100}%`,
+                            top: `${(718 / 884) * 100}%`,
+                            width: `${(120 / 1250) * 100}%`,
+                            height: `${(120 / 884) * 100}%`,
+                        }}
+                    >
+                        <div className="border border-dashed border-gray-300 rounded w-full h-full flex items-center justify-center bg-white/80">
+                            <span className="text-gray-400 text-[7px] md:text-[10px] text-center font-medium">QR</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* ACTION BUTTONS */}
+            {/* ═══════════ ACTION BUTTONS ═══════════ */}
             <div className="flex flex-col items-center gap-4 w-full px-4">
                 <button
                     onClick={handleDownloadCertificate}
-                    disabled={isDownloading || !imagesLoaded}
-                    className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 disabled:bg-yellow-300 text-gray-900 font-bold px-8 py-4 rounded-full shadow-lg hover:shadow-xl transition-all disabled:cursor-not-allowed transform hover:scale-105 active:scale-95"
+                    disabled={isDownloading || !photoLoaded}
+                    className="flex items-center gap-2 bg-primary hover:bg-primary/90 disabled:bg-primary/50 text-white font-bold px-8 py-4 rounded-full shadow-lg hover:shadow-xl transition-all disabled:cursor-not-allowed transform hover:scale-105 active:scale-95"
                 >
                     {isDownloading ? (
                         <>
                             <Loader2 className="w-5 h-5 animate-spin" />
                             Generating Certificate...
                         </>
-                    ) : !imagesLoaded ? (
+                    ) : !photoLoaded ? (
                         <>
                             <Loader2 className="w-5 h-5 animate-spin" />
-                            Loading Assets...
+                            Loading Photo...
                         </>
                     ) : (
                         <>
