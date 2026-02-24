@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
 import path from 'path';
 import fs from 'fs';
 
@@ -47,17 +48,14 @@ const NAME_CENTER_X = 712;
 const NAME_BASELINE_Y = 392;
 const NAME_FONT_PX = 34;
 
-// Membership Type — covers "Full Membership"
-const MTYPE_CENTER_X = 866;
-const MTYPE_BASELINE_Y = 533;
-const MTYPE_FONT_PX = 17;
-const MTYPE_RECT = { x: 783, y: 516, w: 176, h: 25 };
-
-// Validity Dates — covers "This document is valid from"
-const VALID_CENTER_X = 541;
+// Combined Validity + Membership line (single full line, no background)
+// "This document is valid from [date] to [date] for [Type] Membership"
+const VALID_CENTER_X = 625;   // Center of entire line on template
 const VALID_BASELINE_Y = 532;
-const VALID_FONT_PX = 16;
-const VALID_RECT = { x: 340, y: 516, w: 412, h: 24 };
+const VALID_FONT_PX = 14;
+
+// Custom font path for member name
+const FONT_DIR = path.join(process.cwd(), 'public', 'fonts');
 
 // Circular photo crop using sharp + SVG mask
 async function createCircularPhoto(buf: Buffer, dia: number): Promise<Buffer> {
@@ -184,64 +182,46 @@ export async function POST(req: NextRequest) {
 
         // Load built-in fonts
         const helvBold = await pdf.embedFont(StandardFonts.HelveticaBold);
-        const timesBold = await pdf.embedFont(StandardFonts.TimesRomanBold);
         const timesReg = await pdf.embedFont(StandardFonts.TimesRoman);
+        const timesBold = await pdf.embedFont(StandardFonts.TimesRomanBold);
 
-        // ── A) SERIAL NUMBER ──
+        // Load custom font for member name (Engravers Old English)
+        pdf.registerFontkit(fontkit);
+        let nameFont = timesBold; // fallback
+        const customFontPath = path.join(FONT_DIR, 'EngraversOldEnglish.ttf');
+        if (fs.existsSync(customFontPath)) {
+            const fontBytes = fs.readFileSync(customFontPath);
+            nameFont = await pdf.embedFont(fontBytes);
+            console.log('[Cert] Custom font loaded: EngraversOldEnglish');
+        } else {
+            console.warn('[Cert] Custom font not found, using Times Bold fallback');
+        }
+
+        // ── A) SERIAL NUMBER ── (color: #FE4848)
         const serialSize = SERIAL_FONT_PX * S;
         page.drawText(serial, {
             x: toX(SERIAL_X),
             y: toY(SERIAL_BASELINE_Y),
             size: serialSize,
             font: helvBold,
-            color: rgb(0.75, 0.22, 0.17),
+            color: rgb(0.996, 0.282, 0.282),  // #FE4848
         });
 
-        // ── B) MEMBER NAME (centered) ──
+        // ── B) MEMBER NAME (centered, Engravers Old English font) ──
         const nameSize = NAME_FONT_PX * S;
-        const nameW = timesBold.widthOfTextAtSize(memberName, nameSize);
+        const nameW = nameFont.widthOfTextAtSize(memberName, nameSize);
         const nameCx = toX(NAME_CENTER_X);
         page.drawText(memberName, {
             x: nameCx - nameW / 2,
             y: toY(NAME_BASELINE_Y),
             size: nameSize,
-            font: timesBold,
+            font: nameFont,
             color: rgb(0, 0.12, 0.33),
         });
 
-        // ── C) MEMBERSHIP TYPE ──
-        // White rect to cover template's "Full Membership"
-        page.drawRectangle({
-            x: toX(MTYPE_RECT.x),
-            y: toY(MTYPE_RECT.y + MTYPE_RECT.h),
-            width: MTYPE_RECT.w * S,
-            height: MTYPE_RECT.h * S,
-            color: rgb(1, 1, 1),
-        });
-
-        const mTypeText = `${mType} Membership`;
-        const mTypeSize = MTYPE_FONT_PX * S;
-        const mTypeW = timesBold.widthOfTextAtSize(mTypeText, mTypeSize);
-        const mTypeCx = toX(MTYPE_CENTER_X);
-        page.drawText(mTypeText, {
-            x: mTypeCx - mTypeW / 2,
-            y: toY(MTYPE_BASELINE_Y),
-            size: mTypeSize,
-            font: timesBold,
-            color: rgb(0.13, 0.13, 0.13),
-        });
-
-        // ── D) VALIDITY DATES ──
-        // White rect to cover template's "This document is valid from"
-        page.drawRectangle({
-            x: toX(VALID_RECT.x),
-            y: toY(VALID_RECT.y + VALID_RECT.h),
-            width: VALID_RECT.w * S,
-            height: VALID_RECT.h * S,
-            color: rgb(1, 1, 1),
-        });
-
-        const validText = `This document is valid from ${validFrom} to ${validUntil} for `;
+        // ── C) FULL VALIDITY + MEMBERSHIP LINE (no background, transparent) ──
+        // Single combined line: "This document is valid from [date] to [date] for [Type] Membership"
+        const validText = `This document is valid from ${validFrom} to ${validUntil} for ${mType} Membership`;
         const validSize = VALID_FONT_PX * S;
         const validW = timesReg.widthOfTextAtSize(validText, validSize);
         const validCx = toX(VALID_CENTER_X);
@@ -250,7 +230,7 @@ export async function POST(req: NextRequest) {
             y: toY(VALID_BASELINE_Y),
             size: validSize,
             font: timesReg,
-            color: rgb(0.2, 0.2, 0.2),
+            color: rgb(0.13, 0.13, 0.13),
         });
 
         // ── Save & return PDF ──

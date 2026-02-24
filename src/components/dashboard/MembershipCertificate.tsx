@@ -214,13 +214,13 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
                             top: `${((41 - 19) / 884) * 100}%`,
                             fontSize: 'clamp(8px, 1.6vw, 20px)',
                             fontFamily: 'Arial, Helvetica, sans-serif',
-                            color: '#c0392b',
+                            color: '#FE4848',
                         }}
                     >
                         {serialNumber}
                     </div>
 
-                    {/* ── 3. Member Name (centered below "THIS IS TO HEREBY THAT") ── */}
+                    {/* ── 3. Member Name (Engravers Old English style) ── */}
                     <div
                         className="absolute font-bold text-center"
                         style={{
@@ -228,7 +228,7 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
                             top: `${((392 - 34) / 884) * 100}%`,
                             transform: 'translateX(-50%)',
                             fontSize: 'clamp(12px, 2.7vw, 34px)',
-                            fontFamily: "'Georgia', 'Times New Roman', serif",
+                            fontFamily: "'UnifrakturMaguntia', 'Old English Text MT', Georgia, serif",
                             color: '#001F54',
                             letterSpacing: '1.5px',
                             whiteSpace: 'nowrap',
@@ -237,41 +237,20 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
                         {profile.full_name}
                     </div>
 
-                    {/* ── 4. Membership Type (cover "Full Membership") ── */}
-                    <div
-                        className="absolute text-center font-bold"
-                        style={{
-                            left: `${(866 / 1250) * 100}%`,
-                            top: `${((533 - 17) / 884) * 100}%`,
-                            transform: 'translateX(-50%)',
-                            fontSize: 'clamp(7px, 1.35vw, 17px)',
-                            fontFamily: "'Georgia', 'Times New Roman', serif",
-                            color: '#222222',
-                            whiteSpace: 'nowrap',
-                            backgroundColor: 'white',
-                            padding: '0 6px',
-                        }}
-                    >
-                        {membershipType} Membership
-                    </div>
-
-                    {/* ── 5. Validity Dates ── */}
+                    {/* ── 4. Combined Validity + Membership (single line, no background) ── */}
                     <div
                         className="absolute text-center"
                         style={{
-                            left: `${(541 / 1250) * 100}%`,
-                            top: `${((532 - 16) / 884) * 100}%`,
+                            left: `${(625 / 1250) * 100}%`,
+                            top: `${((532 - 14) / 884) * 100}%`,
                             transform: 'translateX(-50%)',
-                            fontSize: 'clamp(6px, 1.28vw, 16px)',
+                            fontSize: 'clamp(5px, 1.1vw, 14px)',
                             fontFamily: "'Georgia', 'Times New Roman', serif",
-                            color: '#333333',
+                            color: '#222222',
                             whiteSpace: 'nowrap',
-                            backgroundColor: 'white',
-                            padding: '0 8px',
-                            letterSpacing: '0.5px',
                         }}
                     >
-                        This document is valid from {validFrom} to {validUntil}
+                        This document is valid from {validFrom} to {validUntil} for {membershipType} Membership
                     </div>
 
                     {/* ── 6. QR Code (bottom-left) ── */}
