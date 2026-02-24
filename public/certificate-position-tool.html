@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Certificate Designer — Visual Editor</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #f59e0b;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --info: #3b82f6;
+      --purple: #8b5cf6;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ═══ LEFT SIDEBAR — Properties Panel ═══ */
+    .sidebar {
+      width: 320px;
+      min-width: 320px;
+      background: var(--surface);
+      border-right: 2px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+    }
+
+    .sidebar-header h1 {
+      font-size: 18px;
+      background: linear-gradient(135deg, var(--accent), var(--danger));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+
+    .sidebar-header p {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* Element list */
+    .el-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .el-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .el-card.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent), 0 0 12px rgba(245, 158, 11, 0.15);
+    }
+
+    .el-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      background: rgba(255, 255, 255, 0.03);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .el-card-header:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .el-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+
+    .el-card-title {
+      font-size: 12px;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .el-card-coords {
+      font-size: 10px;
+      font-family: monospace;
+      color: var(--success);
+      margin-right: 8px;
+    }
+
+    .el-card-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .el-card-actions button {
+      width: 22px;
+      height: 22px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .btn-eye {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--info);
+    }
+
+    .btn-eye:hover {
+      background: rgba(59, 130, 246, 0.4);
+    }
+
+    .btn-eye.hidden-el {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+      text-decoration: line-through;
+    }
+
+    .btn-del {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+    }
+
+    .btn-del:hover {
+      background: rgba(239, 68, 68, 0.35);
+    }
+
+    /* Properties panel (expanded) */
+    .el-props {
+      display: none;
+      padding: 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    .el-card.expanded .el-props {
+      display: block;
+    }
+
+    .prop-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+      gap: 6px;
+    }
+
+    .prop-row label {
+      font-size: 11px;
+      color: var(--muted);
+      width: 70px;
+      flex-shrink: 0;
+      text-align: right;
+    }
+
+    .prop-row input[type="number"],
+    .prop-row input[type="text"],
+    .prop-row input[type="color"] {
+      flex: 1;
+      padding: 4px 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: monospace;
+    }
+
+    .prop-row input[type="color"] {
+      width: 32px;
+      height: 26px;
+      padding: 1px;
+      cursor: pointer;
+      flex: 0;
+    }
+
+    .prop-row input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .prop-row select {
+      flex: 1;
+      padding: 4px 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 4px;
+      font-size: 11px;
+    }
+
+    /* Bottom actions */
+    .sidebar-actions {
+      padding: 10px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .sidebar-actions button {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: var(--success);
+      color: #000;
+    }
+
+    .btn-primary:hover {
+      background: #16a34a;
+    }
+
+    .btn-secondary {
+      background: var(--info);
+      color: #fff;
+    }
+
+    .btn-secondary:hover {
+      background: #2563eb;
+    }
+
+    .btn-add {
+      background: var(--purple);
+      color: #fff;
+    }
+
+    .btn-add:hover {
+      background: #7c3aed;
+    }
+
+    .btn-warning {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    .btn-warning:hover {
+      background: #dc2626;
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border) !important;
+    }
+
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
+
+    /* ═══ MAIN — Canvas Area ═══ */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .topbar .zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .topbar button {
+      padding: 5px 12px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .topbar button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .zoom-label {
+      font-size: 11px;
+      color: var(--muted);
+      min-width: 40px;
+      text-align: center;
+      font-family: monospace;
+    }
+
+    .canvas-viewport {
+      flex: 1;
+      overflow: auto;
+      background: #0a0e1a;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      display: inline-block;
+      transform-origin: top center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .canvas-wrap img {
+      display: block;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    /* Draggable elements on canvas */
+    .c-el {
+      position: absolute;
+      cursor: grab;
+      user-select: none;
+      z-index: 10;
+    }
+
+    .c-el:active {
+      cursor: grabbing;
+    }
+
+    .c-el.selected-on-canvas {
+      outline: 2px solid var(--accent) !important;
+      outline-offset: 2px;
+    }
+
+    .c-el .c-label {
+      position: absolute;
+      top: -18px;
+      left: 0;
+      background: var(--accent);
+      color: #000;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .c-el:hover .c-label,
+    .c-el.selected-on-canvas .c-label {
+      opacity: 1;
+    }
+
+    /* Resize handles */
+    .resize-handle {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: var(--accent);
+      border: 1px solid #000;
+      border-radius: 2px;
+      cursor: nwse-resize;
+      z-index: 20;
+      display: none;
+    }
+
+    .c-el.selected-on-canvas .resize-handle {
+      display: block;
+    }
+
+    .resize-handle.br {
+      bottom: -5px;
+      right: -5px;
+      cursor: nwse-resize;
+    }
+
+    .resize-handle.bl {
+      bottom: -5px;
+      left: -5px;
+      cursor: nesw-resize;
+    }
+
+    .resize-handle.tr {
+      top: -5px;
+      right: -5px;
+      cursor: nesw-resize;
+    }
+
+    .resize-handle.tl {
+      top: -5px;
+      left: -5px;
+      cursor: nwse-resize;
+    }
+
+    .c-el.hidden-el {
+      opacity: 0.15;
+      pointer-events: none;
+    }
+
+    /* ═══ OUTPUT MODAL ═══ */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 700px;
+      max-height: 80vh;
+      overflow: auto;
+      padding: 24px;
+    }
+
+    .modal h2 {
+      font-size: 18px;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .modal textarea {
+      width: 100%;
+      height: 350px;
+      background: var(--bg);
+      color: var(--success);
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      resize: vertical;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      justify-content: flex-end;
+    }
+
+    /* Guides */
+    .guide-h,
+    .guide-v {
+      position: absolute;
+      background: rgba(245, 158, 11, 0.4);
+      z-index: 5;
+      pointer-events: none;
+      display: none;
+    }
+
+    .guide-h {
+      height: 1px;
+      left: 0;
+      right: 0;
+    }
+
+    .guide-v {
+      width: 1px;
+      top: 0;
+      bottom: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ═══ LEFT SIDEBAR ═══ -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h1>🎯 Certificate Designer</h1>
+      <p>Drag, resize, edit — then lock positions</p>
+    </div>
+
+    <div class="el-list" id="elList">
+      <!-- Generated dynamically -->
+    </div>
+
+    <div class="sidebar-actions">
+      <button class="btn-add" onclick="addElement()">＋ Add New Element</button>
+      <button class="btn-primary" onclick="lockAndGenerate()">🔒 Lock & Generate Config</button>
+      <button class="btn-outline" onclick="resetAll()">🔄 Reset All to Defaults</button>
+    </div>
+  </div>
+
+  <!-- ═══ MAIN CANVAS ═══ -->
+  <div class="main">
+    <div class="topbar">
+      <div class="zoom-controls">
+        <button onclick="setZoom(zoom - 0.1)">−</button>
+        <span class="zoom-label" id="zoomLabel">100%</span>
+        <button onclick="setZoom(zoom + 0.1)">+</button>
+        <button onclick="setZoom(1)">1:1</button>
+        <button onclick="fitZoom()">Fit</button>
+      </div>
+      <span style="flex:1"></span>
+      <button onclick="toggleGuides()">📏 Guides</button>
+      <button onclick="lockAndGenerate()">🔒 Export Config</button>
+    </div>
+
+    <div class="canvas-viewport" id="viewport">
+      <div class="canvas-wrap" id="canvas">
+        <img id="tplImg" src="/certificate-template.png" alt="Template" draggable="false">
+        <div class="guide-h" id="guideH"></div>
+        <div class="guide-v" id="guideV"></div>
+        <!-- Elements rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ OUTPUT MODAL ═══ -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <h2>🔒 Locked Configuration</h2>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Copy this and send it to me — I'll update the
+        code instantly.</p>
+      <textarea id="configOutput" readonly></textarea>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="copyConfig()">📋 Copy to Clipboard</button>
+        <button class="btn-outline" onclick="closeModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ══════════════════════════════════════
+    // DATA MODEL
+    // ══════════════════════════════════════
+    const TEMPLATE_W = 1250, TEMPLATE_H = 884;
+
+    let elements = [
+      {
+        id: 'photo', name: 'Profile Photo', type: 'circle',
+        x: 30, y: 24, w: 155, h: 155,
+        color: '#f59e0b', visible: true,
+        text: 'PHOTO', fontSize: 12,
+      },
+      {
+        id: 'serial', name: 'Serial Number', type: 'text',
+        x: 1012, y: 14, w: 0, h: 0,
+        color: '#c0392b', visible: true,
+        text: 'SOOOP-2025-001', fontSize: 19,
+        fontFamily: 'Arial, Helvetica, sans-serif', fontWeight: 'bold',
+      },
+      {
+        id: 'name', name: 'Member Name', type: 'text',
+        x: 350, y: 305, w: 0, h: 0,
+        color: '#001F54', visible: true,
+        text: 'DR. MUHAMMAD AHMED KHAN', fontSize: 32,
+        fontFamily: "Georgia, 'Times New Roman', serif", fontWeight: 'bold',
+      },
+      {
+        id: 'mtype', name: 'Membership Type', type: 'text',
+        x: 640, y: 437, w: 0, h: 0,
+        color: '#222222', visible: true,
+        text: 'Full Membership', fontSize: 17,
+        fontFamily: "Georgia, 'Times New Roman', serif", fontWeight: 'bold',
+      },
+      {
+        id: 'validity', name: 'Validity Dates', type: 'text',
+        x: 370, y: 498, w: 0, h: 0,
+        color: '#333333', visible: true,
+        text: 'This document is valid from 1 Jan 2025 to 31 Dec 2025', fontSize: 16,
+        fontFamily: "Georgia, 'Times New Roman', serif", fontWeight: 'normal',
+      },
+      {
+        id: 'qr', name: 'QR Code', type: 'rect',
+        x: 14, y: 712, w: 126, h: 126,
+        color: '#22c55e', visible: true,
+        text: 'QR CODE', fontSize: 12,
+      },
+    ];
+
+    let selectedId = null;
+    let zoom = 1;
+    let showGuides = false;
+    let dragState = null; // { id, type: 'move'|'resize', startX, startY, origX, origY, origW, origH, handle }
+
+    // ══════════════════════════════════════
+    // RENDER
+    // ══════════════════════════════════════
+    function render() {
+      renderSidebar();
+      renderCanvas();
+    }
+
+    function renderSidebar() {
+      const list = document.getElementById('elList');
+      list.innerHTML = '';
+
+      elements.forEach(el => {
+        const isSelected = el.id === selectedId;
+        const card = document.createElement('div');
+        card.className = `el-card ${isSelected ? 'selected expanded' : ''}`;
+        card.innerHTML = `
+      <div class="el-card-header" onclick="selectElement('${el.id}')">
+        <div class="el-dot" style="background:${el.color}"></div>
+        <span class="el-card-title">${el.name}</span>
+        <span class="el-card-coords">x:${el.x} y:${el.y}</span>
+        <div class="el-card-actions" onclick="event.stopPropagation()">
+          <button class="btn-eye ${el.visible ? '' : 'hidden-el'}" onclick="toggleVisibility('${el.id}')" title="${el.visible ? 'Hide' : 'Show'}">👁</button>
+          <button class="btn-del" onclick="deleteElement('${el.id}')" title="Delete">🗑</button>
+        </div>
+      </div>
+      <div class="el-props">
+        <div class="prop-row">
+          <label>Name</label>
+          <input type="text" value="${el.name}" onchange="updateProp('${el.id}','name',this.value)">
+        </div>
+        <div class="prop-row">
+          <label>X</label>
+          <input type="number" value="${el.x}" onchange="updateProp('${el.id}','x',+this.value)" step="1">
+          <label style="width:20px">Y</label>
+          <input type="number" value="${el.y}" onchange="updateProp('${el.id}','y',+this.value)" step="1">
+        </div>
+        ${el.type !== 'text' ? `
+        <div class="prop-row">
+          <label>Width</label>
+          <input type="number" value="${el.w}" onchange="updateProp('${el.id}','w',+this.value)" step="1" min="10">
+          <label style="width:20px">H</label>
+          <input type="number" value="${el.h}" onchange="updateProp('${el.id}','h',+this.value)" step="1" min="10">
+        </div>
+        ` : ''}
+        <div class="prop-row">
+          <label>Text</label>
+          <input type="text" value="${el.text}" onchange="updateProp('${el.id}','text',this.value)">
+        </div>
+        <div class="prop-row">
+          <label>Font Size</label>
+          <input type="number" value="${el.fontSize}" onchange="updateProp('${el.id}','fontSize',+this.value)" step="1" min="6" max="80">
+          <label style="width:30px">px</label>
+        </div>
+        <div class="prop-row">
+          <label>Color</label>
+          <input type="color" value="${el.color}" onchange="updateProp('${el.id}','color',this.value)">
+          <input type="text" value="${el.color}" style="width:80px;flex:0" onchange="updateProp('${el.id}','color',this.value)">
+        </div>
+        ${el.type === 'text' ? `
+        <div class="prop-row">
+          <label>Weight</label>
+          <select onchange="updateProp('${el.id}','fontWeight',this.value)">
+            <option value="normal" ${el.fontWeight === 'normal' ? 'selected' : ''}>Normal</option>
+            <option value="bold" ${el.fontWeight === 'bold' ? 'selected' : ''}>Bold</option>
+          </select>
+        </div>
+        <div class="prop-row">
+          <label>Font</label>
+          <select onchange="updateProp('${el.id}','fontFamily',this.value)">
+            <option value="Georgia, 'Times New Roman', serif" ${el.fontFamily?.includes('Georgia') ? 'selected' : ''}>Georgia (Serif)</option>
+            <option value="Arial, Helvetica, sans-serif" ${el.fontFamily?.includes('Arial') ? 'selected' : ''}>Arial (Sans)</option>
+            <option value="'Courier New', monospace" ${el.fontFamily?.includes('Courier') ? 'selected' : ''}>Courier (Mono)</option>
+            <option value="'Times New Roman', serif" ${el.fontFamily?.includes('Times') ? 'selected' : ''}>Times New Roman</option>
+          </select>
+        </div>
+        ` : ''}
+        ${el.type === 'circle' ? `
+        <div class="prop-row">
+          <label>Diameter</label>
+          <input type="number" value="${el.w}" onchange="updateProp('${el.id}','w',+this.value);updateProp('${el.id}','h',+this.value)" step="1" min="10">
+        </div>
+        ` : ''}
+      </div>
+    `;
+        list.appendChild(card);
+      });
+    }
+
+    function renderCanvas() {
+      const canvas = document.getElementById('canvas');
+      const img = document.getElementById('tplImg');
+      img.style.width = TEMPLATE_W + 'px';
+      img.style.height = TEMPLATE_H + 'px';
+      canvas.style.transform = `scale(${zoom})`;
+
+      // Remove old elements (keep img and guides)
+      canvas.querySelectorAll('.c-el').forEach(e => e.remove());
+
+      elements.forEach(el => {
+        const div = document.createElement('div');
+        div.className = `c-el ${el.id === selectedId ? 'selected-on-canvas' : ''} ${!el.visible ? 'hidden-el' : ''}`;
+        div.dataset.id = el.id;
+
+        if (el.type === 'circle') {
+          Object.assign(div.style, {
+            left: el.x + 'px', top: el.y + 'px',
+            width: el.w + 'px', height: el.h + 'px',
+            borderRadius: '50%',
+            border: `3px dashed ${el.color}`,
+            background: `${el.color}22`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: el.fontSize + 'px', fontWeight: 'bold', color: el.color,
+          });
+          div.textContent = el.text;
+        } else if (el.type === 'rect') {
+          Object.assign(div.style, {
+            left: el.x + 'px', top: el.y + 'px',
+            width: el.w + 'px', height: el.h + 'px',
+            border: `2px dashed ${el.color}`,
+            background: `${el.color}15`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: el.fontSize + 'px', fontWeight: 'bold', color: el.color,
+          });
+          div.textContent = el.text;
+        } else {
+          Object.assign(div.style, {
+            left: el.x + 'px', top: el.y + 'px',
+            fontSize: el.fontSize + 'px',
+            fontFamily: el.fontFamily || 'sans-serif',
+            fontWeight: el.fontWeight || 'normal',
+            color: el.color,
+            border: `2px dashed ${el.color}55`,
+            padding: '2px 6px',
+            background: 'rgba(255,255,255,0.88)',
+            whiteSpace: 'nowrap',
+          });
+          div.textContent = el.text;
+        }
+
+        // Label
+        const label = document.createElement('span');
+        label.className = 'c-label';
+        label.textContent = `${el.name} (${el.x}, ${el.y})`;
+        div.appendChild(label);
+
+        // Resize handles for rect/circle
+        if (el.type !== 'text') {
+          ['br', 'bl', 'tr', 'tl'].forEach(h => {
+            const handle = document.createElement('div');
+            handle.className = `resize-handle ${h}`;
+            handle.dataset.handle = h;
+            div.appendChild(handle);
+          });
+        }
+
+        canvas.appendChild(div);
+      });
+    }
+
+    // ══════════════════════════════════════
+    // INTERACTIONS
+    // ══════════════════════════════════════
+    function selectElement(id) {
+      selectedId = selectedId === id ? null : id;
+      render();
+    }
+
+    function toggleVisibility(id) {
+      const el = elements.find(e => e.id === id);
+      if (el) { el.visible = !el.visible; render(); }
+    }
+
+    function deleteElement(id) {
+      if (confirm(`Delete "${elements.find(e => e.id === id)?.name}"?`)) {
+        elements = elements.filter(e => e.id !== id);
+        if (selectedId === id) selectedId = null;
+        render();
+      }
+    }
+
+    function updateProp(id, prop, value) {
+      const el = elements.find(e => e.id === id);
+      if (el) { el[prop] = value; render(); }
+    }
+
+    function addElement() {
+      const type = prompt('Element type? (text / rect / circle)', 'text');
+      if (!type || !['text', 'rect', 'circle'].includes(type)) return;
+      const name = prompt('Element name?', 'New Element');
+      if (!name) return;
+
+      const newEl = {
+        id: 'el_' + Date.now(),
+        name, type,
+        x: 400, y: 300,
+        w: type === 'text' ? 0 : 100,
+        h: type === 'text' ? 0 : 100,
+        color: '#f59e0b', visible: true,
+        text: name, fontSize: 16,
+      };
+
+      if (type === 'text') {
+        newEl.fontFamily = "Georgia, 'Times New Roman', serif";
+        newEl.fontWeight = 'normal';
+      }
+
+      elements.push(newEl);
+      selectedId = newEl.id;
+      render();
+    }
+
+    function resetAll() {
+      if (confirm('Reset all positions to defaults?')) {
+        location.reload();
+      }
+    }
+
+    // ══════════════════════════════════════
+    // DRAG & RESIZE ENGINE
+    // ══════════════════════════════════════
+    const canvasEl = document.getElementById('canvas');
+
+    canvasEl.addEventListener('mousedown', e => {
+      const handle = e.target.closest('.resize-handle');
+      const cel = e.target.closest('.c-el');
+      if (!cel) return;
+
+      const id = cel.dataset.id;
+      const el = elements.find(e => e.id === id);
+      if (!el || !el.visible) return;
+
+      selectedId = id;
+
+      const canvasRect = canvasEl.getBoundingClientRect();
+      const scale = canvasRect.width / TEMPLATE_W;
+
+      if (handle) {
+        dragState = {
+          id, type: 'resize',
+          handle: handle.dataset.handle,
+          startX: e.clientX, startY: e.clientY,
+          origX: el.x, origY: el.y,
+          origW: el.w, origH: el.h,
+          scale,
+        };
+      } else {
+        const elRect = cel.getBoundingClientRect();
+        dragState = {
+          id, type: 'move',
+          offsetX: e.clientX - elRect.left,
+          offsetY: e.clientY - elRect.top,
+          scale,
+        };
+      }
+
+      render();
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', e => {
+      if (!dragState) return;
+
+      const el = elements.find(e => e.id === dragState.id);
+      if (!el) return;
+
+      const canvasRect = canvasEl.getBoundingClientRect();
+
+      if (dragState.type === 'move') {
+        let x = (e.clientX - canvasRect.left - dragState.offsetX) / dragState.scale;
+        let y = (e.clientY - canvasRect.top - dragState.offsetY) / dragState.scale;
+
+        x = Math.round(Math.max(0, Math.min(x, TEMPLATE_W - (el.w || 50))));
+        y = Math.round(Math.max(0, Math.min(y, TEMPLATE_H - (el.h || 20))));
+
+        el.x = x;
+        el.y = y;
+
+        // Show guides
+        if (showGuides) {
+          const gh = document.getElementById('guideH');
+          const gv = document.getElementById('guideV');
+          gh.style.display = 'block';
+          gh.style.top = y + 'px';
+          gv.style.display = 'block';
+          gv.style.left = x + 'px';
+        }
+      } else if (dragState.type === 'resize') {
+        const dx = (e.clientX - dragState.startX) / dragState.scale;
+        const dy = (e.clientY - dragState.startY) / dragState.scale;
+        const h = dragState.handle;
+
+        if (el.type === 'circle') {
+          // Uniform resize for circles
+          const delta = (h.includes('b') ? dy : -dy) + (h.includes('r') ? dx : -dx);
+          const newSize = Math.max(20, Math.round(dragState.origW + delta / 2));
+          el.w = newSize;
+          el.h = newSize;
+          if (h.includes('t')) el.y = Math.round(dragState.origY + dragState.origH - newSize);
+          if (h.includes('l')) el.x = Math.round(dragState.origX + dragState.origW - newSize);
+        } else {
+          if (h.includes('r')) el.w = Math.max(20, Math.round(dragState.origW + dx));
+          if (h.includes('b')) el.h = Math.max(20, Math.round(dragState.origH + dy));
+          if (h.includes('l')) {
+            el.x = Math.round(dragState.origX + dx);
+            el.w = Math.max(20, Math.round(dragState.origW - dx));
+          }
+          if (h.includes('t')) {
+            el.y = Math.round(dragState.origY + dy);
+            el.h = Math.max(20, Math.round(dragState.origH - dy));
+          }
+        }
+      }
+
+      render();
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (dragState) {
+        dragState = null;
+        document.getElementById('guideH').style.display = 'none';
+        document.getElementById('guideV').style.display = 'none';
+      }
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+      if (!selectedId) return;
+      const el = elements.find(x => x.id === selectedId);
+      if (!el) return;
+
+      const step = e.shiftKey ? 10 : 1;
+      switch (e.key) {
+        case 'ArrowLeft': el.x -= step; e.preventDefault(); break;
+        case 'ArrowRight': el.x += step; e.preventDefault(); break;
+        case 'ArrowUp': el.y -= step; e.preventDefault(); break;
+        case 'ArrowDown': el.y += step; e.preventDefault(); break;
+        case 'Delete': deleteElement(selectedId); return;
+        case 'Escape': selectedId = null; break;
+        default: return;
+      }
+      render();
+    });
+
+    // ══════════════════════════════════════
+    // ZOOM
+    // ══════════════════════════════════════
+    function setZoom(z) {
+      zoom = Math.max(0.2, Math.min(2, z));
+      document.getElementById('zoomLabel').textContent = Math.round(zoom * 100) + '%';
+      document.getElementById('canvas').style.transform = `scale(${zoom})`;
+    }
+
+    function fitZoom() {
+      const vp = document.getElementById('viewport');
+      const z = Math.min(
+        (vp.clientWidth - 40) / TEMPLATE_W,
+        (vp.clientHeight - 40) / TEMPLATE_H
+      );
+      setZoom(z);
+    }
+
+    function toggleGuides() { showGuides = !showGuides; }
+
+    // ══════════════════════════════════════
+    // EXPORT CONFIG
+    // ══════════════════════════════════════
+    function lockAndGenerate() {
+      const getEl = id => elements.find(e => e.id === id);
+      const photo = getEl('photo');
+      const serial = getEl('serial');
+      const name = getEl('name');
+      const mtype = getEl('mtype');
+      const validity = getEl('validity');
+      const qr = getEl('qr');
+
+      let config = `═══════════════════════════════════════
+LOCKED CERTIFICATE POSITIONS
+Template: ${TEMPLATE_W} x ${TEMPLATE_H} px
+Time: ${new Date().toLocaleString()}
+═══════════════════════════════════════\n\n`;
+
+      if (photo) {
+        const cx = photo.x + Math.floor(photo.w / 2);
+        const cy = photo.y + Math.floor(photo.h / 2);
+        config += `PHOTO_CX = ${cx};\nPHOTO_CY = ${cy};\nPHOTO_DIA = ${photo.w};\n\n`;
+      }
+
+      if (serial) {
+        config += `SERIAL_X = ${serial.x};\nSERIAL_BASELINE_Y = ${serial.y + serial.fontSize};\nSERIAL_FONT_PX = ${serial.fontSize};\n\n`;
+      }
+
+      if (name) {
+        const cel = document.querySelector(`.c-el[data-id="name"]`);
+        const cw = cel ? cel.offsetWidth : 300;
+        const centerX = name.x + Math.floor(cw / 2);
+        config += `NAME_CENTER_X = ${centerX};\nNAME_BASELINE_Y = ${name.y + name.fontSize};\nNAME_FONT_PX = ${name.fontSize};\n\n`;
+      }
+
+      if (mtype) {
+        const cel = document.querySelector(`.c-el[data-id="mtype"]`);
+        const cw = cel ? cel.offsetWidth : 150;
+        const centerX = mtype.x + Math.floor(cw / 2);
+        config += `MTYPE_CENTER_X = ${centerX};\nMTYPE_BASELINE_Y = ${mtype.y + mtype.fontSize};\nMTYPE_FONT_PX = ${mtype.fontSize};\nMTYPE_RECT = { x: ${mtype.x}, y: ${mtype.y}, w: ${cw + 10}, h: ${mtype.fontSize + 8} };\n\n`;
+      }
+
+      if (validity) {
+        const cel = document.querySelector(`.c-el[data-id="validity"]`);
+        const cw = cel ? cel.offsetWidth : 400;
+        const centerX = validity.x + Math.floor(cw / 2);
+        config += `VALID_CENTER_X = ${centerX};\nVALID_BASELINE_Y = ${validity.y + validity.fontSize};\nVALID_FONT_PX = ${validity.fontSize};\nVALID_RECT = { x: ${validity.x}, y: ${validity.y}, w: ${cw + 10}, h: ${validity.fontSize + 8} };\n\n`;
+      }
+
+      if (qr) {
+        config += `QR_LEFT = ${qr.x};\nQR_TOP = ${qr.y};\nQR_SIZE = ${qr.w};\n\n`;
+      }
+
+      // Also include any custom elements
+      const custom = elements.filter(e => !['photo', 'serial', 'name', 'mtype', 'validity', 'qr'].includes(e.id));
+      if (custom.length > 0) {
+        config += `── CUSTOM ELEMENTS ──\n`;
+        custom.forEach(c => {
+          config += `${c.name}: x=${c.x}, y=${c.y}, w=${c.w}, h=${c.h}, fontSize=${c.fontSize}, color=${c.color}\n`;
+        });
+      }
+
+      document.getElementById('configOutput').value = config;
+      document.getElementById('modal').classList.add('show');
+    }
+
+    function copyConfig() {
+      const ta = document.getElementById('configOutput');
+      ta.select();
+      document.execCommand('copy');
+      alert('✅ Copied to clipboard!');
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.remove('show');
+    }
+
+    // ══════════════════════════════════════
+    // INIT
+    // ══════════════════════════════════════
+    render();
+    fitZoom();
+
+    window.addEventListener('resize', () => {
+      // Adjust zoom on window resize
+    });
+  </script>
+
+</body>
+
+</html>

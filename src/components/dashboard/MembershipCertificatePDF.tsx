@@ -543,7 +543,7 @@ const MembershipCertificatePDF = ({
                         </Text>
 
                         <Text style={styles.validityText}>
-                            This document is valid from {validFrom} to {validUntil}
+                            This document is valid from {validFrom} to {validUntil} For
                         </Text>
                     </View>
 

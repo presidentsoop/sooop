@@ -158,13 +158,12 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
 
     const serialNumber = profile.registration_number || profile.id?.slice(0, 8)?.toUpperCase() || 'PENDING';
 
-    // ═══ Gold circle position (percentages of 1250x884) ═══
-    // Center: (106, 102) → percentage
-    // Inner diameter: 148px
-    const circleLeftPercent = ((106 - 74) / 1250) * 100;    // ~2.56%
-    const circleTopPercent = ((102 - 74) / 884) * 100;      // ~3.17%
-    const circleSizePercent = (148 / 1250) * 100;            // ~11.84%
-    const circleSizePercentH = (148 / 884) * 100;            // ~16.74%
+    // ═══ 🔒 LOCKED positions (from Visual Editor 24/02/2026) ═══
+    // Photo: center (148, 143), diameter 213
+    const photoLeft = ((148 - 106) / 1250) * 100;    // top-left x
+    const photoTop = ((143 - 106) / 884) * 100;      // top-left y
+    const photoDia = (213 / 1250) * 100;              // width %
+    const photoDiaH = (213 / 884) * 100;              // height %
 
     return (
         <div className="w-full flex flex-col items-center gap-8 py-8">
@@ -183,10 +182,10 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
                     <div
                         className="absolute overflow-hidden"
                         style={{
-                            left: `${circleLeftPercent}%`,
-                            top: `${circleTopPercent}%`,
-                            width: `${circleSizePercent}%`,
-                            height: `${circleSizePercentH}%`,
+                            left: `${photoLeft}%`,
+                            top: `${photoTop}%`,
+                            width: `${photoDia}%`,
+                            height: `${photoDiaH}%`,
                             borderRadius: '50%',
                         }}
                     >
@@ -211,8 +210,8 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
                     <div
                         className="absolute font-bold"
                         style={{
-                            left: `${(1015 / 1250) * 100}%`,
-                            top: `${(18 / 884) * 100}%`,
+                            left: `${(1056 / 1250) * 100}%`,
+                            top: `${((41 - 19) / 884) * 100}%`,
                             fontSize: 'clamp(8px, 1.6vw, 20px)',
                             fontFamily: 'Arial, Helvetica, sans-serif',
                             color: '#c0392b',
@@ -225,8 +224,8 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
                     <div
                         className="absolute font-bold text-center"
                         style={{
-                            left: '50%',
-                            top: `${(320 / 884) * 100}%`,
+                            left: `${(712 / 1250) * 100}%`,
+                            top: `${((392 - 34) / 884) * 100}%`,
                             transform: 'translateX(-50%)',
                             fontSize: 'clamp(12px, 2.7vw, 34px)',
                             fontFamily: "'Georgia', 'Times New Roman', serif",
@@ -242,8 +241,8 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
                     <div
                         className="absolute text-center font-bold"
                         style={{
-                            left: '50%',
-                            top: `${(460 / 884) * 100}%`,
+                            left: `${(866 / 1250) * 100}%`,
+                            top: `${((533 - 17) / 884) * 100}%`,
                             transform: 'translateX(-50%)',
                             fontSize: 'clamp(7px, 1.35vw, 17px)',
                             fontFamily: "'Georgia', 'Times New Roman', serif",
@@ -260,8 +259,8 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
                     <div
                         className="absolute text-center"
                         style={{
-                            left: `${(575 / 1250) * 100}%`,
-                            top: `${(506 / 884) * 100}%`,
+                            left: `${(541 / 1250) * 100}%`,
+                            top: `${((532 - 16) / 884) * 100}%`,
                             transform: 'translateX(-50%)',
                             fontSize: 'clamp(6px, 1.28vw, 16px)',
                             fontFamily: "'Georgia', 'Times New Roman', serif",
@@ -279,10 +278,10 @@ export default function MembershipCertificate({ profile }: CertificateProps) {
                     <div
                         className="absolute flex items-center justify-center"
                         style={{
-                            left: `${(15 / 1250) * 100}%`,
-                            top: `${(718 / 884) * 100}%`,
-                            width: `${(120 / 1250) * 100}%`,
-                            height: `${(120 / 884) * 100}%`,
+                            left: `${(48 / 1250) * 100}%`,
+                            top: `${(694 / 884) * 100}%`,
+                            width: `${(156 / 1250) * 100}%`,
+                            height: `${(156 / 884) * 100}%`,
                         }}
                     >
                         <div className="border border-dashed border-gray-300 rounded w-full h-full flex items-center justify-center bg-white/80">

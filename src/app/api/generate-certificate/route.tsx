@@ -23,34 +23,41 @@ const toX = (px: number) => px * S;
 const toY = (py: number) => PAGE_H - (py * S); // PDF Y is bottom-up
 
 // ============================================================
-// GOLD CIRCLE — Profile Photo (top-left corner)
-// Measured from template:
-//   Outer ring: starts ~(18, 12), diameter ~178px
-//   Gold border: ~7px thick each side
-//   Inner center: (107, 101)
-//   Inner photo diameter: ~164px, using 155 for safe gap
+// 🔒 LOCKED POSITIONS (from Visual Editor — 24/02/2026 01:34)
+// DO NOT modify unless re-measured with the position tool
 // ============================================================
-const PHOTO_CX = 107;
-const PHOTO_CY = 101;
-const PHOTO_DIA = 155;
 
-// ============================================================
-// QR CODE — bottom-left white area
-// White rectangle: starts ~(13, 710), size ~128x128
-// ============================================================
-const QR_LEFT = 14;
-const QR_TOP = 712;
-const QR_SIZE = 126;
+// Profile Photo — Gold Circle (top-left)
+const PHOTO_CX = 148;
+const PHOTO_CY = 143;
+const PHOTO_DIA = 213;
 
-// ============================================================
-// TEXT POSITIONS (pixel coordinates from template top-left)
-//
-// "SERIAL:" label ends at ~x=1008, baseline ~y=30
-// "THIS IS TO HEREBY THAT" centered, baseline ~y=268
-// Member name: centered below, baseline ~y=340
-// Paragraph line 2 ends with "Full Membership", baseline ~y=455
-// "This document is valid from" baseline ~y=516
-// ============================================================
+// QR Code — bottom-left area
+const QR_LEFT = 48;
+const QR_TOP = 694;
+const QR_SIZE = 156;
+
+// Serial Number — after "SERIAL:" text
+const SERIAL_X = 1056;
+const SERIAL_BASELINE_Y = 41;
+const SERIAL_FONT_PX = 19;
+
+// Member Name — centered below "THIS IS TO HEREBY THAT"
+const NAME_CENTER_X = 712;
+const NAME_BASELINE_Y = 392;
+const NAME_FONT_PX = 34;
+
+// Membership Type — covers "Full Membership"
+const MTYPE_CENTER_X = 866;
+const MTYPE_BASELINE_Y = 533;
+const MTYPE_FONT_PX = 17;
+const MTYPE_RECT = { x: 783, y: 516, w: 176, h: 25 };
+
+// Validity Dates — covers "This document is valid from"
+const VALID_CENTER_X = 541;
+const VALID_BASELINE_Y = 532;
+const VALID_FONT_PX = 16;
+const VALID_RECT = { x: 340, y: 516, w: 412, h: 24 };
 
 // Circular photo crop using sharp + SVG mask
 async function createCircularPhoto(buf: Buffer, dia: number): Promise<Buffer> {
@@ -181,72 +188,66 @@ export async function POST(req: NextRequest) {
         const timesReg = await pdf.embedFont(StandardFonts.TimesRoman);
 
         // ── A) SERIAL NUMBER ──
-        // After "SERIAL:" which ends at pixel ~x=1008, baseline ~y=30
-        const serialSize = 13.5;
+        const serialSize = SERIAL_FONT_PX * S;
         page.drawText(serial, {
-            x: toX(1012),
-            y: toY(30),
+            x: toX(SERIAL_X),
+            y: toY(SERIAL_BASELINE_Y),
             size: serialSize,
             font: helvBold,
             color: rgb(0.75, 0.22, 0.17),
         });
 
-        // ── B) MEMBER NAME (centered below "THIS IS TO HEREBY THAT") ──
-        // "THIS IS TO HEREBY THAT" baseline ~y=268
-        // Name goes ~65px below = baseline ~y=333
-        const nameSize = 22;
+        // ── B) MEMBER NAME (centered) ──
+        const nameSize = NAME_FONT_PX * S;
         const nameW = timesBold.widthOfTextAtSize(memberName, nameSize);
-        const nameCx = toX(580); // center of content area
+        const nameCx = toX(NAME_CENTER_X);
         page.drawText(memberName, {
             x: nameCx - nameW / 2,
-            y: toY(333),
+            y: toY(NAME_BASELINE_Y),
             size: nameSize,
             font: timesBold,
             color: rgb(0, 0.12, 0.33),
         });
 
         // ── C) MEMBERSHIP TYPE ──
-        // Template has "Full Membership" (bold) at end of paragraph line 2
-        // baseline ~y=455, "Full" starts ~x=690
-        // Cover with white rect, then draw replacement text
+        // White rect to cover template's "Full Membership"
         page.drawRectangle({
-            x: toX(685),
-            y: toY(460),   // bottom of rect in PDF
-            width: 200 * S,
-            height: 22 * S,
+            x: toX(MTYPE_RECT.x),
+            y: toY(MTYPE_RECT.y + MTYPE_RECT.h),
+            width: MTYPE_RECT.w * S,
+            height: MTYPE_RECT.h * S,
             color: rgb(1, 1, 1),
         });
 
         const mTypeText = `${mType} Membership`;
-        const mTypeSize = 12;
+        const mTypeSize = MTYPE_FONT_PX * S;
         const mTypeW = timesBold.widthOfTextAtSize(mTypeText, mTypeSize);
-        const mTypeCx = toX(760); // center where "Full Membership" was
+        const mTypeCx = toX(MTYPE_CENTER_X);
         page.drawText(mTypeText, {
             x: mTypeCx - mTypeW / 2,
-            y: toY(453),
+            y: toY(MTYPE_BASELINE_Y),
             size: mTypeSize,
             font: timesBold,
             color: rgb(0.13, 0.13, 0.13),
         });
 
         // ── D) VALIDITY DATES ──
-        // Template has "This document is valid from" baseline ~y=516
-        // Cover with white rect, then draw with dates
+        // White rect to cover template's "This document is valid from"
         page.drawRectangle({
-            x: toX(350),
-            y: toY(526),
-            width: 470 * S,
-            height: 24 * S,
+            x: toX(VALID_RECT.x),
+            y: toY(VALID_RECT.y + VALID_RECT.h),
+            width: VALID_RECT.w * S,
+            height: VALID_RECT.h * S,
             color: rgb(1, 1, 1),
         });
 
-        const validText = `This document is valid from ${validFrom} to ${validUntil}`;
-        const validSize = 11;
+        const validText = `This document is valid from ${validFrom} to ${validUntil} for `;
+        const validSize = VALID_FONT_PX * S;
         const validW = timesReg.widthOfTextAtSize(validText, validSize);
-        const validCx = toX(580);
+        const validCx = toX(VALID_CENTER_X);
         page.drawText(validText, {
             x: validCx - validW / 2,
-            y: toY(516),
+            y: toY(VALID_BASELINE_Y),
             size: validSize,
             font: timesReg,
             color: rgb(0.2, 0.2, 0.2),
