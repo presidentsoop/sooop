@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, Lock, Eye, EyeOff, CheckCircle, Sparkles } from "lucide-react";
@@ -13,10 +13,37 @@ function UpdatePasswordForm() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+
     const router = useRouter();
     const supabase = createClient();
     const searchParams = useSearchParams();
     const isActivated = searchParams.get('activated') === 'true';
+
+    // GUARANTEE THE SESSION IS EXTRACTED FROM HASH
+    // Sometimes SPA redirects (like our AuthHashHandler) miss the default detectSessionInUrl initialization
+    useEffect(() => {
+        const hash = window.location.hash;
+        if (hash && hash.includes('access_token=')) {
+            const params = new URLSearchParams(hash.substring(1));
+            const access_token = params.get('access_token');
+            const refresh_token = params.get('refresh_token');
+
+            if (access_token && refresh_token) {
+                console.log("Setting manual session from hash to ensure auth exists before updating password.");
+                supabase.auth.setSession({
+                    access_token,
+                    refresh_token
+                }).then(({ error }) => {
+                    if (error) {
+                        console.error("Error securing session:", error);
+                    } else {
+                        // Wipe it from the URL so it's clean and safe
+                        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+                    }
+                });
+            }
+        }
+    }, [supabase]);
 
     const handleUpdatePassword = async (e: React.FormEvent) => {
         e.preventDefault();
