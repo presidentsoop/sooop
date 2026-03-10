@@ -63,18 +63,19 @@ export async function registerMember(formData: FormData) {
     // Helper to sanitize input (empty string -> null)
     const s = (val: string | null) => (!val || val.trim() === '') ? null : val.trim();
 
-    // 1. Create Auth User using ADMIN client (bypasses email confirmation SMTP)
-    // This avoids the "unexpected response" error when SMTP is not configured
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    // 1. Create Auth User using standard signUp (triggers email confirmation via SMTP)
+    const { data: authData, error: authError } = await supabaseAdmin.auth.signUp({
         email,
         password,
-        email_confirm: true, // Auto-confirm email to skip SMTP
-        user_metadata: {
-            full_name: fullName,
-            cnic: cnic,
-            father_name: s(fatherName),
-            role: 'member',
-            membership_type: s(membershipType)
+        options: {
+            emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://soopvision.com'}/auth/callback`,
+            data: {
+                full_name: fullName,
+                cnic: cnic,
+                father_name: s(fatherName),
+                role: 'member',
+                membership_type: s(membershipType)
+            }
         }
     });
 
@@ -89,6 +90,11 @@ export async function registerMember(formData: FormData) {
 
     if (!authData.user) {
         return { error: "Failed to create account. Please try again." };
+    }
+
+    // When Email Enumeration Protection is ON, Supabase returns a dummy user with an empty identities array if the user already exists.
+    if (authData.user.identities && authData.user.identities.length === 0) {
+        return { error: "This email is already registered. Please login or use a different email." };
     }
 
     const userId = authData.user.id;
