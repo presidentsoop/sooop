@@ -17,7 +17,7 @@ function UpdatePasswordForm() {
     const router = useRouter();
     const supabase = createClient();
     const searchParams = useSearchParams();
-    const isActivated = searchParams.get('activated') === 'true';
+    const [isActivated, setIsActivated] = useState(searchParams.get('activated') === 'true');
 
     // GUARANTEE THE SESSION IS EXTRACTED FROM HASH
     // Sometimes SPA redirects (like our AuthHashHandler) miss the default detectSessionInUrl initialization
@@ -27,6 +27,10 @@ function UpdatePasswordForm() {
             const params = new URLSearchParams(hash.substring(1));
             const access_token = params.get('access_token');
             const refresh_token = params.get('refresh_token');
+
+            if (hash.includes('type=invite')) {
+                setIsActivated(true);
+            }
 
             if (access_token && refresh_token) {
                 console.log("Setting manual session from hash to ensure auth exists before updating password.");
@@ -69,6 +73,21 @@ function UpdatePasswordForm() {
                 toast.error(error.message);
             } else {
                 toast.success(isActivated ? "Account activated successfully!" : "Password updated successfully!");
+
+                // If this is an invite flow, we must link the imported member data to their profile now
+                if (isActivated) {
+                    try {
+                        const { linkImportedDataAction } = await import('@/app/actions/auth');
+                        const linkResult = await linkImportedDataAction();
+                        if (!linkResult.success) {
+                            console.error("Failed to link imported data:", linkResult.message);
+                            // We don't block login if it fails, maybe it was linked previously
+                        }
+                    } catch (e) {
+                        console.error("Error linking imported data:", e);
+                    }
+                }
+
                 // Redirect to dashboard or login
                 router.push("/dashboard");
             }

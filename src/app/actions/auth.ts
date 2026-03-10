@@ -57,7 +57,7 @@ export async function activateExistingMembership(email: string): Promise<{
                 // The user is fully registered already. They just need to use 'Forgot Password'.
                 // To be user-friendly, we can still trigger a password reset for them.
                 const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(normalizedEmail, {
-                    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://soopvision.com'}/auth/callback?type=recovery`
+                    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://soopvision.com'}/auth/callback?type=invite`
                 });
 
                 if (resetError) {
@@ -94,7 +94,7 @@ export async function activateExistingMembership(email: string): Promise<{
         if (existingAuthUser) {
             // Proceed directly to reset password 
             const { error: existingResetError } = await supabaseAdmin.auth.resetPasswordForEmail(normalizedEmail, {
-                redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://soopvision.com'}/auth/callback?type=recovery`
+                redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://soopvision.com'}/auth/callback?type=invite`
             });
 
             // Mark invite sent
@@ -132,7 +132,7 @@ export async function activateExistingMembership(email: string): Promise<{
 
         // 5. Send Reset Password Email (Our 'Activation Link')
         const { error: inviteError } = await supabaseAdmin.auth.resetPasswordForEmail(normalizedEmail, {
-            redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://soopvision.com'}/auth/callback?type=recovery`
+            redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://soopvision.com'}/auth/callback?type=invite`
         });
 
         if (inviteError) {
@@ -165,4 +165,67 @@ export async function activateExistingMembership(email: string): Promise<{
             message: 'An unexpected error occurred. Please try again or contact support.'
         };
     }
+}
+
+export async function linkImportedDataAction(): Promise<{ success: boolean; message: string }> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !user.email) return { success: false, message: 'Not authenticated' };
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !supabaseServiceKey) return { success: false, message: 'Server config error' };
+
+    const supabaseAdmin = createAdminClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
+
+    // Check if they have an unclaimed imported_member record
+    const { data: importedMember } = await supabaseAdmin
+        .from('imported_members')
+        .select('*')
+        .eq('email', user.email.toLowerCase())
+        .eq('claimed', false)
+        .single();
+
+    if (!importedMember) return { success: true, message: 'No unclaimed data found' }; // Not an imported user, or already claimed
+
+    // Link it! Upsert because profiles row may not exist yet
+    const { error: upsertError } = await supabaseAdmin
+        .from('profiles')
+        .upsert({
+            id: user.id,
+            email: user.email,
+            full_name: importedMember.full_name,
+            father_name: importedMember.father_name,
+            cnic: importedMember.cnic,
+            contact_number: importedMember.contact_number,
+            membership_type: importedMember.membership_type,
+            gender: importedMember.gender,
+            date_of_birth: importedMember.date_of_birth,
+            blood_group: importedMember.blood_group,
+            qualification: importedMember.qualification,
+            has_relevant_pg: importedMember.has_relevant_pg,
+            has_non_relevant_pg: importedMember.has_non_relevant_pg,
+            college_attended: importedMember.college_attended,
+            post_graduate_institution: importedMember.post_graduate_institution,
+            employment_status: importedMember.employment_status,
+            designation: importedMember.designation,
+            city: importedMember.city,
+            province: importedMember.province,
+            residential_address: importedMember.residential_address,
+            subscription_start_date: importedMember.subscription_start_date,
+            subscription_end_date: importedMember.subscription_end_date,
+            membership_status: 'none' // Still need to review and upload forms
+        });
+
+    if (upsertError) {
+        console.error('Failed to upsert profile:', upsertError);
+        return { success: false, message: 'Failed to sync data' };
+    }
+
+    await supabaseAdmin
+        .from('imported_members')
+        .update({ claimed: true, claimed_by: user.id, claimed_at: new Date().toISOString() })
+        .eq('id', importedMember.id);
+
+    return { success: true, message: 'Data linked successfully' };
 }

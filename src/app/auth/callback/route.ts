@@ -92,7 +92,7 @@ async function linkImportedMemberData(userId: string, email: string) {
                 residential_address: importedMember.residential_address,
                 subscription_start_date: importedMember.subscription_start_date,
                 subscription_end_date: importedMember.subscription_end_date,
-                membership_status: 'pending', // They still need to upload documents
+                membership_status: 'none', // They need to complete their profile and upload documents
             })
             .eq('id', userId)
 

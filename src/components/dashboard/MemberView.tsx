@@ -54,7 +54,7 @@ export default function MemberView({ status, profile }: MemberViewProps) {
                         </div>
                     </div>
                     <div className="p-8">
-                        <MembershipForm />
+                        <MembershipForm profile={profile} />
                     </div>
                 </div>
             </div>

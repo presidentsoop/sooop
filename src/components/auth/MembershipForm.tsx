@@ -1,313 +1,822 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { membershipSchema, type MembershipFormData } from "@/lib/validations/membership";
-import { Upload, Check, CreditCard, User, FileText, Loader2, AlertCircle } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { useState, useRef, useEffect } from "react";
+import { User, Phone, MapPin, Briefcase, GraduationCap, Calendar, CreditCard, Upload, X, CheckCircle, AlertCircle, FileText, Image as ImageIcon, ChevronRight, ChevronLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { submitApplication } from "@/app/actions/application";
-import { useRouter } from "next/navigation";
 
-export default function MembershipForm() {
-    const router = useRouter();
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitSuccess, setSubmitSuccess] = useState(false);
-    const [fileStates, setFileStates] = useState<Record<string, File | null>>({});
-    const supabase = createClient();
+// Utility for CNIC Masking
+const formatCNIC = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    if (digits.length <= 5) return digits;
+    if (digits.length <= 12) return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+    return `${digits.slice(0, 5)}-${digits.slice(5, 12)}-${digits.slice(12, 13)}`;
+};
 
-    const {
-        register,
-        handleSubmit,
-        watch,
-        formState: { errors },
-    } = useForm<MembershipFormData>({
-        resolver: zodResolver(membershipSchema) as any,
-        defaultValues: {
-            membershipType: "Full",
-            isRenewal: false,
-        },
-    });
+// Utility for Phone Masking
+const formatPhone = (value: string) => {
+    return value.replace(/[^0-9+]/g, "");
+};
 
-    const membershipType = watch("membershipType");
-    const isRenewal = watch("isRenewal");
+// Reusable Input Component
+const InputGroup = ({ label, icon: Icon, error, className = "", ...props }: any) => (
+    <div className={`form-group ${className}`}>
+        <label className="text-sm font-semibold text-gray-700 mb-1.5 block flex items-center justify-between">
+            {label}
+            {error && <span className="text-red-500 text-xs font-normal">{error}</span>}
+        </label>
+        <div className="relative group">
+            {Icon && <Icon className="absolute left-3 top-3.5 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />}
+            <input
+                className={`w-full bg-gray-50/50 border text-gray-900 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all ${Icon ? 'pl-10' : ''} ${error ? 'border-red-300 focus:ring-red-200' : 'border-gray-200'}`}
+                {...props}
+            />
+        </div>
+    </div>
+);
 
-    // Helper to store file in state
-    const handleFileChange = (field: string, e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files?.[0]) {
-            setFileStates(prev => ({ ...prev, [field]: e.target.files![0] }));
+// Mobile-Optimized File Upload Component
+const FileUploadField = ({ label, icon: Icon, file, onChange, onRemove, required, error, isPhoto = false }: any) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [preview, setPreview] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (file && file.type?.startsWith('image')) {
+            const reader = new FileReader();
+            reader.onloadend = () => setPreview(reader.result as string);
+            reader.readAsDataURL(file);
+        } else {
+            setPreview(null);
+        }
+    }, [file]);
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            onChange(e);
+        }
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
         }
     };
 
-    const uploadFile = async (file: File, bucket: string, path: string) => {
-        const { error, data } = await supabase.storage.from(bucket).upload(path, file);
-        if (error) throw error;
-
-        // Construct public URL or get it
-        const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(path);
-        return publicUrl;
+    const handleRemove = () => {
+        setPreview(null);
+        onRemove();
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     };
 
-    const onSubmit = async (data: MembershipFormData) => {
-        setIsSubmitting(true);
-        try {
-            // Validate Required Files
-            const requiredFiles = [
-                { key: 'photo', label: 'Profile Photo' },
-                { key: 'cnicFront', label: 'CNIC Front' },
-                { key: 'cnicBack', label: 'CNIC Back' },
-                { key: 'receipt', label: 'Payment Receipt' }
-            ];
+    const acceptTypes = isPhoto
+        ? "image/jpeg,image/png,image/webp,image/heic,image/heif"
+        : "image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf";
 
-            if (data.membershipType === 'Student') {
-                requiredFiles.push({ key: 'studentId', label: 'Student ID' });
-            }
-            if (data.isRenewal) {
-                requiredFiles.push({ key: 'oldCard', label: 'Old Membershp Certificate' });
-            }
+    return (
+        <div className="form-group">
+            <label className="text-sm font-semibold text-gray-700 mb-1.5 block flex justify-between">
+                {label} {required && <span className="text-primary">*</span>}
+                {error && <span className="text-red-500 text-xs font-normal">{error}</span>}
+            </label>
+            <div className={`border-2 border-dashed rounded-xl p-4 transition-all ${file ? 'border-green-300 bg-green-50/30' : error ? 'border-red-300 bg-red-50/30' : 'border-gray-200 active:border-primary/50 active:bg-gray-50'}`}>
+                {file ? (
+                    <div className="flex items-center gap-3">
+                        {preview ? (
+                            <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                                <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                            </div>
+                        ) : (
+                            <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center text-green-600 flex-shrink-0">
+                                {file.type?.startsWith('image') ? <ImageIcon className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                            </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-gray-900 truncate">{file.name || 'Selected file'}</p>
+                            <p className="text-xs text-green-600">
+                                {file.size ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : 'Ready to upload'}
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleRemove}
+                            className="p-3 bg-red-50 hover:bg-red-100 rounded-full text-red-500 transition-colors touch-manipulation"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                ) : (
+                    <label className="cursor-pointer block text-center py-4 touch-manipulation">
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            className="hidden"
+                            accept={acceptTypes}
+                            onChange={handleFileSelect}
+                        />
+                        <div className="flex flex-col items-center gap-2">
+                            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Upload className="w-6 h-6 text-primary" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-700 font-semibold">Tap to {isPhoto ? 'take photo or select' : 'upload'}</p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                    {isPhoto ? 'Camera or Gallery' : 'JPG, PNG, PDF'} (Max 3MB)
+                                </p>
+                            </div>
+                        </div>
+                    </label>
+                )}
+            </div>
+        </div>
+    );
+};
 
-            for (const req of requiredFiles) {
-                if (!fileStates[req.key]) {
-                    toast.error(`${req.label} is required`);
-                    setIsSubmitting(false);
+export default function MembershipForm({ profile }: { profile?: any }) {
+    const router = useRouter();
+    const [isLoading, setIsLoading] = useState(false);
+    const [submitSuccess, setSubmitSuccess] = useState(false);
+    const [step, setStep] = useState(1);
+
+    // Auto-scroll to top on step change
+    const formTopRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (formTopRef.current) {
+            formTopRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [step]);
+
+    const [formData, setFormData] = useState({
+        // Personal
+        fullName: profile?.full_name || "",
+        fatherName: profile?.father_name || "",
+        cnic: profile?.cnic || "",
+        dob: profile?.date_of_birth || "",
+        gender: profile?.gender || "Male",
+        bloodGroup: profile?.blood_group || "",
+
+        // Contact
+        phone: profile?.contact_number || "",
+        address: profile?.residential_address || "",
+        city: profile?.city || "",
+        province: profile?.province || "Punjab",
+
+        // Professional/Academic
+        membershipType: profile?.membership_type || "Student",
+        isRenewal: false,
+        oldMemberId: profile?.membership_number || "",
+
+        institution: profile?.institution || "",
+        collegeAttended: profile?.college_attended || "",
+        qualification: profile?.qualification || "",
+        otherQualification: profile?.other_qualification || "",
+
+        hasRelevantPg: profile?.has_relevant_pg || false,
+        hasNonRelevantPg: profile?.has_non_relevant_pg || false,
+        postGraduateInstitution: profile?.post_graduate_institution || "",
+
+        currentStatus: profile?.current_status || "",
+        designation: profile?.designation || "",
+        employmentStatus: profile?.employment_status || "Student",
+
+        transactionId: "" // Set upon transfer
+    });
+
+    const [files, setFiles] = useState<{
+        photo?: File;
+        cnicFront?: File;
+        cnicBack?: File;
+        transcriptFront?: File;
+        transcriptBack?: File;
+        studentId?: File;
+        receipt?: File;
+        oldCard?: File;
+    }>({});
+
+    const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const { name, value, type } = e.target;
+        if (type === 'checkbox') {
+            const checked = (e.target as HTMLInputElement).checked;
+            setFormData(prev => ({ ...prev, [name]: checked }));
+        } else {
+            let newVal = value;
+            if (name === 'cnic') newVal = formatCNIC(value);
+            if (name === 'phone') newVal = formatPhone(value);
+            setFormData(prev => ({ ...prev, [name]: newVal }));
+            if (errors[name]) {
+                setErrors(prev => {
+                    const newErr = { ...prev };
+                    delete newErr[name];
+                    return newErr;
+                });
+            }
+        }
+    };
+
+    const compressImage = async (file: File, maxWidth: number = 1920, quality: number = 0.8): Promise<File> => {
+        if (!file.type.startsWith('image/') || file.type === 'application/pdf') {
+            return file;
+        }
+        return new Promise((resolve) => {
+            const img = document.createElement('img');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            img.onload = () => {
+                let { width, height } = img;
+                if (width > maxWidth) {
+                    height = (height * maxWidth) / width;
+                    width = maxWidth;
+                }
+                canvas.width = width;
+                canvas.height = height;
+                ctx?.drawImage(img, 0, 0, width, height);
+                canvas.toBlob(
+                    (blob) => {
+                        if (blob) {
+                            const compressedFile = new File([blob], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
+                                type: 'image/jpeg',
+                                lastModified: Date.now(),
+                            });
+                            resolve(compressedFile);
+                        } else {
+                            resolve(file);
+                        }
+                    },
+                    'image/jpeg',
+                    quality
+                );
+            };
+            img.onerror = () => resolve(file);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                img.src = e.target?.result as string;
+            };
+            reader.onerror = () => resolve(file);
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
+        if (e.target.files && e.target.files[0]) {
+            let file = e.target.files[0];
+            const isLargeFile = file.size > 2 * 1024 * 1024;
+            if (isLargeFile && file.type.startsWith('image/')) {
+                toast.loading('Optimizing image...', { id: 'compress' });
+            }
+            try {
+                if (file.type.startsWith('image/')) {
+                    file = await compressImage(file, 1280, 0.7);
+                }
+                if (file.size > 3 * 1024 * 1024) {
+                    toast.error("File size must be less than 3MB", { id: 'compress' });
                     return;
                 }
+                setFiles(prev => ({ ...prev, [field]: file }));
+                if (isLargeFile) {
+                    toast.success('Image optimized!', { id: 'compress' });
+                }
+            } catch (error) {
+                if (file.size <= 3 * 1024 * 1024) {
+                    setFiles(prev => ({ ...prev, [field]: file }));
+                } else {
+                    toast.error("Could not process file. Please try a smaller image.", { id: 'compress' });
+                }
             }
+        }
+    };
 
-            const formData = new FormData();
+    const removeFile = (field: string) => {
+        setFiles(prev => {
+            const newFiles = { ...prev };
+            delete (newFiles as any)[field];
+            return newFiles;
+        });
+    };
 
-            // Append Text Fields
-            formData.append('membershipType', data.membershipType);
-            formData.append('isRenewal', String(data.isRenewal));
-            formData.append('fullName', data.fullName);
-            formData.append('fatherName', data.fatherName);
-            formData.append('contactNumber', data.contactNumber);
-            formData.append('cnic', data.cnic);
-            formData.append('dob', data.dob);
-            formData.append('gender', data.gender);
-            formData.append('residentialAddress', data.residentialAddress);
-            formData.append('bloodGroup', data.bloodGroup || '');
-            formData.append('city', data.employmentCity);
-            formData.append('province', data.province);
-            formData.append('collegeAttended', data.collegeAttended);
-            formData.append('qualification', data.qualification);
-            if (data.otherQualification) formData.append('otherQualification', data.otherQualification);
-            if (data.postGraduateInstitution) formData.append('postGraduateInstitution', data.postGraduateInstitution);
-            formData.append('hasRelevantPg', String(data.hasRelevantPg || false));
-            formData.append('hasNonRelevantPg', String(data.hasNonRelevantPg || false));
-            formData.append('designation', data.designation || '');
-            formData.append('employmentStatus', data.employmentStatus);
-            if (data.transactionId) formData.append('transactionId', data.transactionId);
+    const validateStep = (currentStep: number) => {
+        const newErrors: Record<string, string> = {};
+        let isValid = true;
 
-            // Append Files from fileStates
-            if (fileStates.photo) formData.append('photo', fileStates.photo);
-            if (fileStates.cnicFront) formData.append('cnicFront', fileStates.cnicFront);
-            if (fileStates.cnicBack) formData.append('cnicBack', fileStates.cnicBack);
-            if (fileStates.transcriptFront) formData.append('transcriptFront', fileStates.transcriptFront);
-            if (fileStates.transcriptBack) formData.append('transcriptBack', fileStates.transcriptBack);
-            if (fileStates.studentId) formData.append('studentId', fileStates.studentId);
-            if (fileStates.oldCard) formData.append('oldCard', fileStates.oldCard);
-            if (fileStates.receipt) formData.append('receipt', fileStates.receipt);
+        if (currentStep === 1) {
+            if (!formData.fullName.trim()) newErrors.fullName = "Full Name is required";
+            if (!formData.fatherName.trim()) newErrors.fatherName = "Father Name is required";
+            if (!formData.cnic.trim()) newErrors.cnic = "CNIC is required";
+            else if (formData.cnic.length !== 15) newErrors.cnic = "Invalid CNIC format (13 digits required)";
 
-            // 2. Call Server Action
-            const result = await submitApplication(formData);
+            if (!formData.phone.trim()) newErrors.phone = "Phone is required";
+            if (!formData.address.trim()) newErrors.address = "Address is required";
+            if (!formData.city.trim()) newErrors.city = "City is required";
+        }
+
+        if (currentStep === 2) {
+            if (!formData.qualification) newErrors.qualification = "Qualification is required";
+            if (formData.qualification === 'Other' && !formData.otherQualification.trim()) newErrors.otherQualification = "Please specify qualification";
+            if (formData.employmentStatus !== 'Student' && formData.employmentStatus !== 'Unemployed' && !formData.designation.trim()) {
+                newErrors.designation = "Designation is required";
+            }
+        }
+
+        if (currentStep === 3) {
+            if (!files.photo) newErrors.photo = "Profile Photo is required";
+            if (!files.receipt) newErrors.receipt = "Payment Receipt is required";
+            if (!files.cnicFront) newErrors.cnicFront = "CNIC Front is required";
+            if (!formData.transactionId) newErrors.transactionId = "Transaction ID is required";
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            isValid = false;
+            toast.error("Please fix errors before proceeding");
+        }
+
+        return isValid;
+    };
+
+    const nextStep = () => {
+        if (validateStep(step)) setStep(prev => prev + 1);
+    };
+
+    const prevStep = () => setStep(prev => prev - 1);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!validateStep(3)) return;
+
+        setIsLoading(true);
+        toast.loading('Submitting application...', { id: 'submit' });
+
+        try {
+            const data = new FormData();
+            Object.entries(formData).forEach(([key, value]) => {
+                data.append(key, String(value));
+            });
+
+            if (files.photo) data.append('photo', files.photo);
+            if (files.cnicFront) data.append('cnicFront', files.cnicFront);
+            if (files.cnicBack) data.append('cnicBack', files.cnicBack);
+            if (files.transcriptFront) data.append('transcriptFront', files.transcriptFront);
+            if (files.transcriptBack) data.append('transcriptBack', files.transcriptBack);
+            if (files.studentId) data.append('studentId', files.studentId);
+            if (files.oldCard) data.append('oldCard', files.oldCard);
+            if (files.receipt) data.append('receipt', files.receipt);
+
+            const result = await submitApplication(data);
 
             if (!result.success) {
-                throw new Error(result.error);
+                toast.error(result.error || "Failed to submit application", { id: 'submit' });
+            } else {
+                toast.success("Application submitted successfully!", { id: 'submit' });
+                setSubmitSuccess(true);
+                window.scrollTo(0, 0);
             }
-
-            setSubmitSuccess(true);
-            window.scrollTo(0, 0);
-
         } catch (error: any) {
-            console.error(error);
-            toast.error(error.message || "Failed to submit application");
+            console.error('Submission error:', error);
+            toast.error(error.message || "An unexpected error occurred", { id: 'submit' });
         } finally {
-            setIsSubmitting(false);
+            setIsLoading(false);
         }
     };
 
     if (submitSuccess) {
         return (
-            <div className="text-center py-20 animate-fade-in px-4">
+            <div className="text-center py-20 animate-fade-in px-4 bg-white rounded-xl shadow-sm border border-gray-100">
                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Check className="w-10 h-10 text-green-600" />
+                    <CheckCircle className="w-10 h-10 text-green-600" />
                 </div>
-                <h2 className="text-3xl font-bold text-primary-900 mb-4">Application Submitted!</h2>
+                <h2 className="text-3xl font-bold text-gray-900 mb-4">Application Submitted!</h2>
                 <p className="text-gray-600 max-w-lg mx-auto mb-8">
-                    Your application has been received and is under review. <br />You can track your status in the dashboard.
+                    Your application has been received and is under review. Our team will verify your documents shortly.
                 </p>
                 <div className="flex justify-center gap-4">
-                    <button onClick={() => router.push('/dashboard')} className="btn btn-primary">Go to Dashboard</button>
+                    <button onClick={() => window.location.reload()} className="bg-primary hover:bg-primary/90 text-white font-bold py-3 px-8 rounded-xl transition-all">Reload Dashboard</button>
                 </div>
             </div>
         );
     }
 
     return (
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 animate-fade-in max-w-4xl mx-auto">
-            {/* Header */}
-            <div className="bg-primary-900 text-white p-8 rounded-2xl shadow-soft-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 opacity-10">
-                    <User className="w-32 h-32" />
-                </div>
-                <div className="relative z-10">
-                    <h1 className="text-3xl md:text-4xl font-bold mb-4">Membership Application</h1>
-                    <p className="text-blue-200">Complete the form below to become a member.</p>
-                </div>
+        <div ref={formTopRef} className="max-w-4xl mx-auto">
+            {/* Progress Steps */}
+            <div className="mb-8 flex justify-center items-center gap-4">
+                {[1, 2, 3].map((s) => (
+                    <div key={s} className={`flex items-center ${step >= s ? 'text-primary' : 'text-gray-400'}`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-2 border-2 transition-colors ${step >= s ? 'border-primary bg-primary text-white shadow-lg shadow-primary/30' : 'border-gray-200 bg-white'}`}>
+                            {s}
+                        </div>
+                        <span className={`hidden md:inline font-medium ${step === s ? 'text-gray-900' : ''}`}>
+                            {s === 1 ? 'Personal Info' : s === 2 ? 'Professional' : 'Documents'}
+                        </span>
+                        {s < 3 && <div className={`h-1 w-8 md:w-16 mx-4 rounded-full transition-colors ${step > s ? 'bg-primary' : 'bg-gray-200'}`}></div>}
+                    </div>
+                ))}
             </div>
 
-            {/* ERROR SUMMARY */}
-            {Object.keys(errors).length > 0 && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
-                    <div>
-                        <h3 className="font-bold text-red-800">Please fix the errors below</h3>
-                        <p className="text-sm text-red-600">Some required fields are missing or invalid.</p>
-                    </div>
-                </div>
-            )}
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+                <form onSubmit={handleSubmit} className="p-0 sm:p-2 md:p-6 lg:p-10 space-y-8">
 
-            {/* MEMBERSHIP TYPE */}
-            <div className="card space-y-6">
-                <h3 className="text-xl font-bold text-primary-900 flex items-center gap-2">
-                    <User className="w-5 h-5 text-accent" /> Membership Type
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {[
-                        { type: "Full", fee: "Rs. 1,500" },
-                        { type: "Overseas", fee: "Rs. 3,000" },
-                        { type: "Associate", fee: "Rs. 500" },
-                        { type: "Student", fee: "Rs. 1,000" },
-                    ].map((item) => (
-                        <label key={item.type} className={`flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all ${membershipType === item.type ? "border-accent bg-accent/5" : "border-gray-100 hover:bg-gray-50"}`}>
-                            <input type="radio" value={item.type} {...register("membershipType")} className="sr-only" />
-                            <div className="flex justify-between items-start mb-2">
-                                <span className={`font-bold ${membershipType === item.type ? "text-primary-900" : "text-gray-700"}`}>{item.type}</span>
-                                {membershipType === item.type && <Check className="w-5 h-5 text-accent" />}
+                    {/* Step 1: Personal Info */}
+                    {step === 1 && (
+                        <div className="space-y-6 animate-fade-in">
+                            <h3 className="text-xl font-bold text-gray-800 border-b pb-4 mb-6">Personal Information</h3>
+
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <InputGroup
+                                    label="Full Name" icon={User} name="fullName" value={formData.fullName} onChange={handleChange}
+                                    placeholder="As per CNIC" required error={errors.fullName}
+                                />
+                                <InputGroup
+                                    label="Father/Husband Name" icon={User} name="fatherName" value={formData.fatherName} onChange={handleChange}
+                                    error={errors.fatherName} required
+                                />
+                                <InputGroup
+                                    label="CNIC Number" icon={CreditCard} name="cnic" value={formData.cnic} onChange={handleChange}
+                                    placeholder="35202-xxxxxxx-x" error={errors.cnic} required maxLength={15}
+                                />
+                                <div className="form-group">
+                                    <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Gender</label>
+                                    <select name="gender" value={formData.gender} onChange={handleChange} className="w-full bg-gray-50/50 border border-gray-200 text-gray-900 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <InputGroup
+                                    label="Date of Birth" icon={Calendar} name="dob" type="date" value={formData.dob} onChange={handleChange}
+                                    error={errors.dob} required
+                                />
+                                <div className="form-group">
+                                    <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Blood Group</label>
+                                    <select name="bloodGroup" value={formData.bloodGroup} onChange={handleChange} className="w-full bg-gray-50/50 border border-gray-200 text-gray-900 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                                        <option value="">Select Group</option>
+                                        {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(g => <option key={g} value={g}>{g}</option>)}
+                                    </select>
+                                </div>
                             </div>
-                            <span className="text-sm text-gray-500">{item.fee}</span>
-                        </label>
-                    ))}
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg flex items-center gap-3">
-                    <input type="checkbox" id="renewal" {...register("isRenewal")} className="w-5 h-5 rounded border-gray-300 text-accent focus:ring-accent" />
-                    <label htmlFor="renewal" className="text-gray-700 font-medium cursor-pointer">This is a Renewal</label>
-                </div>
-                {isRenewal && (
-                    <div className="p-4 border border-dashed border-gray-300 rounded-xl bg-gray-50">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Upload Old Membershp Certificate</label>
-                        <input type="file" onChange={(e) => handleFileChange('oldCard', e)} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary" />
-                    </div>
-                )}
-            </div>
 
-            {/* PERSONAL INFO */}
-            <div className="card space-y-6">
-                <h3 className="text-xl font-bold text-primary-900 flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-primary" /> Personal Information
-                </h3>
-                <div className="grid md:grid-cols-2 gap-6">
-                    <Input label="Full Name *" name="fullName" register={register} error={errors.fullName} />
-                    <Input label="Father's Name *" name="fatherName" register={register} error={errors.fatherName} />
-                    <Input label="Contact Number *" name="contactNumber" register={register} error={errors.contactNumber} placeholder="03XXXXXXXXX" />
-                    <Input label="CNIC *" name="cnic" register={register} error={errors.cnic} placeholder="35202-XXXXXXX-X" />
+                            <h3 className="text-xl font-bold text-gray-800 border-b pb-4 pt-6 mb-6">Contact Details</h3>
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <InputGroup
+                                    label="Phone / WhatsApp" icon={Phone} name="phone" type="tel" value={formData.phone} onChange={handleChange}
+                                    placeholder="+92 300 0000000" error={errors.phone} required
+                                />
+                                <div className="md:col-span-2">
+                                    <InputGroup
+                                        label="Residential Address" icon={MapPin} name="address" value={formData.address} onChange={handleChange}
+                                        error={errors.address} required
+                                    />
+                                </div>
+                                <InputGroup
+                                    label="City" name="city" value={formData.city} onChange={handleChange}
+                                    error={errors.city} required
+                                />
+                                <div className="form-group">
+                                    <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Province</label>
+                                    <select name="province" value={formData.province} onChange={handleChange} className="w-full bg-gray-50/50 border border-gray-200 text-gray-900 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                                        {['Punjab', 'Sindh', 'Khyber Pakhtunkhwa', 'Balochistan', 'Islamabad', 'Gilgit-Baltistan', 'Azad Kashmir', 'International'].map(p => (
+                                            <option key={p} value={p}>{p}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
 
-                    <div>
-                        <label className="label">Date of Birth *</label>
-                        <input {...register("dob")} type="date" className="input" />
-                        {errors.dob && <p className="text-red-500 text-xs mt-1">{errors.dob.message}</p>}
-                    </div>
-                    <div>
-                        <label className="label">Gender *</label>
-                        <select {...register("gender")} className="select">
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                        </select>
-                    </div>
-
-                    <div className="md:col-span-2">
-                        <label className="label">Residential Address *</label>
-                        <textarea {...register("residentialAddress")} className="textarea" rows={2} />
-                        {errors.residentialAddress && <p className="text-red-500 text-xs mt-1">{errors.residentialAddress.message}</p>}
-                    </div>
-
-                    <div className="md:col-span-2">
-                        <label className="label">Profile Photo *</label>
-                        <div className="flex items-center gap-4 p-4 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
-                            {fileStates.photo ? (
-                                <img src={URL.createObjectURL(fileStates.photo)} alt="Preview" className="w-16 h-16 rounded-full object-cover" />
-                            ) : (
-                                <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-gray-400"><User className="w-8 h-8" /></div>
-                            )}
-                            <input type="file" accept="image/*" onChange={(e) => handleFileChange('photo', e)} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-primary file:text-white" />
+                            <div className="flex justify-end pt-6">
+                                <button
+                                    type="button"
+                                    onClick={nextStep}
+                                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-primary-700 to-primary-800 hover:from-primary-600 hover:to-primary-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] touch-manipulation"
+                                >
+                                    <span>Continue to Step 2</span>
+                                    <ChevronRight className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* DOCUMENTS */}
-            <div className="card space-y-6">
-                <h3 className="text-xl font-bold text-primary-900 flex items-center gap-2">
-                    <Upload className="w-5 h-5 text-primary" /> Required Documents
-                </h3>
-                <div className="grid md:grid-cols-2 gap-6">
-                    <FileField label="CNIC Front *" onChange={(e: any) => handleFileChange('cnicFront', e)} />
-                    <FileField label="CNIC Back *" onChange={(e: any) => handleFileChange('cnicBack', e)} />
-                    <FileField label="Transcript Front" onChange={(e: any) => handleFileChange('transcriptFront', e)} />
-                    <FileField label="Transcript Back" onChange={(e: any) => handleFileChange('transcriptBack', e)} />
-                    {membershipType === 'Student' && (
-                        <FileField label="Student ID *" onChange={(e: any) => handleFileChange('studentId', e)} />
                     )}
-                </div>
-            </div>
 
-            {/* PAYMENT */}
-            <div className="card space-y-6 border-l-4 border-l-accent">
-                <h3 className="text-xl font-bold text-primary-900 flex items-center gap-2">
-                    <CreditCard className="w-5 h-5 text-accent" /> Payment Details
-                </h3>
-                <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-                    <div className="grid md:grid-cols-2 gap-6 text-sm">
-                        <div><p className="text-gray-500">Bank</p><p className="font-bold">Meezan Bank</p></div>
-                        <div><p className="text-gray-500">Account Title</p><p className="font-bold">RUHULLAH</p></div>
-                        <div className="md:col-span-2">
-                            <p className="text-gray-500">IBAN</p>
-                            <code className="bg-white px-2 py-1 rounded border">PK75MEZN0002750112976719</code>
+                    {/* Step 2: Professional Info */}
+                    {step === 2 && (
+                        <div className="space-y-8 animate-fade-in">
+                            <h3 className="text-xl font-bold text-gray-800 border-b pb-4">Membership & Qualification</h3>
+
+                            {/* Membership Type Selection */}
+                            <div className="space-y-4">
+                                <label className="block text-sm font-semibold text-gray-700">Membership Category</label>
+                                <div className="grid sm:grid-cols-2 gap-4">
+                                    {[
+                                        { id: 'Full', label: 'Full Member', fee: 'Rs. 1500', icon: Briefcase },
+                                        { id: 'Overseas', label: 'Overseas Member', fee: 'Rs. 3000', icon: MapPin },
+                                        { id: 'Associate', label: 'Associate Member', fee: 'Rs. 500', icon: User },
+                                        { id: 'Student', label: 'Student Member', fee: 'Rs. 1000', icon: GraduationCap }
+                                    ].map((type) => (
+                                        <label key={type.id} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${formData.membershipType === type.id ? 'border-primary bg-primary/5 ring-2 ring-primary ring-opacity-20' : 'hover:bg-gray-50 border-gray-200'}`}>
+                                            <input
+                                                type="radio"
+                                                name="membershipType"
+                                                value={type.id}
+                                                checked={formData.membershipType === type.id}
+                                                onChange={(e) => {
+                                                    setFormData(p => ({
+                                                        ...p,
+                                                        membershipType: type.id,
+                                                        employmentStatus: type.id === 'Student' ? 'Student' : ''
+                                                    }));
+                                                }}
+                                                className="hidden"
+                                            />
+                                            <div className="flex items-center gap-3 w-full">
+                                                <div className={`p-2 rounded-lg ${formData.membershipType === type.id ? 'bg-primary text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                                    <type.icon className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <div className="font-bold text-gray-900">{type.label}</div>
+                                                    <div className="text-xs text-gray-500 font-medium">{type.fee}</div>
+                                                </div>
+                                                {formData.membershipType === type.id && <CheckCircle className="w-5 h-5 text-primary ml-auto" />}
+                                            </div>
+                                        </label>
+                                    ))}
+                                </div>
+
+                                <label className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors">
+                                    <input type="checkbox" name="isRenewal" checked={formData.isRenewal} onChange={handleChange} className="w-5 h-5 text-primary rounded border-gray-300 focus:ring-primary" />
+                                    <span className="text-sm font-medium text-gray-800">
+                                        This is a Membership Renewal application
+                                    </span>
+                                </label>
+                            </div>
+
+                            {/* Qualification Options */}
+                            <div className="grid md:grid-cols-1 gap-6">
+                                <div className="form-group">
+                                    <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Qualification</label>
+                                    <select name="qualification" value={formData.qualification} onChange={handleChange} className={`w-full bg-gray-50/50 border text-gray-900 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all ${errors.qualification ? 'border-red-300 focus:ring-red-200' : 'border-gray-200'}`}>
+                                        <option value="">Select Qualification</option>
+                                        <option value="BSc (HONS) Vision Sciences (Optometry)">BSc (HONS) Vision Sciences (Optometry)</option>
+                                        <option value="BSc (HONS) Vision Sciences (Orthoptics)">BSc (HONS) Vision Sciences (Orthoptics)</option>
+                                        <option value="BSc (HONS) Investigative Ophthalmology">BSc (HONS) Investigative Ophthalmology</option>
+                                        <option value="BSc (HONS) Optometry & Orthoptics">BSc (HONS) Optometry & Orthoptics</option>
+                                        <option value="OD">OD</option>
+                                        <option value="BS Optometry">BS Optometry</option>
+                                        <option value="Other">Other (Specify below)</option>
+                                    </select>
+                                    {errors.qualification && <p className="text-red-500 text-xs mt-1">{errors.qualification}</p>}
+                                </div>
+
+                                {formData.qualification === 'Other' && (
+                                    <InputGroup label="Specify Qualification" name="otherQualification" value={formData.otherQualification} onChange={handleChange} error={errors.otherQualification} />
+                                )}
+
+                                <InputGroup label="College/University Attended" name="collegeAttended" value={formData.collegeAttended} onChange={handleChange} />
+
+                                {/* PG Section */}
+                                <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 space-y-4">
+                                    <h4 className="text-sm font-bold text-gray-900 border-b border-gray-200 pb-2">Post Graduate Degrees</h4>
+                                    <div className="space-y-2">
+                                        <label className="flex items-center gap-2 text-sm text-gray-700">
+                                            <input type="checkbox" name="hasRelevantPg" checked={formData.hasRelevantPg} onChange={handleChange} className="rounded text-primary focus:ring-primary" />
+                                            Relevant PG (MS, MPhil, PhD, PGD)
+                                        </label>
+                                        <label className="flex items-center gap-2 text-sm text-gray-700">
+                                            <input type="checkbox" name="hasNonRelevantPg" checked={formData.hasNonRelevantPg} onChange={handleChange} className="rounded text-primary focus:ring-primary" />
+                                            Other PG Degree
+                                        </label>
+                                    </div>
+                                    {(formData.hasRelevantPg || formData.hasNonRelevantPg) && (
+                                        <InputGroup label="Institution Name" name="postGraduateInstitution" value={formData.postGraduateInstitution} onChange={handleChange} placeholder="University Name" />
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Employment */}
+                            <div className="space-y-4">
+                                <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Employment Status</h4>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <div className="form-group">
+                                        <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Current Status</label>
+                                        <select name="employmentStatus" value={formData.employmentStatus} onChange={handleChange} className="w-full bg-gray-50/50 border border-gray-200 text-gray-900 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                                            <option value="Student">Student</option>
+                                            <option value="Full Time Practitioner (Optical)">Full Time Practitioner</option>
+                                            <option value="Part Time Practitioner (Optical)">Part Time Practitioner</option>
+                                            <option value="Academia">Academia</option>
+                                            <option value="Govt Employee">Govt Employee</option>
+                                            <option value="Private Hospital">Private Hospital</option>
+                                            <option value="Unemployed">Unemployed</option>
+                                        </select>
+                                    </div>
+                                    {formData.employmentStatus !== 'Student' && formData.employmentStatus !== 'Unemployed' && (
+                                        <InputGroup label="Designation" name="designation" value={formData.designation} onChange={handleChange} error={errors.designation} />
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-6 border-t border-gray-100">
+                                <button
+                                    type="button"
+                                    onClick={prevStep}
+                                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 font-bold py-3.5 px-6 rounded-xl border border-gray-200 transition-all hover:border-gray-300 active:scale-[0.98] touch-manipulation"
+                                >
+                                    <ChevronLeft className="w-5 h-5" />
+                                    <span>Back</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={nextStep}
+                                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-primary-700 to-primary-800 hover:from-primary-600 hover:to-primary-700 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] touch-manipulation"
+                                >
+                                    <span>Continue to Final Step</span>
+                                    <ChevronRight className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    )}
 
-                <div className="space-y-4">
-                    <Input label="Transaction ID *" name="transactionId" register={register} error={errors.transactionId} />
-                    <FileField label="Payment Receipt *" onChange={(e: any) => handleFileChange('receipt', e)} />
-                </div>
+                    {/* Step 3: Documents & Security */}
+                    {step === 3 && (
+                        <div className="space-y-8 animate-fade-in">
+                            <h3 className="text-xl font-bold text-gray-800 border-b pb-4">Documents & Security</h3>
+
+                            <div className="bg-blue-50/50 text-blue-900 p-4 rounded-xl border border-blue-100 flex gap-3 text-sm">
+                                <AlertCircle className="w-5 h-5 flex-shrink-0 text-blue-600" />
+                                <p>Please upload clear images or scans. Max size 3MB per file.</p>
+                            </div>
+
+                            {/* Bank Details Card */}
+                            <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 rounded-2xl p-5 sm:p-8 text-white shadow-2xl relative overflow-hidden">
+                                {/* Abstract Decoration */}
+                                <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                                <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
+
+                                <div className="relative z-10">
+                                    <div className="flex items-center gap-3 mb-6 sm:mb-8">
+                                        <div className="p-2.5 bg-white/15 rounded-xl backdrop-blur-sm">
+                                            <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-base sm:text-xl text-white">Fee Submission Details</h4>
+                                            <p className="text-xs text-indigo-200">Transfer your fee to complete registration</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-5">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] sm:text-xs font-semibold text-indigo-200 uppercase tracking-wider">Bank Name</p>
+                                                <p className="font-bold text-sm sm:text-lg text-white">Meezan Bank</p>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] sm:text-xs font-semibold text-indigo-200 uppercase tracking-wider">Account Title</p>
+                                                <p className="font-bold text-sm sm:text-lg text-white">RUHULLAH</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                                                <div className="space-y-1 w-full sm:w-auto">
+                                                    <p className="text-[10px] sm:text-xs font-semibold text-indigo-200 uppercase tracking-wider">Account Number</p>
+                                                    <p className="font-mono text-lg sm:text-2xl font-bold text-white tracking-wider select-all break-all">
+                                                        02750112976719
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText('02750112976719')
+                                                            .then(() => toast.success('Account Number Copied!'))
+                                                            .catch(() => toast.error('Failed to copy'));
+                                                    }}
+                                                    className="w-full sm:w-auto px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white rounded-xl text-sm font-bold transition-all active:scale-95 flex items-center justify-center gap-2 touch-manipulation"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
+                                                    <span>Copy</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-4 border-t border-white/15 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3">
+                                            <div>
+                                                <p className="text-sm text-indigo-200">Total Payable Amount</p>
+                                                <p className="text-[10px] text-indigo-300">Non-refundable</p>
+                                            </div>
+                                            <div className="bg-emerald-500/20 px-4 py-2 rounded-xl border border-emerald-400/30">
+                                                <span className="text-2xl sm:text-3xl font-bold text-emerald-300">
+                                                    {formData.membershipType === 'Student' ? 'Rs. 1,000' :
+                                                        formData.membershipType === 'Associate' ? 'Rs. 500' :
+                                                            formData.membershipType === 'Overseas' ? 'Rs. 3,000' : 'Rs. 1,500'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="form-group pt-4">
+                                <InputGroup
+                                    label="Enter Payment Transaction ID" icon={CheckCircle} name="transactionId" value={formData.transactionId} onChange={handleChange}
+                                    placeholder="e.g. 129384792384" required error={errors.transactionId}
+                                    className="bg-white"
+                                />
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-6 pt-4">
+                                <FileUploadField
+                                    label="Profile Photo (Passport Size)"
+                                    icon={User}
+                                    file={files.photo}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'photo')}
+                                    onRemove={() => removeFile('photo')}
+                                    required
+                                    error={errors.photo}
+                                    isPhoto={true}
+                                />
+                                <FileUploadField
+                                    label="Payment Proof / Receipt"
+                                    icon={FileText}
+                                    file={files.receipt}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'receipt')}
+                                    onRemove={() => removeFile('receipt')}
+                                    required
+                                    error={errors.receipt}
+                                />
+                            </div>
+
+                            <div className="space-y-4">
+                                <h4 className="text-sm font-bold text-gray-700">Identity Documents</h4>
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    <FileUploadField
+                                        label="CNIC Front"
+                                        file={files.cnicFront}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'cnicFront')}
+                                        onRemove={() => removeFile('cnicFront')}
+                                        required
+                                        error={errors.cnicFront}
+                                    />
+                                    <FileUploadField
+                                        label="CNIC Back"
+                                        file={files.cnicBack}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'cnicBack')}
+                                        onRemove={() => removeFile('cnicBack')}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Conditional Files */}
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <FileUploadField
+                                    label="Transcript Front (Optional)"
+                                    file={files.transcriptFront}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'transcriptFront')}
+                                    onRemove={() => removeFile('transcriptFront')}
+                                />
+                                {formData.membershipType === 'Student' && (
+                                    <FileUploadField
+                                        label="Student ID Card"
+                                        file={files.studentId}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileChange(e, 'studentId')}
+                                        onRemove={() => removeFile('studentId')}
+                                    />
+                                )}
+                            </div>
+
+                            <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-8 border-t border-gray-100">
+                                <button
+                                    type="button"
+                                    onClick={prevStep}
+                                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 font-bold py-3.5 px-6 rounded-xl border border-gray-200 transition-all hover:border-gray-300 active:scale-[0.98] touch-manipulation"
+                                >
+                                    <ChevronLeft className="w-5 h-5" />
+                                    <span>Back</span>
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold py-4 px-10 rounded-xl shadow-lg shadow-emerald-600/25 hover:shadow-emerald-600/40 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 touch-manipulation"
+                                >
+                                    {isLoading ? (
+                                        <>
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                            <span>Processing...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle className="w-5 h-5" />
+                                            <span>Submit Application</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </form>
             </div>
 
-            <button disabled={isSubmitting} className="btn btn-primary w-full h-12 text-lg shadow-xl">
-                {isSubmitting ? <><Loader2 className="animate-spin mr-2" /> Submitting...</> : "Submit Application"}
-            </button>
-        </form>
-    )
-}
-
-function Input({ label, name, register, error, placeholder }: any) {
-    return (
-        <div>
-            <label className="label">{label}</label>
-            <input {...register(name)} placeholder={placeholder} className="input" />
-            {error && <p className="text-red-500 text-xs mt-1">{error.message}</p>}
+            <style jsx global>{`
+                .btn-primary-action {
+                    @apply bg-primary-900 hover:bg-primary-800 text-white font-bold py-4 px-10 rounded-2xl transition-all shadow-xl shadow-primary-900/20 hover:shadow-primary-900/35 hover:-translate-y-0.5 active:translate-y-0;
+                }
+                .btn-secondary-action {
+                    @apply bg-white hover:bg-gray-50 text-gray-700 font-bold py-4 px-10 rounded-2xl border border-gray-200 transition-all hover:border-gray-300 hover:shadow-sm active:scale-[0.98];
+                }
+            `}</style>
         </div>
-    )
+    );
 }
-
-function FileField({ label, onChange }: any) {
-    return (
-        <div>
-            <label className="label">{label}</label>
-            <input type="file" onChange={onChange} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-primary-50 file:text-primary border border-gray-200 rounded-lg p-1" />
-        </div>
-    )
-}
-
