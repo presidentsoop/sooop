@@ -51,6 +51,7 @@ export const metadata: Metadata = {
 };
 
 import SplashScreen from "@/components/layout/SplashScreen";
+import AuthHashHandler from "@/components/auth/AuthHashHandler";
 
 import { Toaster } from 'sonner';
 
@@ -63,6 +64,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
       <body className="font-sans" suppressHydrationWarning>
         <SplashScreen />
+        <AuthHashHandler />
         {children}
         <Analytics />
         <SpeedInsights />
