@@ -5,6 +5,7 @@ import { Check, X, Eye, FileText, CreditCard, Clock, ChevronRight, User, Phone, 
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { logAuditAction } from "@/app/actions/audit";
+import { sendApprovalEmail, sendRejectionEmail } from "@/app/actions/notification";
 import { deleteMember } from "@/app/actions/member";
 import DataTable from "@/components/ui/DataTable";
 import Modal, { Button, StatusBadge, Avatar, InfoRow } from "@/components/ui/Modal";
@@ -138,6 +139,21 @@ export default function VerifyList({ initialMembers }: VerifyListProps) {
             member_name: member.full_name,
             member_id: id
         });
+
+        // Send email notification
+        if (decision === 'approved' && member.email) {
+            const endDate = new Date();
+            endDate.setFullYear(endDate.getFullYear() + 1);
+            sendApprovalEmail(
+                member.email,
+                member.full_name,
+                member.registration_number || 'PENDING',
+                endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+            ).catch((e: any) => console.error('Approval email error:', e));
+        } else if (decision === 'rejected' && member.email) {
+            sendRejectionEmail(member.email, member.full_name)
+                .catch((e: any) => console.error('Rejection email error:', e));
+        }
     };
 
     const handleSingleAction = async (member: any, decision: 'approved' | 'rejected') => {

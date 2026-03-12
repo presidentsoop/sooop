@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, FileText, Settings, LogOut, Menu, X, User, ChevronRight, ChevronLeft, Mail, ShieldAlert, CreditCard, DollarSign, Calendar } from "lucide-react";
+import { LayoutDashboard, Users, FileText, Settings, LogOut, Menu, X, User, ChevronRight, ChevronLeft, Mail, ShieldAlert, CreditCard, DollarSign, Calendar, Award } from "lucide-react";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -67,6 +67,7 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
         { href: "/dashboard/leadership", label: "Leadership & Wings", icon: Users },
         { href: "/dashboard/fees", label: "Nomination Fees", icon: DollarSign },
         { href: "/dashboard/campaigns", label: "Email Campaigns", icon: Mail },
+        { href: "/dashboard/certificates", label: "Meeting Certificates", icon: Award },
         { href: "/dashboard/security", label: "User & Security", icon: ShieldAlert },
         { href: "/dashboard/audit", label: "Audit Logs", icon: FileText },
         { href: "/dashboard/settings", label: "Settings", icon: Settings },

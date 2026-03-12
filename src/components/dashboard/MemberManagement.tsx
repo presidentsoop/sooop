@@ -11,6 +11,7 @@ import Modal, { Button, StatusBadge, Avatar, InfoRow } from "@/components/ui/Mod
 import { DocumentGrid } from "@/components/ui/ImageViewer";
 import AddMemberModal from "./AddMemberModal";
 import { deleteMember } from "@/app/actions/member";
+import { sendApprovalEmail } from "@/app/actions/notification";
 
 // Status tabs configuration
 const TABS = [
@@ -189,6 +190,20 @@ export default function MemberManagement() {
         } else {
             toast.success(successMessage);
             setMembers(members.map(m => m.id === id ? { ...m, ...updateData } : m));
+
+            // Send approval email
+            if (action === 'approve' && member.email) {
+                const endDate = updateData.subscription_end_date
+                    ? new Date(updateData.subscription_end_date)
+                    : addYears(new Date(), 1);
+                sendApprovalEmail(
+                    member.email,
+                    member.full_name,
+                    registrationNumber || member.registration_number || 'PENDING',
+                    endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+                ).catch((e: any) => console.error('Approval email error:', e));
+            }
+
             if (selectedMember?.id === id) {
                 // Determine if we should close modal or just update state
                 if (['block', 'revoke', 'reject'].includes(action)) {
