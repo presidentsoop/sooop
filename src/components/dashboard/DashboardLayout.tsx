@@ -100,17 +100,23 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
                     }`}
             >
                 {/* Brand Header */}
-                <div className="h-20 flex items-center px-8 border-b border-white/10 bg-primary-950/20">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-accent-400 to-primary-500 rounded-xl flex items-center justify-center shadow-lg shadow-accent-500/20 ring-1 ring-white/10 relative overflow-hidden group">
-                            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                            <span className="font-heading font-black text-xl text-white tracking-tighter relative z-10">S</span>
+                <div className="h-20 flex items-center px-6 border-b border-white/10 bg-primary-950/20">
+                    <Link href="/dashboard" className="flex items-center gap-3 group">
+                        <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-accent-500/20 ring-1 ring-white/10 overflow-hidden shrink-0">
+                            <Image
+                                src="/logo.jpg"
+                                alt="SOOOP Logo"
+                                width={44}
+                                height={44}
+                                className="w-full h-full object-contain p-0.5"
+                                priority
+                            />
                         </div>
                         <div>
-                            <h1 className="font-heading font-bold text-xl tracking-tight leading-none text-white">SOOOP</h1>
+                            <h1 className="font-heading font-bold text-xl tracking-tight leading-none text-white group-hover:text-accent-300 transition-colors">SOOOP</h1>
                             <p className="text-[10px] text-accent-300 font-bold tracking-[0.2em] uppercase mt-1 opacity-80">Membership</p>
                         </div>
-                    </div>
+                    </Link>
                 </div>
 
                 {/* Navigation Links */}
