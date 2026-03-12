@@ -49,7 +49,7 @@ CREATE TABLE public.profiles (
   
   -- Membership Information
   membership_type TEXT CHECK (membership_type IN ('Full', 'Overseas', 'Associate', 'Student')),
-  membership_status TEXT DEFAULT 'pending' CHECK (membership_status IN ('pending', 'approved', 'rejected', 'expired', 'revoked')),
+  membership_status TEXT DEFAULT 'none' CHECK (membership_status IN ('none', 'pending', 'approved', 'active', 'rejected', 'expired', 'revoked', 'blocked')),
   membership_number TEXT UNIQUE, -- SOOOP-XXXX format - generated on approval
   subscription_start_date DATE,
   subscription_end_date DATE,

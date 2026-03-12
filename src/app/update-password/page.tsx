@@ -74,18 +74,16 @@ function UpdatePasswordForm() {
             } else {
                 toast.success(isActivated ? "Account activated successfully!" : "Password updated successfully!");
 
-                // If this is an invite flow, we must link the imported member data to their profile now
-                if (isActivated) {
-                    try {
-                        const { linkImportedDataAction } = await import('@/app/actions/auth');
-                        const linkResult = await linkImportedDataAction();
-                        if (!linkResult.success) {
-                            console.error("Failed to link imported data:", linkResult.message);
-                            // We don't block login if it fails, maybe it was linked previously
-                        }
-                    } catch (e) {
-                        console.error("Error linking imported data:", e);
+                // ALWAYS try to link imported member data behind the scenes
+                // If they have an unclaimed imported_members record, it will link it securely.
+                try {
+                    const { linkImportedDataAction } = await import('@/app/actions/auth');
+                    const linkResult = await linkImportedDataAction();
+                    if (!linkResult.success && linkResult.message !== 'No unclaimed data found') {
+                        console.error("Linking imported data status:", linkResult.message);
                     }
+                } catch (e) {
+                    console.error("Error linking imported data:", e);
                 }
 
                 // Redirect to dashboard or login
