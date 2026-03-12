@@ -88,14 +88,14 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
             {/* MOBILE OVERLAY */}
             {isSidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-primary-900/40 backdrop-blur-sm z-40 lg:hidden animate-fade-in"
+                    className="fixed inset-0 bg-primary/40 backdrop-blur-sm z-40 lg:hidden animate-fade-in"
                     onClick={() => setIsSidebarOpen(false)}
                 />
             )}
 
             {/* SIDEBAR */}
             <aside
-                className={`fixed lg:static inset-y-0 left-0 z-50 w-[280px] bg-primary-900 text-white transform transition-transform duration-300 ease-out shadow-2xl flex flex-col border-r border-white/5 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+                className={`fixed lg:static inset-y-0 left-0 z-50 w-[280px] bg-primary text-white transform transition-transform duration-300 ease-out shadow-2xl flex flex-col border-r border-white/5 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
                     }`}
             >
                 {/* Brand Header */}
@@ -163,9 +163,9 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
                 <div className="p-4 border-t border-white/10 bg-primary-950/20 space-y-2">
                     <div className="bg-gradient-to-br from-white/5 to-white/0 rounded-xl p-3 border border-white/5 flex items-center gap-3 relative group overflow-hidden transition-all hover:bg-white/10 cursor-pointer">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-accent-500 to-purple-500 p-[2px] shadow-lg">
-                            <div className="w-full h-full rounded-full bg-primary-900 flex items-center justify-center overflow-hidden">
+                            <div className="w-full h-full rounded-full bg-primary flex items-center justify-center overflow-hidden">
                                 {userName ? (
-                                    <div className="w-full h-full bg-primary-800 flex items-center justify-center font-bold text-sm">
+                                    <div className="w-full h-full bg-primary-600 flex items-center justify-center font-bold text-sm">
                                         {userName[0]}
                                     </div>
                                 ) : <User className="w-5 h-5" />}
@@ -221,7 +221,7 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
                 </header>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar scroll-smooth">
+                <div className="flex-1 overflow-y-auto p-2 sm:p-4 md:p-8 custom-scrollbar scroll-smooth">
                     <div className="max-w-[1600px] mx-auto space-y-8 pb-20">
                         {children}
                     </div>

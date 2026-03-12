@@ -15,7 +15,7 @@ export default function MemberView({ status, profile }: MemberViewProps) {
     // --------------------------------------------------------------------------
     if (status === 'none' || !status || status === 'rejected') {
         return (
-            <div className="max-w-5xl mx-auto space-y-8 animate-fade-in">
+            <div className="max-w-5xl mx-auto space-y-4 sm:space-y-8 animate-fade-in">
                 {status === 'rejected' && (
                     <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg mb-6">
                         <div className="flex items-center">
@@ -28,10 +28,10 @@ export default function MemberView({ status, profile }: MemberViewProps) {
                     </div>
                 )}
                 {/* Onboarding Header */}
-                <div className="bg-gradient-to-r from-primary-900 to-primary-800 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden">
+                <div className="bg-gradient-to-r from-primary-500 to-primary-400 rounded-xl sm:rounded-2xl p-5 sm:p-8 text-white shadow-xl relative overflow-hidden">
                     <div className="relative z-10 max-w-2xl">
-                        <h1 className="text-3xl font-heading font-bold mb-4">Complete Your Application</h1>
-                        <p className="text-blue-100 text-lg leading-relaxed">
+                        <h1 className="text-xl sm:text-3xl font-heading font-bold mb-2 sm:mb-4">Complete Your Application</h1>
+                        <p className="text-blue-100 text-sm sm:text-lg leading-relaxed">
                             Welcome to the Society of Optometrists Pakistan. To gain full access to member benefits, verified status, and your digital ID card, please complete your profile below.
                         </p>
                     </div>
@@ -41,19 +41,19 @@ export default function MemberView({ status, profile }: MemberViewProps) {
                 </div>
 
                 {/* Form Container */}
-                <div className="bg-white rounded-2xl shadow-soft-xl border border-gray-100/60 overflow-hidden">
-                    <div className="p-8 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                <div className="bg-white rounded-xl sm:rounded-2xl shadow-soft-xl border border-gray-100/60 overflow-hidden">
+                    <div className="p-4 sm:p-6 md:p-8 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                                <FileText className="w-5 h-5 text-primary" /> Application Form
+                            <h2 className="text-base sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                                <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-primary" /> Application Form
                             </h2>
-                            <p className="text-sm text-gray-500 mt-1">Fields marked with <span className="text-red-500">*</span> are required.</p>
+                            <p className="text-xs sm:text-sm text-gray-500 mt-1">Fields marked with <span className="text-red-500">*</span> are required.</p>
                         </div>
                         <div className="hidden md:block">
                             <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-bold uppercase tracking-wider">Step 1 of 2</span>
                         </div>
                     </div>
-                    <div className="p-8">
+                    <div className="p-2 sm:p-4 md:p-8">
                         <MembershipForm profile={profile} />
                     </div>
                 </div>
@@ -66,23 +66,23 @@ export default function MemberView({ status, profile }: MemberViewProps) {
     // --------------------------------------------------------------------------
     if (status === 'pending') {
         return (
-            <div className="max-w-3xl mx-auto py-12 animate-fade-in">
-                <div className="bg-white rounded-2xl shadow-soft-xl border border-gray-100 p-12 text-center relative overflow-hidden">
+            <div className="max-w-3xl mx-auto py-6 sm:py-12 animate-fade-in px-1">
+                <div className="bg-white rounded-xl sm:rounded-2xl shadow-soft-xl border border-gray-100 p-6 sm:p-12 text-center relative overflow-hidden">
                     {/* Background Pattern */}
                     <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-yellow-400 to-orange-500"></div>
 
-                    <div className="w-24 h-24 bg-yellow-50 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner relative">
+                    <div className="w-16 h-16 sm:w-24 sm:h-24 bg-yellow-50 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-8 shadow-inner relative">
                         <div className="absolute inset-0 rounded-full border-4 border-yellow-100 border-t-yellow-400 animate-spin"></div>
-                        <Clock className="w-10 h-10 text-yellow-600 relative z-10" />
+                        <Clock className="w-7 h-7 sm:w-10 sm:h-10 text-yellow-600 relative z-10" />
                     </div>
 
-                    <h1 className="text-3xl font-heading font-bold text-gray-900 mb-4">Under Review</h1>
-                    <p className="text-lg text-gray-600 leading-relaxed mb-10 max-w-xl mx-auto">
+                    <h1 className="text-xl sm:text-3xl font-heading font-bold text-gray-900 mb-2 sm:mb-4">Under Review</h1>
+                    <p className="text-sm sm:text-lg text-gray-600 leading-relaxed mb-6 sm:mb-10 max-w-xl mx-auto">
                         Thank you for submitting your application. Our team is currently verifying your documents. This process usually takes <span className="font-semibold text-gray-900">24-48 hours</span>.
                     </p>
 
                     {/* Steps Visualizer */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left max-w-2xl mx-auto border-t border-gray-100 pt-10">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 text-left max-w-2xl mx-auto border-t border-gray-100 pt-6 sm:pt-10">
                         <div className="flex items-start gap-4 opacity-50">
                             <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-bold text-sm shrink-0">
                                 <CheckCircle className="w-5 h-5" />
@@ -133,26 +133,26 @@ export default function MemberView({ status, profile }: MemberViewProps) {
         const isValid = expiryDate && expiryDate > new Date();
 
         return (
-            <div className="space-y-8 animate-fade-in relative z-10">
+            <div className="space-y-4 sm:space-y-8 animate-fade-in relative z-10">
                 {/* HERO WELCOME */}
-                <div className="bg-white rounded-2xl p-8 md:p-10 shadow-soft border border-gray-100 relative overflow-hidden group">
+                <div className="bg-white rounded-xl sm:rounded-2xl p-5 sm:p-8 md:p-10 shadow-soft border border-gray-100 relative overflow-hidden group">
                     <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                         <div>
                             <div className="flex items-center gap-2 mb-2">
                                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                                 <span className="text-xs font-bold text-green-600 uppercase tracking-widest">Active Membership</span>
                             </div>
-                            <h1 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 tracking-tight mb-2">
+                            <h1 className="text-xl sm:text-3xl md:text-4xl font-heading font-bold text-gray-900 tracking-tight mb-2">
                                 Good Morning, <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-accent-600">{firstName}</span>
                             </h1>
-                            <p className="text-gray-500 font-medium">
-                                Membership ID: <span className="font-mono text-gray-900 bg-gray-100 px-2 py-0.5 rounded ml-1">{profile?.registration_number}</span>
+                            <p className="text-gray-500 font-medium text-xs sm:text-base">
+                                Membership ID: <span className="font-mono text-gray-900 bg-gray-100 px-2 py-0.5 rounded ml-1 text-xs sm:text-sm">{profile?.registration_number}</span>
                             </p>
                         </div>
 
                         <Link
                             href="/dashboard/card"
-                            className="bg-primary-900 text-white px-6 py-3 rounded-xl shadow-lg shadow-primary-900/20 hover:shadow-primary-900/40 hover:-translate-y-1 transition-all flex items-center gap-3 font-semibold group/btn"
+                            className="w-full sm:w-auto bg-primary-500 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl shadow-lg shadow-primary-500/20 hover:shadow-primary-500/40 hover:-translate-y-1 transition-all flex items-center justify-center gap-2 sm:gap-3 font-semibold group/btn text-sm sm:text-base"
                         >
                             <CreditCard className="w-5 h-5 text-accent-400" />
                             <span>View Identity Card</span>
@@ -165,21 +165,21 @@ export default function MemberView({ status, profile }: MemberViewProps) {
                 </div>
 
                 {/* KPI GRID */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                     {/* Subscription Status */}
-                    <div className={`rounded-2xl p-6 text-white shadow-lg relative overflow-hidden transition-all duration-300 hover:shadow-xl ${isValid ? 'bg-gradient-to-br from-[#001F54] to-[#001533]' : 'bg-gradient-to-br from-red-900 to-red-950'
+                    <div className={`rounded-xl sm:rounded-2xl p-5 sm:p-6 text-white shadow-lg relative overflow-hidden transition-all duration-300 hover:shadow-xl ${isValid ? 'bg-gradient-to-br from-primary-500 to-primary-400' : 'bg-gradient-to-br from-red-700 to-red-800'
                         }`}>
                         <div className="relative z-10">
-                            <div className="flex justify-between items-start mb-6">
-                                <div className="p-3 bg-white/10 rounded-xl backdrop-blur-md">
-                                    <ShieldCheck className="w-6 h-6 text-accent-300" />
+                            <div className="flex justify-between items-start mb-4 sm:mb-6">
+                                <div className="p-2.5 sm:p-3 bg-white/10 rounded-xl backdrop-blur-md">
+                                    <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-accent-300" />
                                 </div>
                                 <span className="text-xs font-bold bg-white/10 px-2 py-1 rounded text-white/80">
                                     {isValid ? 'VALID' : 'EXPIRED'}
                                 </span>
                             </div>
-                            <p className="text-gray-300 text-sm font-medium mb-1">Subscription Expiry</p>
-                            <h2 className="text-2xl font-bold tracking-tight">
+                            <p className="text-gray-300 text-xs sm:text-sm font-medium mb-1">Subscription Expiry</p>
+                            <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
                                 {expiryDate ? expiryDate.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
                             </h2>
                         </div>
@@ -189,7 +189,7 @@ export default function MemberView({ status, profile }: MemberViewProps) {
                     </div>
 
                     {/* Fees & Payments */}
-                    <Link href="/dashboard/payments" className="group bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all hover:border-primary/20 relative overflow-hidden">
+                    <Link href="/dashboard/payments" className="group bg-white rounded-xl sm:rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all hover:border-primary/20 relative overflow-hidden">
                         <div className="relative z-10">
                             <div className="flex justify-between items-start mb-6">
                                 <div className="p-3 bg-orange-50 text-orange-600 rounded-xl group-hover:bg-orange-600 group-hover:text-white transition-colors">
@@ -207,7 +207,7 @@ export default function MemberView({ status, profile }: MemberViewProps) {
                     </Link>
 
                     {/* Security Status */}
-                    <Link href="/dashboard/profile" className="group bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all hover:border-primary/20 relative overflow-hidden">
+                    <Link href="/dashboard/profile" className="group bg-white rounded-xl sm:rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all hover:border-primary/20 relative overflow-hidden">
                         <div className="relative z-10">
                             <div className="flex justify-between items-start mb-6">
                                 <div className="p-3 bg-purple-50 text-purple-600 rounded-xl group-hover:bg-purple-600 group-hover:text-white transition-colors">
@@ -226,11 +226,11 @@ export default function MemberView({ status, profile }: MemberViewProps) {
                 </div>
 
                 {/* Quick Actions / Featured Identity Card Preview */}
-                <div className="grid md:grid-cols-2 gap-8">
-                    <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="font-bold text-xl text-gray-900">Official Membershp Certificate</h3>
-                            <Link href="/dashboard/card" className="text-sm font-bold text-primary hover:underline">Full Screen</Link>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
+                    <div className="bg-white rounded-xl sm:rounded-2xl p-5 sm:p-8 border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-4 sm:mb-6">
+                            <h3 className="font-bold text-base sm:text-xl text-gray-900">Official Membershp Certificate</h3>
+                            <Link href="/dashboard/card" className="text-xs sm:text-sm font-bold text-primary hover:underline">Full Screen</Link>
                         </div>
                         <div className="relative aspect-[1.586/1] w-full max-w-sm mx-auto bg-gray-900 rounded-xl shadow-2xl overflow-hidden group cursor-pointer border border-gray-800 transform transition hover:scale-[1.02]">
                             {/* Abstract Card Preview */}
@@ -253,10 +253,10 @@ export default function MemberView({ status, profile }: MemberViewProps) {
                         </div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-accent-500 to-cyan-600 rounded-2xl p-8 text-white shadow-lg relative overflow-hidden flex flex-col justify-center">
+                    <div className="bg-gradient-to-br from-accent-500 to-cyan-600 rounded-xl sm:rounded-2xl p-5 sm:p-8 text-white shadow-lg relative overflow-hidden flex flex-col justify-center">
                         <div className="relative z-10">
-                            <h3 className="text-2xl font-bold mb-2">Need Assistance?</h3>
-                            <p className="text-accent-100 mb-6 max-w-sm">Contact the SOOOP administration team for queries regarding your membership status or technical issues.</p>
+                            <h3 className="text-xl sm:text-2xl font-bold mb-2">Need Assistance?</h3>
+                            <p className="text-accent-100 mb-4 sm:mb-6 max-w-sm text-sm sm:text-base">Contact the SOOOP administration team for queries regarding your membership status or technical issues.</p>
                             <a href="mailto:contact@soopvision.com" className="inline-flex items-center gap-2 bg-white text-accent-700 px-5 py-2.5 rounded-xl font-bold hover:bg-accent-50 transition-colors shadow-lg">
                                 Contact Support
                             </a>

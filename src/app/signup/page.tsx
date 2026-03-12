@@ -914,7 +914,7 @@ export default function SignupPage() {
             {/* Custom Styles for Inputs */}
             <style jsx global>{`
                 .btn-primary-action {
-                    @apply bg-primary-900 hover:bg-primary-800 text-white font-bold py-4 px-10 rounded-2xl transition-all shadow-xl shadow-primary-900/20 hover:shadow-primary-900/35 hover:-translate-y-0.5 active:translate-y-0;
+                    @apply bg-primary-500 hover:bg-primary-400 text-white font-bold py-4 px-10 rounded-2xl transition-all shadow-xl shadow-primary-500/20 hover:shadow-primary-500/35 hover:-translate-y-0.5 active:translate-y-0;
                 }
                 .btn-secondary-action {
                     @apply bg-white hover:bg-gray-50 text-gray-700 font-bold py-4 px-10 rounded-2xl border border-gray-200 transition-all hover:border-gray-300 hover:shadow-sm active:scale-[0.98];

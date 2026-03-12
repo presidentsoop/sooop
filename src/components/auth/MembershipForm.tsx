@@ -398,29 +398,31 @@ export default function MembershipForm({ profile }: { profile?: any }) {
     return (
         <div ref={formTopRef} className="max-w-4xl mx-auto">
             {/* Progress Steps */}
-            <div className="mb-8 flex justify-center items-center gap-4">
+            <div className="mb-6 md:mb-8 flex justify-center items-center gap-2 sm:gap-4 px-2">
                 {[1, 2, 3].map((s) => (
                     <div key={s} className={`flex items-center ${step >= s ? 'text-primary' : 'text-gray-400'}`}>
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-2 border-2 transition-colors ${step >= s ? 'border-primary bg-primary text-white shadow-lg shadow-primary/30' : 'border-gray-200 bg-white'}`}>
-                            {s}
+                        <div className="flex flex-col items-center gap-1">
+                            <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm sm:text-base font-bold border-2 transition-colors ${step >= s ? 'border-primary bg-primary text-white shadow-lg shadow-primary/30' : 'border-gray-200 bg-white'}`}>
+                                {s}
+                            </div>
+                            <span className={`text-[10px] sm:text-xs font-semibold whitespace-nowrap ${step === s ? 'text-gray-900' : 'text-gray-400'}`}>
+                                {s === 1 ? 'Personal' : s === 2 ? 'Professional' : 'Documents'}
+                            </span>
                         </div>
-                        <span className={`hidden md:inline font-medium ${step === s ? 'text-gray-900' : ''}`}>
-                            {s === 1 ? 'Personal Info' : s === 2 ? 'Professional' : 'Documents'}
-                        </span>
-                        {s < 3 && <div className={`h-1 w-8 md:w-16 mx-4 rounded-full transition-colors ${step > s ? 'bg-primary' : 'bg-gray-200'}`}></div>}
+                        {s < 3 && <div className={`h-0.5 sm:h-1 w-8 sm:w-12 md:w-16 mx-1.5 sm:mx-3 rounded-full transition-colors mb-4 ${step > s ? 'bg-primary' : 'bg-gray-200'}`}></div>}
                     </div>
                 ))}
             </div>
 
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-                <form onSubmit={handleSubmit} className="p-0 sm:p-2 md:p-6 lg:p-10 space-y-8">
+                <form onSubmit={handleSubmit} className="p-4 sm:p-6 md:p-8 lg:p-10 space-y-6 sm:space-y-8">
 
                     {/* Step 1: Personal Info */}
                     {step === 1 && (
                         <div className="space-y-6 animate-fade-in">
-                            <h3 className="text-xl font-bold text-gray-800 border-b pb-4 mb-6">Personal Information</h3>
+                            <h3 className="text-lg sm:text-xl font-bold text-gray-800 border-b pb-3 sm:pb-4 mb-4 sm:mb-6">Personal Information</h3>
 
-                            <div className="grid md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                 <InputGroup
                                     label="Full Name" icon={User} name="fullName" value={formData.fullName} onChange={handleChange}
                                     placeholder="As per CNIC" required error={errors.fullName}
@@ -454,13 +456,13 @@ export default function MembershipForm({ profile }: { profile?: any }) {
                                 </div>
                             </div>
 
-                            <h3 className="text-xl font-bold text-gray-800 border-b pb-4 pt-6 mb-6">Contact Details</h3>
-                            <div className="grid md:grid-cols-2 gap-6">
+                            <h3 className="text-lg sm:text-xl font-bold text-gray-800 border-b pb-3 sm:pb-4 pt-4 sm:pt-6 mb-4 sm:mb-6">Contact Details</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                 <InputGroup
                                     label="Phone / WhatsApp" icon={Phone} name="phone" type="tel" value={formData.phone} onChange={handleChange}
                                     placeholder="+92 300 0000000" error={errors.phone} required
                                 />
-                                <div className="md:col-span-2">
+                                <div className="sm:col-span-2">
                                     <InputGroup
                                         label="Residential Address" icon={MapPin} name="address" value={formData.address} onChange={handleChange}
                                         error={errors.address} required
@@ -480,11 +482,11 @@ export default function MembershipForm({ profile }: { profile?: any }) {
                                 </div>
                             </div>
 
-                            <div className="flex justify-end pt-6">
+                            <div className="flex justify-end pt-4 sm:pt-6">
                                 <button
                                     type="button"
                                     onClick={nextStep}
-                                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-primary-700 to-primary-800 hover:from-primary-600 hover:to-primary-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] touch-manipulation"
+                                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-primary-500 to-primary-400 hover:from-primary-400 hover:to-primary-300 text-white font-bold py-3.5 sm:py-4 px-6 sm:px-8 rounded-xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] touch-manipulation text-sm sm:text-base"
                                 >
                                     <span>Continue to Step 2</span>
                                     <ChevronRight className="w-5 h-5" />
@@ -496,12 +498,12 @@ export default function MembershipForm({ profile }: { profile?: any }) {
                     {/* Step 2: Professional Info */}
                     {step === 2 && (
                         <div className="space-y-8 animate-fade-in">
-                            <h3 className="text-xl font-bold text-gray-800 border-b pb-4">Membership & Qualification</h3>
+                            <h3 className="text-lg sm:text-xl font-bold text-gray-800 border-b pb-3 sm:pb-4">Membership & Qualification</h3>
 
                             {/* Membership Type Selection */}
                             <div className="space-y-4">
                                 <label className="block text-sm font-semibold text-gray-700">Membership Category</label>
-                                <div className="grid sm:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                     {[
                                         { id: 'Full', label: 'Full Member', fee: 'Rs. 1500', icon: Briefcase },
                                         { id: 'Overseas', label: 'Overseas Member', fee: 'Rs. 3000', icon: MapPin },
@@ -590,7 +592,7 @@ export default function MembershipForm({ profile }: { profile?: any }) {
                             {/* Employment */}
                             <div className="space-y-4">
                                 <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Employment Status</h4>
-                                <div className="grid md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="form-group">
                                         <label className="text-sm font-semibold text-gray-700 mb-1.5 block">Current Status</label>
                                         <select name="employmentStatus" value={formData.employmentStatus} onChange={handleChange} className="w-full bg-gray-50/50 border border-gray-200 text-gray-900 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
@@ -609,11 +611,11 @@ export default function MembershipForm({ profile }: { profile?: any }) {
                                 </div>
                             </div>
 
-                            <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-6 border-t border-gray-100">
+                            <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-4 sm:pt-6 border-t border-gray-100">
                                 <button
                                     type="button"
                                     onClick={prevStep}
-                                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 font-bold py-3.5 px-6 rounded-xl border border-gray-200 transition-all hover:border-gray-300 active:scale-[0.98] touch-manipulation"
+                                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 font-bold py-3 sm:py-3.5 px-6 rounded-xl border border-gray-200 transition-all hover:border-gray-300 active:scale-[0.98] touch-manipulation text-sm sm:text-base"
                                 >
                                     <ChevronLeft className="w-5 h-5" />
                                     <span>Back</span>
@@ -621,7 +623,7 @@ export default function MembershipForm({ profile }: { profile?: any }) {
                                 <button
                                     type="button"
                                     onClick={nextStep}
-                                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-primary-700 to-primary-800 hover:from-primary-600 hover:to-primary-700 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] touch-manipulation"
+                                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-primary-500 to-primary-400 hover:from-primary-400 hover:to-primary-300 text-white font-bold py-3 sm:py-3.5 px-6 sm:px-8 rounded-xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] touch-manipulation text-sm sm:text-base"
                                 >
                                     <span>Continue to Final Step</span>
                                     <ChevronRight className="w-5 h-5" />
@@ -633,7 +635,7 @@ export default function MembershipForm({ profile }: { profile?: any }) {
                     {/* Step 3: Documents & Security */}
                     {step === 3 && (
                         <div className="space-y-8 animate-fade-in">
-                            <h3 className="text-xl font-bold text-gray-800 border-b pb-4">Documents & Security</h3>
+                            <h3 className="text-lg sm:text-xl font-bold text-gray-800 border-b pb-3 sm:pb-4">Documents & Security</h3>
 
                             <div className="bg-blue-50/50 text-blue-900 p-4 rounded-xl border border-blue-100 flex gap-3 text-sm">
                                 <AlertCircle className="w-5 h-5 flex-shrink-0 text-blue-600" />
@@ -717,7 +719,7 @@ export default function MembershipForm({ profile }: { profile?: any }) {
                                 />
                             </div>
 
-                            <div className="grid md:grid-cols-2 gap-6 pt-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-4">
                                 <FileUploadField
                                     label="Profile Photo (Passport Size)"
                                     icon={User}
@@ -741,7 +743,7 @@ export default function MembershipForm({ profile }: { profile?: any }) {
 
                             <div className="space-y-4">
                                 <h4 className="text-sm font-bold text-gray-700">Identity Documents</h4>
-                                <div className="grid md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                     <FileUploadField
                                         label="CNIC Front"
                                         file={files.cnicFront}
@@ -760,7 +762,7 @@ export default function MembershipForm({ profile }: { profile?: any }) {
                             </div>
 
                             {/* Conditional Files */}
-                            <div className="grid md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                 <FileUploadField
                                     label="Transcript Front (Optional)"
                                     file={files.transcriptFront}
@@ -777,11 +779,11 @@ export default function MembershipForm({ profile }: { profile?: any }) {
                                 )}
                             </div>
 
-                            <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-8 border-t border-gray-100">
+                            <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-6 sm:pt-8 border-t border-gray-100">
                                 <button
                                     type="button"
                                     onClick={prevStep}
-                                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 font-bold py-3.5 px-6 rounded-xl border border-gray-200 transition-all hover:border-gray-300 active:scale-[0.98] touch-manipulation"
+                                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 font-bold py-3 sm:py-3.5 px-6 rounded-xl border border-gray-200 transition-all hover:border-gray-300 active:scale-[0.98] touch-manipulation text-sm sm:text-base"
                                 >
                                     <ChevronLeft className="w-5 h-5" />
                                     <span>Back</span>
@@ -789,7 +791,7 @@ export default function MembershipForm({ profile }: { profile?: any }) {
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold py-4 px-10 rounded-xl shadow-lg shadow-emerald-600/25 hover:shadow-emerald-600/40 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 touch-manipulation"
+                                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold py-3.5 sm:py-4 px-8 sm:px-10 rounded-xl shadow-lg shadow-emerald-600/25 hover:shadow-emerald-600/40 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 touch-manipulation text-sm sm:text-base"
                                 >
                                     {isLoading ? (
                                         <>
@@ -811,7 +813,7 @@ export default function MembershipForm({ profile }: { profile?: any }) {
 
             <style jsx global>{`
                 .btn-primary-action {
-                    @apply bg-primary-900 hover:bg-primary-800 text-white font-bold py-4 px-10 rounded-2xl transition-all shadow-xl shadow-primary-900/20 hover:shadow-primary-900/35 hover:-translate-y-0.5 active:translate-y-0;
+                    @apply bg-primary-500 hover:bg-primary-400 text-white font-bold py-4 px-10 rounded-2xl transition-all shadow-xl shadow-primary-500/20 hover:shadow-primary-500/35 hover:-translate-y-0.5 active:translate-y-0;
                 }
                 .btn-secondary-action {
                     @apply bg-white hover:bg-gray-50 text-gray-700 font-bold py-4 px-10 rounded-2xl border border-gray-200 transition-all hover:border-gray-300 hover:shadow-sm active:scale-[0.98];

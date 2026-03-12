@@ -97,7 +97,7 @@ export default function CmsEditor({ pageId, initialContent, pageTitle }: CmsEdit
             {/* Header Toolbar */}
             <div className="sticky top-20 z-40 bg-white/80 backdrop-blur-xl border border-gray-200 rounded-2xl p-4 mb-8 flex items-center justify-between shadow-soft-xl">
                 <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-primary-800 flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-400 to-primary-500 flex items-center justify-center text-white shadow-lg shadow-primary/20">
                         <Layout className="w-5 h-5" />
                     </div>
                     <div>
@@ -117,7 +117,7 @@ export default function CmsEditor({ pageId, initialContent, pageTitle }: CmsEdit
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="flex items-center gap-2 px-6 py-2.5 bg-primary-900 text-white rounded-xl font-semibold hover:bg-primary-800 transition-all shadow-lg shadow-primary-900/20 active:scale-95 disabled:opacity-50"
+                        className="flex items-center gap-2 px-6 py-2.5 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-400 transition-all shadow-lg shadow-primary-500/20 active:scale-95 disabled:opacity-50"
                     >
                         {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         <span>{saving ? 'Saving...' : 'Save Changes'}</span>

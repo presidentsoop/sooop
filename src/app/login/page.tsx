@@ -282,7 +282,7 @@ function LoginForm() {
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-fade-in">
                         {/* Modal Header */}
-                        <div className="bg-gradient-to-r from-primary to-primary-600 text-white p-5 relative">
+                        <div className="bg-gradient-to-r from-primary-400 to-accent-600 text-white p-5 relative">
                             <button
                                 onClick={() => setShowActivationModal(false)}
                                 className="absolute top-4 right-4 p-1 hover:bg-white/20 rounded-full transition-colors"

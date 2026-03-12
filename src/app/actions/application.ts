@@ -111,6 +111,13 @@ export async function submitApplication(formData: FormData) {
     }
 
     try {
+        // Fetch existing profile to preserve subscription dates from imported data
+        const { data: existingProfile } = await adminClient
+            .from('profiles')
+            .select('subscription_start_date, subscription_end_date')
+            .eq('id', userId)
+            .single();
+
         // 2. Update Profile (using admin client to bypass RLS)
         const { error: profileError } = await adminClient.from('profiles').upsert({
             id: userId,
@@ -133,7 +140,11 @@ export async function submitApplication(formData: FormData) {
             has_non_relevant_pg: hasNonRelevantPg,
             designation: s(designation),
             employment_status: s(employmentStatus),
+            membership_type: membershipType,
             ...(fileUrls['profile_photo'] ? { profile_photo_url: fileUrls['profile_photo'] } : {}),
+            // Preserve existing subscription dates from imported members
+            ...(existingProfile?.subscription_start_date ? { subscription_start_date: existingProfile.subscription_start_date } : {}),
+            ...(existingProfile?.subscription_end_date ? { subscription_end_date: existingProfile.subscription_end_date } : {}),
             membership_status: 'pending'
         });
 
