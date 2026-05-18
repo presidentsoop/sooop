@@ -4,6 +4,7 @@ import Footer from '@/components/layout/Footer';
 import Link from 'next/link';
 
 export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
     title: 'Previous Presidents - SOOOP',

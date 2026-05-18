@@ -44,6 +44,7 @@ const cabinetSections = [
 import { createStaticClient } from "@/lib/supabase/static";
 
 export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 export default async function CabinetPage() {
     const supabase = createStaticClient();

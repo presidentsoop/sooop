@@ -1,5 +1,3 @@
-'use server';
-
 import nodemailer from 'nodemailer';
 
 // Zoho SMTP transport - uses env variables
