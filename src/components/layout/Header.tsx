@@ -43,11 +43,11 @@ export default function Header() {
                         <Image
                             src="/logo.jpg"
                             alt="SOOOP Logo"
-                            width={200}
-                            height={200}
+                            width={150}
+                            height={150}
                             priority
                             unoptimized
-                            className="object-contain h-12 md:h-24 w-auto"
+                            className="object-contain h-12 md:h-24 w-auto max-w-[150px]"
                         />
                     </Link>
 
