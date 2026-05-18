@@ -20,6 +20,7 @@ const TABS = [
     { id: 'pending', label: 'Pending' },
     { id: 'expired', label: 'Expired' },
     { id: 'blocked', label: 'Blocked' },
+    { id: 'rejected', label: 'Rejected' },
 ];
 
 type Member = {
@@ -370,6 +371,7 @@ export default function MemberManagement() {
         pending: members.filter(m => m.membership_status === 'pending').length,
         expired: members.filter(m => m.membership_status === 'expired').length,
         blocked: members.filter(m => m.membership_status === 'blocked').length,
+        rejected: members.filter(m => m.membership_status === 'rejected').length,
     };
 
     // Mobile Row Renderer (Card View)
