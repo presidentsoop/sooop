@@ -3,6 +3,32 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 
+export async function updateMemberProfile(userId: string, updateData: any) {
+    if (!userId) return { error: "User ID is required" };
+    try {
+        const supabaseAdmin = createAdminClient();
+        const { error } = await supabaseAdmin.from('profiles').update(updateData).eq('id', userId);
+        if (error) return { error: error.message };
+        revalidatePath('/dashboard/members');
+        return { success: true };
+    } catch (error: any) {
+        return { error: error.message || "An error occurred" };
+    }
+}
+
+export async function bulkUpdateMembershipStatus(userIds: string[], status: string) {
+    if (!userIds.length) return { error: "No users provided" };
+    try {
+        const supabaseAdmin = createAdminClient();
+        const { error } = await supabaseAdmin.from('profiles').update({ membership_status: status }).in('id', userIds);
+        if (error) return { error: error.message };
+        revalidatePath('/dashboard/members');
+        return { success: true, count: userIds.length };
+    } catch (error: any) {
+        return { error: error.message || "An error occurred" };
+    }
+}
+
 export async function deleteMember(userId: string) {
     if (!userId) {
         return { error: "User ID is required" };

@@ -54,8 +54,7 @@ const VALID_CENTER_X = 625;   // Center of entire line on template
 const VALID_BASELINE_Y = 532;
 const VALID_FONT_PX = 14;
 
-// Custom font path for member name
-const FONT_DIR = path.join(process.cwd(), 'public', 'fonts');
+// Font path will be resolved dynamically using the request origin
 
 // Circular photo crop using sharp + SVG mask
 async function createCircularPhoto(buf: Buffer, dia: number): Promise<Buffer> {
@@ -93,14 +92,16 @@ export async function POST(req: NextRequest) {
         console.log(`[Cert] Generating for: ${profile.full_name}`);
 
         // ── Load template ──
-        const tplPath = path.join(process.cwd(), 'public', 'certificate-template.png');
-        if (!fs.existsSync(tplPath)) {
+        const baseUrl = req.nextUrl.origin;
+        const tplUrl = `${baseUrl}/certificate-template.png`;
+        const tplRes = await fetch(tplUrl);
+        if (!tplRes.ok) {
             return NextResponse.json(
-                { error: 'Template not found' },
+                { error: 'Template not found', url: tplUrl },
                 { status: 500 }
             );
         }
-        const tplBuffer = fs.readFileSync(tplPath);
+        const tplBuffer = Buffer.from(await tplRes.arrayBuffer());
 
         // ── Prepare data ──
         const serial = profile.registration_number
@@ -188,13 +189,18 @@ export async function POST(req: NextRequest) {
         // Load custom font for member name (Engravers Old English)
         pdf.registerFontkit(fontkit);
         let nameFont = timesBold; // fallback
-        const customFontPath = path.join(FONT_DIR, 'EngraversOldEnglish.ttf');
-        if (fs.existsSync(customFontPath)) {
-            const fontBytes = fs.readFileSync(customFontPath);
-            nameFont = await pdf.embedFont(fontBytes);
-            console.log('[Cert] Custom font loaded: EngraversOldEnglish');
-        } else {
-            console.warn('[Cert] Custom font not found, using Times Bold fallback');
+        try {
+            const fontUrl = `${baseUrl}/fonts/EngraversOldEnglish.ttf`;
+            const fontRes = await fetch(fontUrl);
+            if (fontRes.ok) {
+                const fontBuffer = Buffer.from(await fontRes.arrayBuffer());
+                nameFont = await pdf.embedFont(fontBuffer);
+                console.log('[Cert] Custom font loaded: EngraversOldEnglish');
+            } else {
+                console.warn('[Cert] Custom font not found via URL, using Times Bold fallback');
+            }
+        } catch (e) {
+            console.warn('[Cert] Custom font fetch error, using Times Bold fallback', e);
         }
 
         // ── A) SERIAL NUMBER ── (color: #FE4848)

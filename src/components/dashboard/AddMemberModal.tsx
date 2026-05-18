@@ -77,8 +77,9 @@ export default function AddMemberModal({ isOpen, onClose, onSuccess }: AddMember
                         Cancel
                     </Button>
                     <Button
+                        type="submit"
+                        form="add-member-form"
                         variant="primary"
-                        onClick={() => document.getElementById('add-member-form')?.dispatchEvent(new Event('submit', { bubbles: true }))}
                         loading={isLoading}
                         icon={<User className="w-4 h-4" />}
                     >

@@ -10,7 +10,7 @@ import DataTable from "@/components/ui/DataTable";
 import Modal, { Button, StatusBadge, Avatar, InfoRow } from "@/components/ui/Modal";
 import { DocumentGrid } from "@/components/ui/ImageViewer";
 import AddMemberModal from "./AddMemberModal";
-import { deleteMember } from "@/app/actions/member";
+import { deleteMember, updateMemberProfile, bulkUpdateMembershipStatus } from "@/app/actions/member";
 import { sendApprovalEmail } from "@/app/actions/notification";
 
 // Status tabs configuration
@@ -110,17 +110,40 @@ export default function MemberManagement() {
 
     const fetchMembers = async () => {
         setLoading(true);
-        let query = supabase.from('profiles').select('*').order('created_at', { ascending: false });
+        let allData: Member[] = [];
+        let page = 0;
+        const pageSize = 1000;
+        let hasMore = true;
+        let hasError = false;
 
-        if (activeTab !== 'all') {
-            query = query.eq('membership_status', activeTab);
+        while (hasMore) {
+            let query = supabase
+                .from('profiles')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .range(page * pageSize, (page + 1) * pageSize - 1);
+
+            if (activeTab !== 'all') {
+                query = query.eq('membership_status', activeTab);
+            }
+
+            const { data, error } = await query;
+            if (error) {
+                toast.error("Failed to load members");
+                hasError = true;
+                break;
+            }
+            if (data) {
+                allData = [...allData, ...data];
+                if (data.length < pageSize) hasMore = false;
+                else page++;
+            } else {
+                hasMore = false;
+            }
         }
-
-        const { data, error } = await query;
-        if (error) {
-            toast.error("Failed to load members");
-        } else {
-            setMembers(data || []);
+        
+        if (!hasError) {
+            setMembers(allData);
         }
         setLoading(false);
     };
@@ -183,7 +206,7 @@ export default function MemberManagement() {
             successMessage = 'Application rejected';
         }
 
-        const { error } = await supabase.from('profiles').update(updateData).eq('id', id);
+        const { error } = await updateMemberProfile(id, updateData);
 
         if (error) {
             toast.error(`Failed to ${action} member`);
@@ -249,14 +272,15 @@ export default function MemberManagement() {
             return;
         }
 
-        let updatedCount = 0;
-        for (const m of candidates) {
-            const { error } = await supabase.from('profiles').update({ membership_status: 'expired' }).eq('id', m.id);
-            if (!error) updatedCount++;
-        }
+        const ids = candidates.map(c => c.id);
+        const { error, count } = await bulkUpdateMembershipStatus(ids, 'expired');
 
-        toast.success(`Marked ${updatedCount} memberships as expired.`);
-        fetchMembers();
+        if (error) {
+            toast.error(error);
+        } else {
+            toast.success(`Marked ${count} memberships as expired.`);
+            fetchMembers();
+        }
     };
 
     const handleVerifyDocument = async (doc: any) => {
@@ -319,13 +343,10 @@ export default function MemberManagement() {
         }
         setActionLoading(memberToEditReg.id);
 
-        const { error } = await supabase
-            .from('profiles')
-            .update({
-                registration_number: editRegInput.trim(),
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', memberToEditReg.id);
+        const { error } = await updateMemberProfile(memberToEditReg.id, {
+            registration_number: editRegInput.trim(),
+            updated_at: new Date().toISOString()
+        });
 
         if (error) {
             toast.error("Failed to update registration number");
@@ -525,7 +546,7 @@ export default function MemberManagement() {
                         >
                             <Eye className="w-4 h-4" />
                         </button>
-                        {row.membership_status === 'pending' ? (
+                        {row.membership_status === 'pending' || row.membership_status === 'rejected' ? (
                             <>
                                 <button
                                     onClick={() => openApproveModal(row)}
@@ -534,13 +555,15 @@ export default function MemberManagement() {
                                 >
                                     <Check className="w-4 h-4" />
                                 </button>
-                                <button
-                                    onClick={() => handleAction(row.id, 'reject')}
-                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                    title="Reject"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
+                                {row.membership_status !== 'rejected' && (
+                                    <button
+                                        onClick={() => handleAction(row.id, 'reject')}
+                                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                        title="Reject"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                )}
                             </>
                         ) : (
                             <>
@@ -644,16 +667,18 @@ export default function MemberManagement() {
                             <Button variant="secondary" onClick={handleCloseModal}>
                                 Close
                             </Button>
-                            {selectedMember.membership_status === 'pending' ? (
+                            {selectedMember.membership_status === 'pending' || selectedMember.membership_status === 'rejected' ? (
                                 <>
-                                    <Button
-                                        variant="danger"
-                                        onClick={() => handleAction(selectedMember.id, 'reject')}
-                                        loading={actionLoading === selectedMember.id}
-                                        icon={<X className="w-4 h-4" />}
-                                    >
-                                        Reject
-                                    </Button>
+                                    {selectedMember.membership_status !== 'rejected' && (
+                                        <Button
+                                            variant="danger"
+                                            onClick={() => handleAction(selectedMember.id, 'reject')}
+                                            loading={actionLoading === selectedMember.id}
+                                            icon={<X className="w-4 h-4" />}
+                                        >
+                                            Reject
+                                        </Button>
+                                    )}
                                     <Button
                                         variant="success"
                                         onClick={() => selectedMember && openApproveModal(selectedMember)}

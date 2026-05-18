@@ -372,10 +372,10 @@ BEGIN
   VALUES (
     new.id, 
     new.email, 
-    COALESCE(new.raw_user_meta_data->>'full_name', 'New Member'),
-    COALESCE(new.raw_user_meta_data->>'cnic', 'N/A'),
-    COALESCE(new.raw_user_meta_data->>'contact_number', 'N/A'),
-    COALESCE(new.raw_user_meta_data->>'role', 'member'),
+    COALESCE(NULLIF(new.raw_user_meta_data->>'full_name', ''), 'New Member'),
+    COALESCE(NULLIF(new.raw_user_meta_data->>'cnic', ''), 'PENDING-' || substr(gen_random_uuid()::text, 1, 8)),
+    COALESCE(NULLIF(new.raw_user_meta_data->>'contact_number', ''), 'N/A'),
+    COALESCE(NULLIF(new.raw_user_meta_data->>'role', ''), 'member'),
     TRUE
   );
   RETURN new;
@@ -387,3 +387,66 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- ========================================
+-- 11. SEMINARS & CERTIFICATES (New)
+-- ========================================
+
+CREATE TABLE IF NOT EXISTS public.certificate_templates (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  background_image_url TEXT NOT NULL,
+  layout_config JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  created_by UUID REFERENCES public.profiles(id)
+);
+
+ALTER TABLE public.certificate_templates ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public view templates" ON public.certificate_templates;
+CREATE POLICY "Public view templates" ON public.certificate_templates FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Admins manage templates" ON public.certificate_templates;
+CREATE POLICY "Admins manage templates" ON public.certificate_templates FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin'))
+);
+
+CREATE TABLE IF NOT EXISTS public.seminars (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  seminar_date DATE NOT NULL,
+  location TEXT,
+  template_id UUID REFERENCES public.certificate_templates(id) ON DELETE SET NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  created_by UUID REFERENCES public.profiles(id)
+);
+
+ALTER TABLE public.seminars ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public view seminars" ON public.seminars;
+CREATE POLICY "Public view seminars" ON public.seminars FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Admins manage seminars" ON public.seminars;
+CREATE POLICY "Admins manage seminars" ON public.seminars FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin'))
+);
+
+CREATE TABLE IF NOT EXISTS public.seminar_attendees (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  seminar_id UUID REFERENCES public.seminars(id) ON DELETE CASCADE NOT NULL,
+  profile_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  attendance_status TEXT DEFAULT 'pending' CHECK (attendance_status IN ('pending', 'approved', 'rejected')),
+  certificate_issued_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(seminar_id, profile_id)
+);
+
+ALTER TABLE public.seminar_attendees ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users view own attendance" ON public.seminar_attendees;
+CREATE POLICY "Users view own attendance" ON public.seminar_attendees FOR SELECT USING (auth.uid() = profile_id);
+DROP POLICY IF EXISTS "Admins view all attendance" ON public.seminar_attendees;
+CREATE POLICY "Admins view all attendance" ON public.seminar_attendees FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin'))
+);
+DROP POLICY IF EXISTS "Admins manage attendance" ON public.seminar_attendees;
+CREATE POLICY "Admins manage attendance" ON public.seminar_attendees FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin'))
+);

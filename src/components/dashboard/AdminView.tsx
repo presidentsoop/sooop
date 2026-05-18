@@ -6,14 +6,34 @@ export default async function AdminView() {
     const supabase = await createClient();
 
     // 1. Fetch Real Data from Supabase
-    // We select only necessary fields to optimize performance
-    const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('id, membership_status, created_at');
+    // We use a paginated loop to bypass the default 1000 row API limit
+    let allProfiles: any[] = [];
+    let page = 0;
+    const pageSize = 1000;
+    let hasMore = true;
+    let fetchError = false;
 
-    if (error || !profiles) {
+    while (hasMore) {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('id, membership_status, created_at')
+            .range(page * pageSize, (page + 1) * pageSize - 1);
+
+        if (error || !data) {
+            fetchError = true;
+            break;
+        }
+
+        allProfiles = [...allProfiles, ...data];
+        if (data.length < pageSize) hasMore = false;
+        else page++;
+    }
+
+    if (fetchError) {
         return <div className="p-6 text-red-500">Error loading dashboard data.</div>;
     }
+
+    const profiles = allProfiles;
 
     // 2. Calculate KPI Stats
     const stats = {

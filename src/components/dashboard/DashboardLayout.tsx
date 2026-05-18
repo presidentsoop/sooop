@@ -63,6 +63,7 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
         { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
         { href: "/dashboard/members", label: "All Members", icon: Users },
         { href: "/dashboard/verify", label: "Verify Applications", icon: FileText },
+        { href: "/dashboard/seminars", label: "Seminars & Certificates", icon: Calendar },
         { href: "/dashboard/events", label: "Manage Events", icon: Calendar },
         { href: "/dashboard/leadership", label: "Leadership & Wings", icon: Users },
         { href: "/dashboard/fees", label: "Nomination Fees", icon: DollarSign },
@@ -75,7 +76,8 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
 
     const memberLinks = [
         { href: "/dashboard", label: "My Overview", icon: LayoutDashboard },
-        { href: "/dashboard/card", label: "Membershp Certificate", icon: CreditCard },
+        { href: "/dashboard/card", label: "Membership Certificate", icon: CreditCard },
+        { href: "/dashboard/my-seminars", label: "My Seminars", icon: FileText },
         { href: "/dashboard/profile", label: "My Profile", icon: User },
         { href: "/dashboard/payments", label: "Fee & Payments", icon: DollarSign },
         { href: "/dashboard/documents", label: "My Documents", icon: FileText },
