@@ -98,11 +98,11 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
 
             {/* SIDEBAR */}
             <aside
-                className={`fixed lg:static inset-y-0 left-0 z-50 w-[280px] bg-primary text-white transform transition-transform duration-300 ease-out shadow-2xl flex flex-col border-r border-white/5 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+                className={`fixed lg:static inset-y-0 left-0 z-50 ${isCollapsed ? "w-[80px]" : "w-[280px]"} bg-primary text-white transform transition-all duration-300 ease-out shadow-2xl flex flex-col border-r border-white/5 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
                     }`}
             >
                 {/* Brand Header */}
-                <div className="h-20 flex items-center px-6 border-b border-white/10 bg-primary-950/20">
+                <div className={`h-20 flex items-center border-b border-white/10 bg-primary-950/20 ${isCollapsed ? "justify-center px-0" : "px-6"}`}>
                     <Link href="/dashboard" className="flex items-center gap-3 group">
                         <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-accent-500/20 ring-1 ring-white/10 overflow-hidden shrink-0">
                             <Image
@@ -114,16 +114,18 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
                                 priority
                             />
                         </div>
-                        <div>
-                            <h1 className="font-heading font-bold text-xl tracking-tight leading-none text-white group-hover:text-accent-300 transition-colors">SOOOP</h1>
-                            <p className="text-[10px] text-accent-300 font-bold tracking-[0.2em] uppercase mt-1 opacity-80">Membership</p>
-                        </div>
+                        {!isCollapsed && (
+                            <div className="animate-fade-in">
+                                <h1 className="font-heading font-bold text-xl tracking-tight leading-none text-white group-hover:text-accent-300 transition-colors">SOOOP</h1>
+                                <p className="text-[10px] text-accent-300 font-bold tracking-[0.2em] uppercase mt-1 opacity-80">Membership</p>
+                            </div>
+                        )}
                     </Link>
                 </div>
 
                 {/* Navigation Links */}
-                <nav className="flex-1 overflow-y-auto py-8 px-4 space-y-1 custom-scrollbar">
-                    <p className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 opacity-50">Main Menu</p>
+                <nav className={`flex-1 overflow-y-auto py-8 space-y-1 custom-scrollbar ${isCollapsed ? "px-2" : "px-4"}`}>
+                    {!isCollapsed && <p className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 opacity-50 animate-fade-in">Main Menu</p>}
                     {links.map((link) => {
                         const isActive = pathname === link.href;
                         const Icon = link.icon;
@@ -133,14 +135,15 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
                                 key={link.href}
                                 href={link.href}
                                 onClick={() => setIsSidebarOpen(false)}
-                                className={`group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 outline-none relative overflow-hidden ${isActive
+                                title={isCollapsed ? link.label : undefined}
+                                className={`group flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-4"} py-3 rounded-xl transition-all duration-300 outline-none relative overflow-hidden ${isActive
                                     ? "bg-accent-500 text-white shadow-lg shadow-accent-500/20 font-semibold"
                                     : "text-gray-400 hover:bg-white/5 hover:text-gray-200"
                                     }`}
                             >
-                                <Icon className={`w-5 h-5 transition-colors relative z-10 ${isActive ? "text-white" : "text-gray-500 group-hover:text-accent-300"}`} />
-                                <span className="tracking-wide text-sm relative z-10">{link.label}</span>
-                                {isActive && (
+                                <Icon className={`w-5 h-5 transition-colors relative z-10 shrink-0 ${isActive ? "text-white" : "text-gray-500 group-hover:text-accent-300"}`} />
+                                {!isCollapsed && <span className="tracking-wide text-sm relative z-10 animate-fade-in truncate">{link.label}</span>}
+                                {isActive && !isCollapsed && (
                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] animate-[shimmer_2s_infinite]"></div>
                                 )}
                             </Link>
@@ -150,28 +153,37 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
                     {/* CMS Links (Admin Only) */}
                     {userRole === 'admin' && pages.length > 0 && (
                         <div className="mt-8">
-                            <p className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 opacity-50">Content</p>
+                            {!isCollapsed && <p className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 opacity-50 animate-fade-in">Content</p>}
                             {pages.map(page => (
                                 <Link
                                     key={page.id}
                                     href={`/dashboard/cms/${page.slug}`}
-                                    className={`group flex items-center gap-3 px-4 py-2 rounded-xl transition-all duration-200 text-sm ${pathname === `/dashboard/cms/${page.slug}`
+                                    title={isCollapsed ? page.title : undefined}
+                                    className={`group flex items-center ${isCollapsed ? "justify-center px-0" : "gap-3 px-4"} py-2 rounded-xl transition-all duration-200 text-sm ${pathname === `/dashboard/cms/${page.slug}`
                                         ? 'bg-white/10 text-white'
                                         : 'text-gray-400 hover:text-white'
                                         }`}
                                 >
-                                    <FileText className="w-4 h-4 opacity-50" />
-                                    <span className="truncate">{page.title}</span>
+                                    <FileText className="w-4 h-4 opacity-50 shrink-0" />
+                                    {!isCollapsed && <span className="truncate animate-fade-in">{page.title}</span>}
                                 </Link>
                             ))}
                         </div>
                     )}
                 </nav>
 
+                {/* Collapse Toggle Button */}
+                <button
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    className="hidden lg:flex items-center justify-center py-2 bg-primary-950/20 border-t border-white/5 hover:bg-white/5 transition-colors text-gray-400 hover:text-white"
+                >
+                    {isCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+                </button>
+
                 {/* Bottom Actions */}
                 <div className="p-4 border-t border-white/10 bg-primary-950/20 space-y-2">
-                    <div className="bg-gradient-to-br from-white/5 to-white/0 rounded-xl p-3 border border-white/5 flex items-center gap-3 relative group overflow-hidden transition-all hover:bg-white/10 cursor-pointer">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-accent-500 to-purple-500 p-[2px] shadow-lg">
+                    <div className={`bg-gradient-to-br from-white/5 to-white/0 rounded-xl ${isCollapsed ? "p-2 justify-center" : "p-3"} border border-white/5 flex items-center gap-3 relative group overflow-hidden transition-all hover:bg-white/10 cursor-pointer`}>
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-accent-500 to-purple-500 p-[2px] shadow-lg shrink-0">
                             <div className="w-full h-full rounded-full bg-primary flex items-center justify-center overflow-hidden">
                                 {userName ? (
                                     <div className="w-full h-full bg-primary-600 flex items-center justify-center font-bold text-sm">
@@ -180,15 +192,17 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
                                 ) : <User className="w-5 h-5" />}
                             </div>
                         </div>
-                        <div className="flex-1 min-w-0 z-10">
-                            <p className="text-sm font-bold text-white truncate group-hover:text-accent-200 transition-colors">{userName}</p>
-                            <p className="text-[10px] text-gray-400 truncate uppercase tracking-wider font-semibold">{userRole}</p>
-                        </div>
+                        {!isCollapsed && (
+                            <div className="flex-1 min-w-0 z-10 animate-fade-in">
+                                <p className="text-sm font-bold text-white truncate group-hover:text-accent-200 transition-colors">{userName}</p>
+                                <p className="text-[10px] text-gray-400 truncate uppercase tracking-wider font-semibold">{userRole}</p>
+                            </div>
+                        )}
 
                         {/* Logout Button Absolute */}
                         <button
                             onClick={handleSignOut}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-lg transition-all duration-200 z-50"
+                            className={`${isCollapsed ? "static mt-2 w-full flex justify-center" : "absolute right-2 top-1/2 -translate-y-1/2"} p-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-lg transition-all duration-200 z-50`}
                             title="Sign Out"
                         >
                             <LogOut className="w-4 h-4" />

@@ -31,15 +31,9 @@ export default async function CertificatesPage() {
         .order("full_name", { ascending: true });
 
     return (
-        <DashboardLayout
-            userRole="admin"
-            userName={profile?.full_name}
-            userEmail={profile?.email}
-        >
-            <CertificatesView
-                initialCertificates={certificates || []}
-                allMembers={members || []}
-            />
-        </DashboardLayout>
+        <CertificatesView
+            initialCertificates={certificates || []}
+            allMembers={members || []}
+        />
     );
 }
