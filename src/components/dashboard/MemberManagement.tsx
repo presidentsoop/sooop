@@ -68,6 +68,11 @@ export default function MemberManagement() {
     const [memberToEditReg, setMemberToEditReg] = useState<Member | null>(null);
     const [editRegInput, setEditRegInput] = useState("");
 
+    // Custom Renew Modal State
+    const [renewModalOpen, setRenewModalOpen] = useState(false);
+    const [memberToRenew, setMemberToRenew] = useState<Member | null>(null);
+    const [renewDateInput, setRenewDateInput] = useState("");
+
     const supabase = createClient();
 
     // History State Management for Modal
@@ -188,14 +193,6 @@ export default function MemberManagement() {
             updateData.subscription_end_date = endDate.toISOString();
             if (registrationNumber) updateData.registration_number = registrationNumber;
             successMessage = 'Member approved & activated for 1 year';
-        } else if (action === 'renew') {
-            const baseDate = (member.subscription_end_date && !isPast(new Date(member.subscription_end_date)))
-                ? new Date(member.subscription_end_date)
-                : new Date();
-            const endDate = addYears(baseDate, 1);
-            updateData.membership_status = 'active';
-            updateData.subscription_end_date = endDate.toISOString();
-            successMessage = 'Subscription renewed for 1 year';
         } else if (action === 'block') {
             updateData.membership_status = 'blocked';
             successMessage = 'Member blocked';
@@ -361,6 +358,49 @@ export default function MemberManagement() {
         }
         setEditRegModalOpen(false);
         setMemberToEditReg(null);
+        setActionLoading(null);
+    };
+
+    // Open Renew Modal
+    const openRenewModal = (member: Member) => {
+        handleCloseModal(); // Close detail modal
+        setTimeout(() => {
+            setMemberToRenew(member);
+            const baseDate = (member.subscription_end_date && !isPast(new Date(member.subscription_end_date)))
+                ? new Date(member.subscription_end_date)
+                : new Date();
+            const defaultEndDate = addYears(baseDate, 1);
+            setRenewDateInput(format(defaultEndDate, 'yyyy-MM-dd'));
+            setRenewModalOpen(true);
+        }, 150);
+    };
+
+    // Confirm Renew
+    const confirmRenew = async () => {
+        if (!memberToRenew) return;
+        if (!renewDateInput) {
+            toast.error("Please select a valid end date");
+            return;
+        }
+
+        setActionLoading(memberToRenew.id);
+        const updateData = {
+            membership_status: 'active',
+            subscription_end_date: new Date(renewDateInput).toISOString(),
+            updated_at: new Date().toISOString()
+        };
+
+        const { error } = await updateMemberProfile(memberToRenew.id, updateData);
+
+        if (error) {
+            toast.error("Failed to renew member");
+        } else {
+            toast.success("Subscription renewed successfully");
+            setMembers(members.map(m => m.id === memberToRenew.id ? { ...m, ...updateData } : m));
+        }
+
+        setRenewModalOpen(false);
+        setMemberToRenew(null);
         setActionLoading(null);
     };
 
@@ -570,7 +610,7 @@ export default function MemberManagement() {
                         ) : (
                             <>
                                 <button
-                                    onClick={() => handleAction(row.id, 'renew')}
+                                    onClick={() => openRenewModal(row)}
                                     className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                     title="Renew Subscription"
                                 >
@@ -901,6 +941,50 @@ export default function MemberManagement() {
                             className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-mono placeholder:text-gray-400"
                             placeholder="e.g. SOOOP-2024-001"
                             autoFocus
+                        />
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Custom Renew Modal */}
+            <Modal
+                isOpen={renewModalOpen}
+                onClose={() => setRenewModalOpen(false)}
+                title="Renew Subscription"
+                subtitle={memberToRenew?.full_name}
+                size="md"
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={() => setRenewModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="primary"
+                            onClick={confirmRenew}
+                            loading={!!(memberToRenew && actionLoading === memberToRenew.id)}
+                            icon={<RefreshCw className="w-4 h-4" />}
+                        >
+                            Confirm Renewal
+                        </Button>
+                    </>
+                }
+            >
+                <div className="p-6 space-y-4">
+                    <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg flex flex-col gap-1 text-sm text-blue-800">
+                        <p><strong>Current Expiration:</strong> {memberToRenew?.subscription_end_date ? format(new Date(memberToRenew.subscription_end_date), 'MMM d, yyyy') : 'None / Expired'}</p>
+                        <p>You can set a custom expiration date below. It defaults to exactly 1 year from their current end date (or today if expired).</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            New Expiration Date <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="date"
+                            value={renewDateInput}
+                            onChange={(e) => setRenewDateInput(e.target.value)}
+                            className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-mono"
+                            required
                         />
                     </div>
                 </div>
