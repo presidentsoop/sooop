@@ -30,7 +30,7 @@ type Profile = {
     id: string;
     full_name: string;
     email: string;
-    membership_number: string;
+    registration_number: string;
 };
 
 export default function SeminarManagement() {
@@ -59,7 +59,7 @@ export default function SeminarManagement() {
         const [seminarsRes, templatesRes, profilesRes] = await Promise.all([
             supabase.from("seminars").select("*").order("seminar_date", { ascending: false }),
             supabase.from("certificate_templates").select("*").order("created_at", { ascending: false }),
-            supabase.from("profiles").select("id, full_name, email, membership_number")
+            supabase.from("profiles").select("id, full_name, email, registration_number")
         ]);
 
         if (seminarsRes.error) toast.error("Failed to load seminars");
@@ -352,7 +352,7 @@ export default function SeminarManagement() {
                                 .filter(p => 
                                     p.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
                                     p.email?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                    p.membership_number?.toLowerCase().includes(searchQuery.toLowerCase())
+                                    p.registration_number?.toLowerCase().includes(searchQuery.toLowerCase())
                                 )
                                 .slice(0, 15)
                                 .map(profile => {
@@ -361,7 +361,7 @@ export default function SeminarManagement() {
                                         <div key={profile.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg shadow-sm">
                                             <div>
                                                 <p className="font-semibold text-sm text-gray-900">{profile.full_name}</p>
-                                                <p className="text-xs text-gray-500">{profile.membership_number || profile.email}</p>
+                                                <p className="text-xs text-gray-500">{profile.registration_number || profile.email}</p>
                                             </div>
                                             {isAttending ? (
                                                 <button onClick={() => handleRemoveAttendee(profile.id)} className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors">Remove</button>
@@ -382,7 +382,7 @@ export default function SeminarManagement() {
                                             <div key={profile.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg shadow-sm border-l-4 border-l-green-500">
                                                 <div>
                                                     <p className="font-semibold text-sm text-gray-900">{profile.full_name}</p>
-                                                    <p className="text-xs text-gray-500">{profile.membership_number || profile.email}</p>
+                                                    <p className="text-xs text-gray-500">{profile.registration_number || profile.email}</p>
                                                 </div>
                                                 <button onClick={() => handleRemoveAttendee(profile.id)} className="px-3 py-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors">Remove</button>
                                             </div>
