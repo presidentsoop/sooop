@@ -103,21 +103,28 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
             >
                 {/* Brand Header */}
                 <div className={`h-20 flex items-center border-b border-white/10 bg-primary-950/20 ${isCollapsed ? "justify-center px-0" : "px-6"}`}>
-                    <Link href="/dashboard" className="flex items-center gap-3 group">
-                        <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-accent-500/20 ring-1 ring-white/10 overflow-hidden shrink-0">
-                            <Image
-                                src="/logo.jpg"
-                                alt="SOOOP Logo"
-                                width={44}
-                                height={44}
-                                className="w-full h-full object-contain p-0.5"
-                                priority
-                            />
-                        </div>
-                        {!isCollapsed && (
-                            <div className="animate-fade-in">
-                                <h1 className="font-heading font-bold text-xl tracking-tight leading-none text-white group-hover:text-accent-300 transition-colors">SOOOP</h1>
-                                <p className="text-[10px] text-accent-300 font-bold tracking-[0.2em] uppercase mt-1 opacity-80">Membership</p>
+                    <Link href="/dashboard" className={`flex items-center group ${isCollapsed ? "justify-center w-full" : "w-full"}`}>
+                        {isCollapsed ? (
+                            <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-accent-500/20 ring-1 ring-white/10 overflow-hidden shrink-0">
+                                <Image
+                                    src="/logo.jpg"
+                                    alt="SOOOP Logo"
+                                    width={44}
+                                    height={44}
+                                    className="w-full h-full object-contain p-0.5"
+                                    priority
+                                />
+                            </div>
+                        ) : (
+                            <div className="w-full max-w-[200px] h-14 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-accent-500/20 ring-1 ring-white/10 overflow-hidden shrink-0 px-2 animate-fade-in">
+                                <Image
+                                    src="/logo.jpg"
+                                    alt="SOOOP Logo"
+                                    width={200}
+                                    height={56}
+                                    className="w-full h-full object-contain p-1"
+                                    priority
+                                />
                             </div>
                         )}
                     </Link>

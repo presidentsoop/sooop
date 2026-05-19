@@ -103,7 +103,7 @@ export default function MemberManagement() {
 
     useEffect(() => {
         fetchMembers();
-    }, [activeTab]);
+    }, []);
 
     // Fetch documents when member is selected
     useEffect(() => {
@@ -128,10 +128,6 @@ export default function MemberManagement() {
                 .select('*')
                 .order('created_at', { ascending: false })
                 .range(page * pageSize, (page + 1) * pageSize - 1);
-
-            if (activeTab !== 'all') {
-                query = query.eq('membership_status', activeTab);
-            }
 
             const { data, error } = await query;
             if (error) {
@@ -414,6 +410,11 @@ export default function MemberManagement() {
         rejected: members.filter(m => m.membership_status === 'rejected').length,
     };
 
+    // Derived state for the table
+    const filteredMembers = activeTab === 'all' 
+        ? members 
+        : members.filter(m => m.membership_status === activeTab);
+
     // Mobile Row Renderer (Card View)
     const renderMobileRow = (row: Member) => (
         <div className="p-4 flex items-center justify-between gap-4">
@@ -568,7 +569,7 @@ export default function MemberManagement() {
 
             {/* Data Table */}
             <DataTable
-                data={members}
+                data={filteredMembers}
                 columns={columns}
                 pageSize={20}
                 searchable={true}

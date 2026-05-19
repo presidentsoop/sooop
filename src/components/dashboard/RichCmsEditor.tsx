@@ -212,14 +212,16 @@ export default function RichCmsEditor({ pageId, initialContent, pageTitle }: Ric
     };
 
     return (
-        <div className="flex h-[calc(100vh-140px)] gap-6">
-            {/* Left Sidebar - Navigation */}
-            <div className="w-64 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-                <div className="p-4 border-b border-gray-100 bg-gray-50/50">
-                    <h3 className="font-bold text-gray-900">Page Sections</h3>
-                    <p className="text-xs text-gray-500">Select a section to edit</p>
+        <div className="flex flex-col h-[calc(100vh-140px)] gap-4">
+            {/* Top Bar - Navigation (Replaced Left Sidebar) */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden shrink-0">
+                <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                    <div>
+                        <h3 className="font-bold text-gray-900">Page Sections</h3>
+                        <p className="text-xs text-gray-500">Select a section to edit</p>
+                    </div>
                 </div>
-                <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                <div className="flex overflow-x-auto p-2 gap-2 custom-scrollbar">
                     {/* Sort Keys based on logical order */}
                     {Object.keys(content).sort((a, b) => {
                         const order = ['hero', 'stats', 'about', 'benefits', 'features', 'sponsors', 'leadership', 'resources', 'testimonials', 'faq', 'cta'];
@@ -233,13 +235,13 @@ export default function RichCmsEditor({ pageId, initialContent, pageTitle }: Ric
                         <button
                             key={key}
                             onClick={() => setActiveSection(key)}
-                            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center justify-between ${activeSection === key
+                            className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${activeSection === key
                                 ? 'bg-purple-50 text-purple-700 shadow-sm border border-purple-100'
-                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border border-transparent'
                                 }`}
                         >
                             <span className="capitalize">{key.replace(/_/g, ' ')}</span>
-                            {activeSection === key && <ChevronRight className="w-4 h-4" />}
+                            {activeSection === key && <ChevronRight className="w-4 h-4 rotate-90" />}
                         </button>
                     ))}
                 </div>

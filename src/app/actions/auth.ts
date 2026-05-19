@@ -126,7 +126,7 @@ export async function activateExistingMembership(email: string): Promise<{
             console.error('Create user error:', createError);
             return {
                 success: false,
-                message: 'Failed to initialize account. Please try again or contact support.'
+                message: `Failed to initialize account: ${createError.message}`
             };
         }
 
